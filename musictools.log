@@ -1,0 +1,7 @@
+[2020-06-29][14:31:27][ttf_rs][TRACE] Log started.
+[2020-06-29][14:31:27][ttf_rs][DEBUG] Verbosity: 5
+[2020-06-29][15:03:19][ttf_rs][TRACE] Log started.
+[2020-06-29][15:03:19][ttf_rs][DEBUG] Verbosity: 5
+[2020-06-29][16:29:02][ttf_rs][TRACE] Log started.
+[2020-06-29][16:29:02][ttf_rs][DEBUG] Verbosity: 5
+[2020-06-29][16:29:02][ttf_rs][DEBUG] Token { line_no: 0, char_no: 0, ttype: AMPERSAND, value: None }

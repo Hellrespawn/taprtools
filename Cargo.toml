@@ -1,0 +1,20 @@
+[package]
+name = "musictools"
+version = "0.1.0"
+authors = ["Stef Korporaal <stefkorporaal@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+name = "ttf_rs"
+path = "src/bin/tag_to_filename.rs"
+
+[dependencies]
+bimap = "0.4"
+chrono = "0.4"
+fern = "0.6"
+gumdrop = "0.8"
+lazy_static = "1.4"
+log = "0.4"
+unicode-segmentation = "1.6"
