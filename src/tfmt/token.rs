@@ -44,7 +44,7 @@ pub enum TokenType {
 }
 
 lazy_static! {
-    static ref TOKEN_TYPES: BiMap<TokenType, &'static str> = {
+    pub static ref TOKEN_TYPES: BiMap<TokenType, &'static str> = {
         let mut ttypes = BiMap::new();
         ttypes.insert(TokenType::AMPERSAND, "&");
         ttypes.insert(TokenType::ANGLE_BRACKET_LEFT, "<");
