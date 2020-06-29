@@ -86,7 +86,7 @@ lazy_static! {
     };
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Token {
     line_no: u32,
     char_no: u32,

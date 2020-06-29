@@ -56,36 +56,72 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn advance(&mut self) {
-        match self.current_char() {
-            Some(string) => {
-                if string == "\n" {
-                    self.line_no += 1;
-                    self.char_no = 1;
-                } else {
-                    self.char_no += 1;
-                }
+    fn advance(&mut self) -> Result<(), &'static str> {
+        if let Some(string) = self.current_char() {
+            if string == "\n" {
+                self.line_no += 1;
+                self.char_no = 1;
+            } else {
+                self.char_no += 1;
             }
-            None => (),
+        } else {
+            return Err("Exhausted input!");
         }
 
         self.index += 1;
+        Ok(())
     }
 
     fn crawl(
-        &self,
-        terminators: Vec<&str>,
+        &mut self,
+        terminators: Vec<String>,
         discard_terminator: bool,
         terminate_on_eof: bool,
         skip_chars: u32,
     ) -> Result<String, &'static str> {
-        // TODO Implement crawl
-        Ok(String::from("Return from crawl"))
+        for _ in 1..=skip_chars {
+            self.advance()?;
+        }
+
+        let mut string = String::new();
+
+        loop {
+            match self.current_char() {
+                Some(char) => {
+                    if let Some(index) = terminators
+                        .iter()
+                        .position(|s| s == &String::from(char))
+                    {
+                        if discard_terminator {
+                            for _ in 1..=terminators[index].len() {
+                                self.advance()?;
+                            }
+                        };
+                        break;
+                    } else {
+                        string.push_str(char);
+                    }
+                }
+                None => {
+                    if !terminate_on_eof {
+                        return Err("Crawl reached EOF before terminator!");
+                    } else {
+                        break;
+                    }
+                }
+            }
+            self.advance()?;
+        }
+
+        Ok(string)
     }
 
-    fn handle_string(&self, multiline: bool) -> Result<String, &'static str> {
+    fn handle_string(
+        &mut self,
+        multiline: bool,
+    ) -> Result<String, &'static str> {
         // Should never panic here.
-        let quote = &self.current_char().unwrap();
+        let quote = String::from(self.current_char().unwrap());
 
         let skip_chars = if multiline { 3 } else { 1 };
 
@@ -93,7 +129,7 @@ impl<'a> Lexer<'a> {
         // TODO Check for forbidden chars here.
     }
 
-    fn handle_bounded(&self) -> Result<Option<Token>, &'static str> {
+    fn handle_bounded(&mut self) -> Result<Option<Token>, &'static str> {
         // Might panic here?
         let current_char = &self.current_char().unwrap();
 
@@ -103,13 +139,8 @@ impl<'a> Lexer<'a> {
         ];
 
         if quotes.contains(&current_char) {
-            let multiline = if self
-                .test_current_string(&format!("{0}{0}{0}", current_char))
-            {
-                true
-            } else {
-                false
-            };
+            let multiline =
+                self.test_current_string(&format!("{0}{0}{0}", current_char));
 
             Ok(Some(Token::new(
                 self.line_no,
@@ -153,16 +184,96 @@ impl<'a> Lexer<'a> {
             .chars()
             .all(|c| c.is_whitespace())
         {
-            self.advance();
+            self.advance()?;
         }
 
-        for handler in &[Lexer::handle_bounded, Lexer::handle_reserved] {
-            match handler(self)? {
-                Some(token) => return Ok(Some(token)),
-                None => (),
-            }
+        if let Some(token) = self.handle_bounded()? {
+            return Ok(Some(token));
+        }
+
+        if let Some(token) = self.handle_reserved()? {
+            return Ok(Some(token));
         }
 
         self.handle_misc_tokens()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    static DOUBLE_QUOTED_STRING: &str = "\"This is a double-quoted string\"";
+    static SINGLE_QUOTED_STRING: &str = "'This is a single-quoted string'";
+
+    // mod lexer {
+    //     use super::*;
+
+    //     fn lexer_test(string: &str, reference: Vec<Token>) -> Result<(), String> {
+    //         let string = String::from(string);
+    //         let lex = Lexer::new(&string);
+
+    //         let tokens: Vec<Token> = lex.collect();
+
+    //         if tokens != reference {
+    //             Err(format!("Tokens don't match!\nExpected: {:?}\nFound: {:?}", reference, tokens))
+    //         } else {
+    //             Ok(())
+    //         }
+    //     }
+
+    //     #[test]
+    //     fn test_double_quoted() -> Result<(), String> {
+    //             lexer_test(DOUBLE_QUOTED_STRING, vec!(Token::new(1, 1, TokenType::STRING, Some(String::from(DOUBLE_QUOTED_STRING)))))
+    //     }
+
+    //     #[test]
+    //     fn test_single_quoted() -> Result<(), String> {
+    //         lexer_test(SINGLE_QUOTED_STRING, vec!(Token::new(1, 1, TokenType::STRING, Some(String::from(SINGLE_QUOTED_STRING)))))
+    //     }
+    // }
+
+    mod crawler {
+        use super::*;
+
+        fn crawler_test(
+            string: &String,
+            reference: &str,
+            terminators: Vec<String>,
+            discard_terminator: bool,
+            terminate_on_eof: bool,
+            skip_chars: u32,
+        ) -> Result<(), String> {
+            let mut lex = Lexer::new(&string);
+
+            let output = lex.crawl(
+                terminators,
+                discard_terminator,
+                terminate_on_eof,
+                skip_chars,
+            )?;
+
+            assert_eq!(output, reference);
+
+            Ok(())
+        }
+
+        fn string_test(string: &str) -> Result<(), String> {
+            let string = String::from(string);
+            let reference = &string[1..string.len() - 1];
+            let terminators = vec![string.chars().next().unwrap().to_string()];
+
+            crawler_test(&string, reference, terminators, true, false, 1)
+        }
+
+        #[test]
+        fn test_double_quoted() -> Result<(), String> {
+            string_test(DOUBLE_QUOTED_STRING)
+        }
+
+        #[test]
+        fn test_single_quoted() -> Result<(), String> {
+            string_test(SINGLE_QUOTED_STRING)
+        }
     }
 }
