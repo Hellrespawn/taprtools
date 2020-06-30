@@ -1,0 +1,20 @@
+typical_input(folder="destination") "This file is used to test musictools."
+{
+    $(folder) "/"
+    <albumartist> | <artist>
+    "/"
+
+    (
+        <date> & ( # This is a single-line comment
+            $year_from_date(<date>)
+            <albumsort> & ("." $num(<albumsort>, 2) )
+            " - "
+        )
+        <album>
+    ) && "/" /* This is a multiline comment.
+    Here's the second line! */
+    <discnumber> ? $num(<discnumber>, 1) : ""
+    <tracknumber> & ($num(<tracknumber>, 2)" - ")
+    $if(<albumartist>, (<artist>" - "), "")
+    <title>
+}

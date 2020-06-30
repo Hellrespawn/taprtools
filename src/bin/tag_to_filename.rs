@@ -2,7 +2,6 @@ use gumdrop::Options;
 use log::LevelFilter;
 use log::{debug, log};
 use std::env::args;
-use std::error::Error;
 
 use musictools::tfmt;
 
@@ -56,7 +55,7 @@ fn verbosity_from_args() -> usize {
     VerbOptions::parse_args_default_or_exit().verbosity
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<(), String> {
     let verbosity = verbosity_from_args();
 
     setup_logger(verbosity).unwrap();
@@ -69,7 +68,22 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut lex = tfmt::lexer::Lexer::new(test_string);
 
-    debug!("{:?}", lex.next().unwrap());
+    let mut tokens: Vec<tfmt::token::Token> = Vec::new();
+
+    loop {
+        match lex.next_token() {
+            Ok(Some(token)) => tokens.push(token),
+            Ok(None) => {
+                debug!("{:#?}", tokens);
+                break
+            },
+            Err(err) => {
+                println!("Error: {}", err);
+                break
+            }
+        }
+    }
+
 
     Ok(())
 }

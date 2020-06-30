@@ -86,11 +86,29 @@ lazy_static! {
     };
 }
 
+lazy_static! {
+    pub static ref RESERVED_CHARS: Vec<&'static str> = {
+        let mut reserved = Vec::new();
+        for (_, string) in TOKEN_TYPES.iter() {
+            if !string.chars().all(|c| c.is_alphabetic()) {
+                reserved.push(*string)
+            }
+        }
+        reserved.sort_by(|a, b| a.len().cmp(&b.len()));
+        reserved.reverse();
+        reserved
+    };
+}
+
+// FIXME Filter dir separator based on platform. Currently manually removed.
+pub static FORBIDDEN_CHARS: [&str; 9] =
+    ["\\", "<", ">", ":", "\"", "|", "?", "*", "~"];
+
 #[derive(Debug, PartialEq)]
 pub struct Token {
     line_no: u32,
     char_no: u32,
-    ttype: TokenType,
+    pub ttype: TokenType,
     value: Option<String>,
 }
 
