@@ -55,7 +55,7 @@ lazy_static! {
         ttypes.insert(TokenType::CURLY_BRACE_RIGHT, "}");
         ttypes.insert(TokenType::COLON, ":");
         ttypes.insert(TokenType::DOLLAR, "$");
-        ttypes.insert(TokenType::EQUALS, "=>");
+        ttypes.insert(TokenType::EQUALS, "=");
         ttypes.insert(TokenType::HASH, "#");
         ttypes.insert(TokenType::HYPHEN, "-");
         ttypes.insert(TokenType::ASTERISK, "*");

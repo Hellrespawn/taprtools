@@ -1,8 +1,9 @@
-use log::trace;
+use log::{debug, trace};
 use std::iter::Iterator;
 
 use unicode_segmentation::UnicodeSegmentation;
 
+use crate::error::LexerError;
 use crate::tfmt::token::{self, Token, TokenType, RESERVED_CHARS, TOKEN_TYPES};
 
 pub struct Lexer<'a> {
@@ -25,10 +26,10 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn current_char(&self) -> Result<&str, String> {
+    fn current_char(&self) -> Result<&str, LexerError> {
         match self.text.get(self.index) {
             Some(string) => Ok(&string),
-            None => Err(String::from("Exhausted characters!")),
+            None => Err(LexerError::ExhaustedStream),
         }
     }
 
@@ -46,7 +47,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn advance(&mut self) -> Result<(), &'static str> {
+    fn advance(&mut self) -> Result<(), LexerError> {
         if let Ok(string) = self.current_char() {
             if string == "\n" {
                 self.line_no += 1;
@@ -55,14 +56,14 @@ impl<'a> Lexer<'a> {
                 self.char_no += 1;
             }
         } else {
-            return Err("Exhausted input!");
+            return Err(LexerError::ExhaustedStream);
         }
 
         self.index += 1;
         Ok(())
     }
 
-    fn advance_times(&mut self, times: u32) -> Result<(), &'static str> {
+    fn advance_times(&mut self, times: u32) -> Result<(), LexerError> {
         for _ in 1..=times {
             self.advance()?;
         }
@@ -75,7 +76,7 @@ impl<'a> Lexer<'a> {
         discard_terminator: bool,
         terminate_on_eof: bool,
         skip_chars: u32,
-    ) -> Result<String, String> {
+    ) -> Result<String, LexerError> {
         self.advance_times(skip_chars)?;
 
         let mut string = String::new();
@@ -102,8 +103,8 @@ impl<'a> Lexer<'a> {
                 Ok(char) => string.push_str(char),
                 Err(_) => {
                     if !terminate_on_eof {
-                        return Err(String::from(
-                            "Crawl reached EOF before terminator!",
+                        return Err(LexerError::Crawler(
+                            "Crawl reached EOF before terminator!".to_owned(),
                         ));
                     } else {
                         break;
@@ -116,9 +117,11 @@ impl<'a> Lexer<'a> {
         Ok(string)
     }
 
-    fn handle_string(&mut self, multiline: bool) -> Result<String, String> {
-        // Checked in handle_bounded. should never panic.
-        let quote = String::from(self.current_char().unwrap());
+    fn handle_string(&mut self, multiline: bool) -> Result<String, LexerError> {
+        let quote = String::from(
+            self.current_char()
+                .expect("Checked in handle_bounded. Should never panic."),
+        );
 
         let skip_chars = if multiline { 3 } else { 1 };
 
@@ -126,32 +129,39 @@ impl<'a> Lexer<'a> {
 
         for char in &token::FORBIDDEN_CHARS {
             if string.contains(char) {
-                return Err(format!(
+                return Err(LexerError::Lexer(format!(
                     "String contains forbidden char {:?}!",
                     char
-                ));
+                )));
             }
         }
 
         Ok(string)
     }
 
-    fn handle_bounded(&mut self) -> Result<Option<Token>, String> {
+    fn handle_bounded(&mut self) -> Result<Option<Token>, LexerError> {
         // Might panic here?
         let current_char = &self.current_char()?;
 
-        // Should never panic, all TokenTypes are in TOKEN_TYPES.
+        let exp_string =
+            "Should never panic, all TokenTypes are in TOKEN_TYPES.";
         let quotes = [
-            TOKEN_TYPES.get_by_left(&TokenType::QUOTE_DOUBLE).unwrap(),
-            TOKEN_TYPES.get_by_left(&TokenType::QUOTE_SINGLE).unwrap(),
+            TOKEN_TYPES
+                .get_by_left(&TokenType::QUOTE_DOUBLE)
+                .expect(exp_string),
+            TOKEN_TYPES
+                .get_by_left(&TokenType::QUOTE_SINGLE)
+                .expect(exp_string),
         ];
 
         let single_line_comment =
-            TOKEN_TYPES.get_by_left(&TokenType::HASH).unwrap();
-        let multiline_comment_start =
-            TOKEN_TYPES.get_by_left(&TokenType::SLASH_ASTERISK).unwrap();
-        let multiline_comment_end =
-            TOKEN_TYPES.get_by_left(&TokenType::ASTERISK_SLASH).unwrap();
+            TOKEN_TYPES.get_by_left(&TokenType::HASH).expect(exp_string);
+        let multiline_comment_start = TOKEN_TYPES
+            .get_by_left(&TokenType::SLASH_ASTERISK)
+            .expect(exp_string);
+        let multiline_comment_end = TOKEN_TYPES
+            .get_by_left(&TokenType::ASTERISK_SLASH)
+            .expect(exp_string);
 
         if quotes.contains(&current_char) {
             let multiline =
@@ -176,7 +186,7 @@ impl<'a> Lexer<'a> {
                     single_line_comment.len() as u32,
                 )?),
             )))
-        } else if current_char == multiline_comment_start {
+        } else if self.test_current_string(multiline_comment_start) {
             Ok(Some(Token::new(
                 self.line_no,
                 self.char_no,
@@ -194,17 +204,16 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn handle_reserved(&mut self) -> Result<Option<Token>, &'static str> {
+    fn handle_reserved(&mut self) -> Result<Option<Token>, LexerError> {
         for chars in RESERVED_CHARS.iter() {
             if self.test_current_string(chars) {
-                // Use chars from TOKEN_TYPES, should always be safe.
                 let token = Token::new_type_from_char(
                     self.line_no,
                     self.char_no,
                     chars,
                     None,
                 )
-                .unwrap();
+                .expect("Use chars from TOKEN_TYPES, should always be safe.");
                 // FIXME Learn about casts.
                 self.advance_times(chars.len() as u32)?;
                 return Ok(Some(token));
@@ -214,7 +223,7 @@ impl<'a> Lexer<'a> {
         Ok(None)
     }
 
-    fn handle_misc_tokens(&mut self) -> Result<Option<Token>, String> {
+    fn handle_misc_tokens(&mut self) -> Result<Token, LexerError> {
         let (line_no_start, char_no_start) = (self.line_no, self.char_no);
 
         let current_char = self.current_char()?;
@@ -231,7 +240,7 @@ impl<'a> Lexer<'a> {
             );
             self.advance_times(3)?;
 
-            return Ok(Some(token));
+            Ok(token)
         } else {
             // ID
             let mut terminators: Vec<String> = Vec::new();
@@ -248,67 +257,58 @@ impl<'a> Lexer<'a> {
             if value.starts_with(|c: char| c.is_alphabetic())
                 && value.chars().all(|c| c.is_alphanumeric() || c == '_')
             {
-                return Ok(Some(Token::new(
+                Ok(Token::new(
                     line_no_start,
                     char_no_start,
                     TokenType::ID,
-                    Some(value)
-                )));
-
+                    Some(value),
+                ))
             } else if value.chars().all(|c| c.is_numeric()) {
-                return Ok(Some(Token::new(
+                Ok(Token::new(
                     line_no_start,
                     char_no_start,
                     TokenType::INTEGER,
-                    Some(value)
-                )));
-
+                    Some(value),
+                ))
             } else {
-                Err(format!("Unable to convert {} to Token!", value))
+                Err(LexerError::Token(value))
             }
         }
-
     }
 
-    pub fn next_token(&mut self) -> Result<Option<Token>, String> {
-        if self.current_char().is_err() {
-            if self.ended {
-                return Ok(None);
+    pub fn next_token(&mut self) -> Result<Option<Token>, LexerError> {
+        trace!("Current char is {:?}", self.current_char());
+
+        let token = {
+            if self.current_char().is_err() {
+                if self.ended {
+                    None
+                } else {
+                    self.ended = true;
+                    let token = Token::new(
+                        self.line_no,
+                        self.char_no,
+                        TokenType::EOF,
+                        None,
+                    );
+
+                    debug!("Returning token: {:#?}", token);
+                    Some(token)
+                }
+            } else if self.current_char()?.chars().all(|c| c.is_whitespace()) {
+                self.advance()?;
+                return self.next_token();
+            } else if let Some(token) = self.handle_bounded()? {
+                Some(token)
+            } else if let Some(token) = self.handle_reserved()? {
+                Some(token)
             } else {
-                self.ended = true;
-                let token = Token::new(
-                    self.line_no,
-                    self.char_no,
-                    TokenType::EOF,
-                    None,
-                );
-                trace!("Returning token: {:?}", token);
-                return Ok(Some(token));
+                Some(self.handle_misc_tokens()?)
             }
-        }
+        };
 
-        while self
-            .current_char()
-            .unwrap()
-            .chars()
-            .all(|c| c.is_whitespace())
-        {
-            self.advance()?;
-        }
-
-        if let Some(token) = self.handle_bounded()? {
-            trace!("Returning token: {:?}", token);
-            return Ok(Some(token));
-        }
-
-        if let Some(token) = self.handle_reserved()? {
-            trace!("Returning token: {:?}", token);
-            return Ok(Some(token));
-        }
-
-        let token = self.handle_misc_tokens();
-        trace!("Returning token: {:?}", token);
-        token
+        debug!("Returning token: {:#?}", token);
+        Ok(token)
     }
 }
 
@@ -356,6 +356,38 @@ mod tests {
         assert_eq!(tokens, reference);
 
         Ok(())
+    }
+
+    mod lexer {
+        use super::*;
+        use std::fs;
+        use std::path;
+
+        fn file_test(filename: &str) -> Result<(), String> {
+            let mut path = path::PathBuf::from(file!());
+            for _ in 1..=3 {
+                path.pop();
+            }
+            path.push("tests");
+            path.push("files");
+            path.push("config");
+            path.push(filename);
+
+            let input = fs::read_to_string(path)
+                .expect(&format!("{} doesn't exist!", filename));
+
+            run_lexer(&input, false).map(|_| ())
+        }
+
+        #[test]
+        fn test_simple_input() -> Result<(), String> {
+            file_test("simple_input.tfmt")
+        }
+
+        #[test]
+        fn test_typical_input() -> Result<(), String> {
+            file_test("typical_input.tfmt")
+        }
     }
 
     mod handle_reserved {
@@ -445,18 +477,24 @@ mod tests {
 
         #[test]
         fn test_id() -> Result<(), String> {
-            lexer_test("id", vec!(
-                Token::new(1, 1, TokenType::ID, Some(String::from("id")))
-            ))
+            lexer_test(
+                "id",
+                vec![Token::new(1, 1, TokenType::ID, Some(String::from("id")))],
+            )
         }
 
         #[test]
         fn test_integer() -> Result<(), String> {
-            lexer_test("1", vec!(
-                Token::new(1, 1, TokenType::INTEGER, Some(String::from("1")))
-            ))
+            lexer_test(
+                "1",
+                vec![Token::new(
+                    1,
+                    1,
+                    TokenType::INTEGER,
+                    Some(String::from("1")),
+                )],
+            )
         }
-
     }
 
     mod crawler {
@@ -469,7 +507,7 @@ mod tests {
             discard_terminator: bool,
             terminate_on_eof: bool,
             skip_chars: u32,
-        ) -> Result<(), String> {
+        ) -> Result<(), LexerError> {
             let mut lex = Lexer::new(&string);
 
             let output = lex.crawl(
@@ -484,7 +522,7 @@ mod tests {
             Ok(())
         }
 
-        fn string_test(string: &str) -> Result<(), String> {
+        fn string_test(string: &str) -> Result<(), LexerError> {
             let string = String::from(string);
             let reference = dequote(&string);
             let terminators = vec![string.chars().next().unwrap().to_string()];
@@ -493,17 +531,17 @@ mod tests {
         }
 
         #[test]
-        fn test_double_quoted() -> Result<(), String> {
+        fn test_double_quoted() -> Result<(), LexerError> {
             string_test(DOUBLE_QUOTED_STRING)
         }
 
         #[test]
-        fn test_single_quoted() -> Result<(), String> {
+        fn test_single_quoted() -> Result<(), LexerError> {
             string_test(SINGLE_QUOTED_STRING)
         }
 
         #[test]
-        fn test_single_line_comment() -> Result<(), String> {
+        fn test_single_line_comment() -> Result<(), LexerError> {
             crawler_test(
                 &String::from(SINGLE_LINE_COMMENT),
                 slice_ends(&SINGLE_LINE_COMMENT, 1, 0),
@@ -526,7 +564,7 @@ mod tests {
         }
 
         #[test]
-        fn test_mutliline_comment() -> Result<(), String> {
+        fn test_multiline_comment() -> Result<(), LexerError> {
             crawler_test(
                 &String::from(MULTILINE_COMMENT),
                 slice_ends(&MULTILINE_COMMENT, 2, 2),

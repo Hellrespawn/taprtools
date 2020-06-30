@@ -2,6 +2,8 @@ use gumdrop::Options;
 use log::LevelFilter;
 use log::{debug, log};
 use std::env::args;
+use std::fs;
+use std::path;
 
 use musictools::tfmt;
 
@@ -33,7 +35,7 @@ fn setup_logger(verbosity: usize) -> Result<(), fern::InitError> {
             ))
         })
         .level(level)
-        .chain(std::io::stderr())
+        //.chain(std::io::stderr())
         .chain(fern::log_file("musictools.log")?)
         .apply()?;
 
@@ -64,9 +66,19 @@ fn main() -> Result<(), String> {
 
     println!("Running {:?}", args().next().unwrap());
 
-    let test_string: &str = "simple_input() { <artist> \"/\" <title> }";
+    let mut path = path::PathBuf::from(file!());
+    for _ in 1..=3 {
+        path.pop();
+    }
+    path.push("tests");
+    path.push("files");
+    path.push("config");
+    path.push("typical_input.tfmt");
 
-    let mut lex = tfmt::lexer::Lexer::new(test_string);
+    let test_string =
+        fs::read_to_string(path).expect("typical_input.tfmt doesn't exist!");
+
+    let mut lex = tfmt::lexer::Lexer::new(&test_string);
 
     let mut tokens: Vec<tfmt::token::Token> = Vec::new();
 
@@ -75,15 +87,15 @@ fn main() -> Result<(), String> {
             Ok(Some(token)) => tokens.push(token),
             Ok(None) => {
                 debug!("{:#?}", tokens);
-                break
-            },
+                break;
+            }
             Err(err) => {
+                debug!("{:#?}", tokens);
                 println!("Error: {}", err);
-                break
+                break;
             }
         }
     }
-
 
     Ok(())
 }
