@@ -44,7 +44,7 @@ pub enum TokenType {
 }
 
 lazy_static! {
-    pub static ref TOKEN_TYPES: BiMap<TokenType, &'static str> = {
+    pub static ref TOKEN_TYPE_STRING_MAP: BiMap<TokenType, &'static str> = {
         let mut ttypes = BiMap::new();
         ttypes.insert(TokenType::AMPERSAND, "&");
         ttypes.insert(TokenType::ANGLE_BRACKET_LEFT, "<");
@@ -87,9 +87,9 @@ lazy_static! {
 }
 
 lazy_static! {
-    pub static ref RESERVED_CHARS: Vec<&'static str> = {
+    pub static ref RESERVED_STRINGS: Vec<&'static str> = {
         let mut reserved = Vec::new();
-        for (_, string) in TOKEN_TYPES.iter() {
+        for (_, string) in TOKEN_TYPE_STRING_MAP.iter() {
             if !string.chars().all(|c| c.is_alphabetic()) {
                 reserved.push(*string)
             }
@@ -101,13 +101,13 @@ lazy_static! {
 }
 
 // FIXME Filter dir separator based on platform. Currently manually removed.
-pub static FORBIDDEN_CHARS: [&str; 9] =
+pub static FORBIDDEN_GRAPHEMES: [&str; 9] =
     ["\\", "<", ">", ":", "\"", "|", "?", "*", "~"];
 
 #[derive(Debug, PartialEq)]
 pub struct Token {
     line_no: u32,
-    char_no: u32,
+    col_no: u32,
     pub ttype: TokenType,
     value: Option<String>,
 }
@@ -115,28 +115,28 @@ pub struct Token {
 impl Token {
     pub fn new(
         line_no: u32,
-        char_no: u32,
+        col_no: u32,
         ttype: TokenType,
         value: Option<String>,
     ) -> Token {
         Token {
             line_no,
-            char_no,
+            col_no,
             ttype,
             value,
         }
     }
 
-    pub fn new_type_from_char(
+    pub fn new_type_from_string(
         line_no: u32,
-        char_no: u32,
+        col_no: u32,
         ttype_char: &str,
         value: Option<String>,
     ) -> Result<Token, String> {
-        if let Some(ttype) = TOKEN_TYPES.get_by_right(&ttype_char) {
+        if let Some(ttype) = TOKEN_TYPE_STRING_MAP.get_by_right(&ttype_char) {
             Ok(Token {
                 line_no,
-                char_no,
+                col_no,
                 ttype: *ttype,
                 value,
             })

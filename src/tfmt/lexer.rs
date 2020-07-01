@@ -1,16 +1,16 @@
-use log::{debug, trace};
+use log::trace;
 use std::iter::Iterator;
 
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::error::LexerError;
-use crate::tfmt::token::{self, Token, TokenType, RESERVED_CHARS, TOKEN_TYPES};
+use crate::tfmt::token::{self, Token, TokenType, TOKEN_TYPE_STRING_MAP, RESERVED_STRINGS};
 
 pub struct Lexer<'a> {
     text: Vec<&'a str>,
     index: usize,
     line_no: u32,
-    char_no: u32,
+    col_no: u32,
     ended: bool,
 }
 
@@ -21,14 +21,14 @@ impl<'a> Lexer<'a> {
                 .collect::<Vec<&str>>(),
             index: 0,
             line_no: 1,
-            char_no: 1,
+            col_no: 1,
             ended: false,
         }
     }
 
-    fn current_char(&self) -> Result<&str, LexerError> {
+    fn current_grapheme(&self) -> Result<&str, LexerError> {
         match self.text.get(self.index) {
-            Some(string) => Ok(&string),
+            Some(string) => Ok(string),
             None => Err(LexerError::ExhaustedStream),
         }
     }
@@ -48,12 +48,12 @@ impl<'a> Lexer<'a> {
     }
 
     fn advance(&mut self) -> Result<(), LexerError> {
-        if let Ok(string) = self.current_char() {
+        if let Ok(string) = self.current_grapheme() {
             if string == "\n" {
                 self.line_no += 1;
-                self.char_no = 1;
+                self.col_no = 1;
             } else {
-                self.char_no += 1;
+                self.col_no += 1;
             }
         } else {
             return Err(LexerError::ExhaustedStream);
@@ -75,9 +75,9 @@ impl<'a> Lexer<'a> {
         terminators: Vec<String>,
         discard_terminator: bool,
         terminate_on_eof: bool,
-        skip_chars: u32,
+        skip_graphemes: u32,
     ) -> Result<String, LexerError> {
-        self.advance_times(skip_chars)?;
+        self.advance_times(skip_graphemes)?;
 
         let mut string = String::new();
 
@@ -99,8 +99,8 @@ impl<'a> Lexer<'a> {
                 break;
             }
 
-            match self.current_char() {
-                Ok(char) => string.push_str(char),
+            match self.current_grapheme() {
+                Ok(grapheme) => string.push_str(grapheme),
                 Err(_) => {
                     if !terminate_on_eof {
                         return Err(LexerError::Crawler(
@@ -119,19 +119,19 @@ impl<'a> Lexer<'a> {
 
     fn handle_string(&mut self, multiline: bool) -> Result<String, LexerError> {
         let quote = String::from(
-            self.current_char()
+            self.current_grapheme()
                 .expect("Checked in handle_bounded. Should never panic."),
         );
 
-        let skip_chars = if multiline { 3 } else { 1 };
+        let skip_graphemes = if multiline { 3 } else { 1 };
 
-        let string = self.crawl(vec![quote], true, false, skip_chars)?;
+        let string = self.crawl(vec![quote], true, false, skip_graphemes)?;
 
-        for char in &token::FORBIDDEN_CHARS {
-            if string.contains(char) {
+        for grapheme in &token::FORBIDDEN_GRAPHEMES {
+            if string.contains(grapheme) {
                 return Err(LexerError::Lexer(format!(
-                    "String contains forbidden char {:?}!",
-                    char
+                    "String contains forbidden grapheme {:?}!",
+                    grapheme
                 )));
             }
         }
@@ -141,42 +141,42 @@ impl<'a> Lexer<'a> {
 
     fn handle_bounded(&mut self) -> Result<Option<Token>, LexerError> {
         // Might panic here?
-        let current_char = &self.current_char()?;
+        let current_grapheme = &self.current_grapheme()?;
 
         let exp_string =
-            "Should never panic, all TokenTypes are in TOKEN_TYPES.";
+            "Should never panic, all TokenTypes are in TOKEN_TYPE_STRING_MAP.";
         let quotes = [
-            TOKEN_TYPES
+            TOKEN_TYPE_STRING_MAP
                 .get_by_left(&TokenType::QUOTE_DOUBLE)
                 .expect(exp_string),
-            TOKEN_TYPES
+            TOKEN_TYPE_STRING_MAP
                 .get_by_left(&TokenType::QUOTE_SINGLE)
                 .expect(exp_string),
         ];
 
         let single_line_comment =
-            TOKEN_TYPES.get_by_left(&TokenType::HASH).expect(exp_string);
-        let multiline_comment_start = TOKEN_TYPES
+            TOKEN_TYPE_STRING_MAP.get_by_left(&TokenType::HASH).expect(exp_string);
+        let multiline_comment_start = TOKEN_TYPE_STRING_MAP
             .get_by_left(&TokenType::SLASH_ASTERISK)
             .expect(exp_string);
-        let multiline_comment_end = TOKEN_TYPES
+        let multiline_comment_end = TOKEN_TYPE_STRING_MAP
             .get_by_left(&TokenType::ASTERISK_SLASH)
             .expect(exp_string);
 
-        if quotes.contains(&current_char) {
+        if quotes.contains(&current_grapheme) {
             let multiline =
-                self.test_current_string(&format!("{0}{0}{0}", current_char));
+                self.test_current_string(&format!("{0}{0}{0}", current_grapheme));
 
             Ok(Some(Token::new(
                 self.line_no,
-                self.char_no,
+                self.col_no,
                 TokenType::STRING,
                 Some(self.handle_string(multiline)?),
             )))
-        } else if current_char == single_line_comment {
+        } else if current_grapheme == single_line_comment {
             Ok(Some(Token::new(
                 self.line_no,
-                self.char_no,
+                self.col_no,
                 TokenType::COMMENT,
                 Some(self.crawl(
                     vec![String::from("\n")],
@@ -189,7 +189,7 @@ impl<'a> Lexer<'a> {
         } else if self.test_current_string(multiline_comment_start) {
             Ok(Some(Token::new(
                 self.line_no,
-                self.char_no,
+                self.col_no,
                 TokenType::COMMENT,
                 Some(self.crawl(
                     vec![String::from(*multiline_comment_end)],
@@ -205,17 +205,17 @@ impl<'a> Lexer<'a> {
     }
 
     fn handle_reserved(&mut self) -> Result<Option<Token>, LexerError> {
-        for chars in RESERVED_CHARS.iter() {
-            if self.test_current_string(chars) {
-                let token = Token::new_type_from_char(
+        for string in token::RESERVED_STRINGS.iter() {
+            if self.test_current_string(string) {
+                let token = Token::new_type_from_string(
                     self.line_no,
-                    self.char_no,
-                    chars,
+                    self.col_no,
+                    string,
                     None,
                 )
-                .expect("Use chars from TOKEN_TYPES, should always be safe.");
+                .expect("Uses string from TOKEN_TYPE_STRING_MAP, should always be safe.");
                 // FIXME Learn about casts.
-                self.advance_times(chars.len() as u32)?;
+                self.advance_times(string.len() as u32)?;
                 return Ok(Some(token));
             }
         }
@@ -224,17 +224,17 @@ impl<'a> Lexer<'a> {
     }
 
     fn handle_misc_tokens(&mut self) -> Result<Token, LexerError> {
-        let (line_no_start, char_no_start) = (self.line_no, self.char_no);
+        let (line_no_start, col_no_start) = (self.line_no, self.col_no);
 
-        let current_char = self.current_char()?;
+        let current_grapheme = self.current_grapheme()?;
 
-        if current_char.chars().all(|c| c.is_alphabetic())
-            && self.test_current_string(&(String::from(current_char) + ":\\"))
+        if current_grapheme.chars().all(|c| c.is_alphabetic())
+            && self.test_current_string(&format!("{}:\\", current_grapheme))
         {
             // Drive
             let token = Token::new(
                 line_no_start,
-                char_no_start,
+                col_no_start,
                 TokenType::DRIVE,
                 self.current_string(3),
             );
@@ -244,8 +244,8 @@ impl<'a> Lexer<'a> {
         } else {
             // ID
             let mut terminators: Vec<String> = Vec::new();
-            for char in RESERVED_CHARS.iter() {
-                terminators.push(String::from(*char));
+            for string in RESERVED_STRINGS.iter() {
+                terminators.push(String::from(*string));
             }
             terminators.push(String::from(" "));
             terminators.push(String::from("\t"));
@@ -259,14 +259,14 @@ impl<'a> Lexer<'a> {
             {
                 Ok(Token::new(
                     line_no_start,
-                    char_no_start,
+                    col_no_start,
                     TokenType::ID,
                     Some(value),
                 ))
             } else if value.chars().all(|c| c.is_numeric()) {
                 Ok(Token::new(
                     line_no_start,
-                    char_no_start,
+                    col_no_start,
                     TokenType::INTEGER,
                     Some(value),
                 ))
@@ -277,37 +277,40 @@ impl<'a> Lexer<'a> {
     }
 
     pub fn next_token(&mut self) -> Result<Option<Token>, LexerError> {
-        trace!("Current char is {:?}", self.current_char());
-
         let token = {
-            if self.current_char().is_err() {
-                if self.ended {
-                    None
-                } else {
-                    self.ended = true;
-                    let token = Token::new(
-                        self.line_no,
-                        self.char_no,
-                        TokenType::EOF,
-                        None,
-                    );
-
-                    debug!("Returning token: {:#?}", token);
-                    Some(token)
+            match self.current_grapheme() {
+                Err(_) => {
+                    if self.ended {
+                        None
+                    } else {
+                        self.ended = true;
+                        let token = Token::new(
+                            self.line_no,
+                            self.col_no,
+                            TokenType::EOF,
+                            None,
+                        );
+                        Some(token)
+                    }
+                },
+                Ok(current_grapheme) => {
+                    if current_grapheme.chars().all(|c| c.is_whitespace()) {
+                        self.advance()?;
+                        return self.next_token();
+                    } else if let Some(token) = self.handle_bounded()? {
+                        Some(token)
+                    } else if let Some(token) = self.handle_reserved()? {
+                        Some(token)
+                    } else {
+                        Some(self.handle_misc_tokens()?)
+                    }
                 }
-            } else if self.current_char()?.chars().all(|c| c.is_whitespace()) {
-                self.advance()?;
-                return self.next_token();
-            } else if let Some(token) = self.handle_bounded()? {
-                Some(token)
-            } else if let Some(token) = self.handle_reserved()? {
-                Some(token)
-            } else {
-                Some(self.handle_misc_tokens()?)
             }
         };
 
-        debug!("Returning token: {:#?}", token);
+        if let Some(token) = &token {
+            trace!("{:?}", token);
+        }
         Ok(token)
     }
 }
@@ -320,8 +323,8 @@ mod tests {
     static SINGLE_QUOTED_STRING: &str = "'This is a single-quoted string'";
     static SINGLE_LINE_COMMENT: &str = "# This is a single line comment!\n";
     static MULTILINE_COMMENT: &str = "/* This is a \n multiline comment. */";
-    static STRING_WITH_FORBIDDEN_CHARS: &str =
-        "\"This \\ is / a string ~ with * forbidden chars.\"";
+    static STRING_WITH_FORBIDDEN_GRAPHEMES: &str =
+        "\"This \\ is / a string ~ with * forbidden graphemes.\"";
 
     fn slice_ends(string: &str, left: usize, right: usize) -> &str {
         &string[left..string.len() - right]
@@ -408,8 +411,8 @@ mod tests {
                             "{} was parsed as {}, not {}!",
                             string,
                             // ttypes are always safe!
-                            TOKEN_TYPES.get_by_left(&token.ttype).unwrap(),
-                            TOKEN_TYPES.get_by_left(&expected_type).unwrap(),
+                            TOKEN_TYPE_STRING_MAP.get_by_left(&token.ttype).unwrap(),
+                            TOKEN_TYPE_STRING_MAP.get_by_left(&expected_type).unwrap(),
                         ))
                     }
                 }
@@ -418,14 +421,14 @@ mod tests {
         }
 
         #[test]
-        fn test_single_char() -> Result<(), String> {
+        fn test_single_char_string() -> Result<(), String> {
             reserved_test("+", TokenType::PLUS)?;
             reserved_test("-", TokenType::HYPHEN)?;
             Ok(())
         }
 
         #[test]
-        fn test_double_char() -> Result<(), String> {
+        fn test_double_char_string() -> Result<(), String> {
             reserved_test("&&", TokenType::DOUBLE_AMPERSAND)?;
             reserved_test("||", TokenType::DOUBLE_VERTICAL_BAR)?;
             Ok(())
@@ -458,11 +461,11 @@ mod tests {
         }
 
         #[test]
-        fn test_string_with_forbidden_chars() -> Result<(), String> {
-            match run_lexer(STRING_WITH_FORBIDDEN_CHARS, false) {
+        fn test_string_with_forbidden_graphemes() -> Result<(), String> {
+            match run_lexer(STRING_WITH_FORBIDDEN_GRAPHEMES, false) {
                 Ok(tokens) => Err(format!("Lexer did not error on forbidden characters, returned {:?}", tokens)),
                 Err(err) => {
-                    if err.contains("forbidden char") {
+                    if err.contains("forbidden grapheme") {
                         Ok(())
                     } else {
                         Err(format!("Unrelated error {:?}!", err))
@@ -480,6 +483,14 @@ mod tests {
             lexer_test(
                 "id",
                 vec![Token::new(1, 1, TokenType::ID, Some(String::from("id")))],
+            )
+        }
+
+        #[test]
+        fn test_drive() -> Result<(), String> {
+            lexer_test(
+                "D:\\",
+                vec![Token::new(1, 1, TokenType::DRIVE, Some(String::from("D:\\")))],
             )
         }
 
@@ -506,7 +517,7 @@ mod tests {
             terminators: Vec<String>,
             discard_terminator: bool,
             terminate_on_eof: bool,
-            skip_chars: u32,
+            skip_graphemes: u32,
         ) -> Result<(), LexerError> {
             let mut lex = Lexer::new(&string);
 
@@ -514,7 +525,7 @@ mod tests {
                 terminators,
                 discard_terminator,
                 terminate_on_eof,
-                skip_chars,
+                skip_graphemes,
             )?;
 
             assert_eq!(output.trim(), reference.trim());
@@ -569,7 +580,7 @@ mod tests {
                 &String::from(MULTILINE_COMMENT),
                 slice_ends(&MULTILINE_COMMENT, 2, 2),
                 vec![String::from(
-                    *TOKEN_TYPES
+                    *TOKEN_TYPE_STRING_MAP
                         .get_by_left(&TokenType::ASTERISK_SLASH)
                         .unwrap(),
                 )],
