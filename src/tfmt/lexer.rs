@@ -3,8 +3,10 @@ use std::iter::Iterator;
 
 use unicode_segmentation::UnicodeSegmentation;
 
+use super::token::{
+    self, Token, TokenType, RESERVED_STRINGS, TOKEN_TYPE_STRING_MAP,
+};
 use crate::error::LexerError;
-use crate::tfmt::token::{self, Token, TokenType, TOKEN_TYPE_STRING_MAP, RESERVED_STRINGS};
 
 pub struct Lexer<'a> {
     text: Vec<&'a str>,
@@ -154,8 +156,9 @@ impl<'a> Lexer<'a> {
                 .expect(exp_string),
         ];
 
-        let single_line_comment =
-            TOKEN_TYPE_STRING_MAP.get_by_left(&TokenType::HASH).expect(exp_string);
+        let single_line_comment = TOKEN_TYPE_STRING_MAP
+            .get_by_left(&TokenType::HASH)
+            .expect(exp_string);
         let multiline_comment_start = TOKEN_TYPE_STRING_MAP
             .get_by_left(&TokenType::SLASH_ASTERISK)
             .expect(exp_string);
@@ -164,8 +167,8 @@ impl<'a> Lexer<'a> {
             .expect(exp_string);
 
         if quotes.contains(&current_grapheme) {
-            let multiline =
-                self.test_current_string(&format!("{0}{0}{0}", current_grapheme));
+            let multiline = self
+                .test_current_string(&format!("{0}{0}{0}", current_grapheme));
 
             Ok(Some(Token::new(
                 self.line_no,
@@ -292,7 +295,7 @@ impl<'a> Lexer<'a> {
                         );
                         Some(token)
                     }
-                },
+                }
                 Ok(current_grapheme) => {
                     if current_grapheme.chars().all(|c| c.is_whitespace()) {
                         self.advance()?;
@@ -411,8 +414,12 @@ mod tests {
                             "{} was parsed as {}, not {}!",
                             string,
                             // ttypes are always safe!
-                            TOKEN_TYPE_STRING_MAP.get_by_left(&token.ttype).unwrap(),
-                            TOKEN_TYPE_STRING_MAP.get_by_left(&expected_type).unwrap(),
+                            TOKEN_TYPE_STRING_MAP
+                                .get_by_left(&token.ttype)
+                                .unwrap(),
+                            TOKEN_TYPE_STRING_MAP
+                                .get_by_left(&expected_type)
+                                .unwrap(),
                         ))
                     }
                 }
@@ -490,7 +497,12 @@ mod tests {
         fn test_drive() -> Result<(), String> {
             lexer_test(
                 "D:\\",
-                vec![Token::new(1, 1, TokenType::DRIVE, Some(String::from("D:\\")))],
+                vec![Token::new(
+                    1,
+                    1,
+                    TokenType::DRIVE,
+                    Some(String::from("D:\\")),
+                )],
             )
         }
 

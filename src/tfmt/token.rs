@@ -109,7 +109,7 @@ pub struct Token {
     line_no: u32,
     col_no: u32,
     pub ttype: TokenType,
-    value: Option<String>,
+    pub value: Option<String>,
 }
 
 impl Token {
