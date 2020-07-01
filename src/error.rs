@@ -2,6 +2,8 @@ use std::convert::From;
 use std::error::Error;
 use std::fmt;
 
+use crate::tfmt::token::TokenType;
+
 #[derive(Debug)]
 pub enum LexerError {
     Lexer(String),
@@ -31,14 +33,45 @@ impl Error for LexerError {
     }
 }
 
-// impl From<String> for LexerError {
-//     fn from(string: String) -> Self {
-//         LexerError::Lexer(string)
-//     }
-// }
-
 impl From<LexerError> for String {
     fn from(error: LexerError) -> Self {
+        format!("{}", error)
+    }
+}
+
+#[derive(Debug)]
+pub enum ParserError {
+    Parser(String),
+    UnexpectedToken(TokenType, TokenType),
+    ExhaustedStream(TokenType),
+}
+
+impl fmt::Display for ParserError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            // String already impls `Display`, so we defer to
+            // the implementations.
+            ParserError::Parser(err) => write!(f, "Parser error: {}", err),
+            ParserError::UnexpectedToken(wanted, found) => {
+                write!(f, "Expected {:?}, got {:?}", wanted, found)
+            }
+            ParserError::ExhaustedStream(ttype) => write!(
+                f,
+                "Exhausted token stream while searching for {:?}!",
+                ttype
+            ),
+        }
+    }
+}
+
+impl Error for ParserError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        None
+    }
+}
+
+impl From<ParserError> for String {
+    fn from(error: ParserError) -> Self {
         format!("{}", error)
     }
 }

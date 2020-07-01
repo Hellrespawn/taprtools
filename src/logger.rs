@@ -43,7 +43,7 @@ pub fn setup_logger(
         panic!("Verbosity must be between 0 and {}", LOG_LEVELS.len());
     }
     if verbosity == 0 {
-        return Ok(());
+        Ok(())
     } else {
         let level = LOG_LEVELS[verbosity];
 

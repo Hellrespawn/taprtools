@@ -1,31 +1,42 @@
 use std::str::FromStr;
-use std::error::Error;
 
 use super::token::Token;
 
-trait Node {
-    fn token(&self) -> Token;
+// Hierarchy of traits
+trait Node {}
+
+trait HasToken: Node {
+    fn token(&self) -> &Token;
 }
 
-trait Literal<T: FromStr>: Node {
+trait Literal<T: FromStr>: HasToken {
     fn value(&self) -> Result<T, T::Err> {
         // TODO Do something safer?
-        self.token().value.expect("Literal must have a value!").parse::<T>()
-    }
-}
-
-trait ID: Node {
-    fn identifier(&self) -> &str {
-        &self.token().value.expect("ID should always have a value!")
-    }
-}
-
-trait Operator: Node {
-    fn operator(&self) -> Token {
         self.token()
+            .value
+            .as_ref()
+            .expect("Literal must have a value!")
+            .parse::<T>()
     }
 }
 
+trait ID: HasToken {
+    fn identifier(&self) -> &str {
+        &self
+            .token()
+            .value
+            .as_ref()
+            .expect("ID should always have a value!")
+    }
+}
+
+trait Operator: HasToken {
+    fn operator(&self) -> &Token {
+        &self.token()
+    }
+}
+
+// Program
 pub struct Program {
     name: Token,
     parameters: Parameters,
@@ -33,95 +44,123 @@ pub struct Program {
     block: Block,
 }
 
-impl Node for Program {
-    fn token(&self) -> Token {
-        self.name
+impl Node for Program {}
+
+impl HasToken for Program {
+    fn token(&self) -> &Token {
+        &self.name
     }
 }
 
-// FIXME Needs to be a node?
+// Parameters
 pub struct Parameters {
     parameters: Vec<Parameter>,
 }
+impl Node for Parameters {}
 
+// Parameter
 pub struct Parameter {
     token: Token,
     default: Option<Token>,
 }
+impl Node for Parameter {}
 
-impl Node for Parameter {
-    fn token(&self) -> Token {
-        self.token
+impl HasToken for Parameter {
+    fn token(&self) -> &Token {
+        &self.token
     }
 }
 impl ID for Parameter {}
 
-// FIXME Needs to be a node?
+// Block
 pub struct Block {
-    drive: Option<DriveLetter>,
-    expression: Vec<Box<dyn Node>>,
+    drive: Option<Box<dyn Literal<String>>>,
+    expression: Vec<Box<dyn HasToken>>,
 }
+impl Node for Block {}
 
-// FIXME Needs to be a node?
+// TernaryOp
 pub struct TernaryOp {
-    condition: Box<dyn Node>,
-    true_expr: Box<dyn Node>,
-    false_expr: Box<dyn Node>,
+    condition: Box<dyn HasToken>,
+    true_expr: Box<dyn HasToken>,
+    false_expr: Box<dyn HasToken>,
 }
+impl Node for TernaryOp {}
 
+// BinOp
 pub struct BinOp {
-    left: Box<dyn Node>,
+    left: Box<dyn HasToken>,
     token: Token,
-    right: Box<dyn Node>,
+    right: Box<dyn HasToken>,
 }
+impl Node for BinOp {}
 
-impl Node for BinOp {
-    fn token(&self) -> Token {
-        self.token
+impl HasToken for BinOp {
+    fn token(&self) -> &Token {
+        &self.token
     }
 }
 impl Operator for BinOp {}
 
+// UnaryOp
 pub struct UnaryOp {
     token: Token,
-    operand: Box<dyn Node>,
+    operand: Box<dyn HasToken>,
 }
+impl Node for UnaryOp {}
 
-impl Node for UnaryOp {
-    fn token(&self) -> Token {
-        self.token
+impl HasToken for UnaryOp {
+    fn token(&self) -> &Token {
+        &self.token
     }
 }
 impl Operator for UnaryOp {}
 
-// FIXME Needs to be a node?
+// Group
 pub struct Group {
-    expression: Vec<Box<dyn Node>>,
+    expression: Vec<Box<dyn HasToken>>,
 }
+impl Node for Group {}
 
+// Function
 pub struct Function {
     start_token: Token,
-    Arguments: Vec<Box<dyn Node>>,
-    end_token: Token
+    arguments: Vec<Box<dyn HasToken>>,
+    end_token: Token,
 }
-impl Node for Function {
-    fn token(&self) -> Token {
-        self.start_token
+impl Node for Function {}
+
+impl HasToken for Function {
+    fn token(&self) -> &Token {
+        &self.start_token
     }
 }
-impl ID for UnaryOp {}
+impl ID for Function {}
 
-#[derive(Debug)]
-pub struct Integer {
-    token: Token
+pub struct LiteralStruct {
+    token: Token,
 }
 
-impl Node for Integer {
-    fn token(&self) -> Token {
-        self.token
+impl Node for LiteralStruct {}
+impl HasToken for LiteralStruct {
+    fn token(&self) -> &Token {
+        &self.token
     }
 }
 
-impl Literal<u32> for Integer {}
+impl Literal<u32> for LiteralStruct {}
+impl Literal<String> for LiteralStruct {}
 
-//FIXME rest of AST
+// Tag
+pub struct Tag {
+    start_token: Token,
+    end_token: Token,
+}
+impl Node for Tag {}
+impl HasToken for Tag {
+    fn token(&self) -> &Token {
+        &self.start_token
+    }
+}
+
+impl ID for Tag {}

@@ -104,11 +104,13 @@ lazy_static! {
 pub static FORBIDDEN_GRAPHEMES: [&str; 9] =
     ["\\", "<", ">", ":", "\"", "|", "?", "*", "~"];
 
+pub static IGNORED: [TokenType; 1] = [TokenType::COMMENT];
+
 #[derive(Debug, PartialEq)]
 pub struct Token {
     line_no: u32,
     col_no: u32,
-    pub ttype: TokenType,
+    ttype: TokenType,
     pub value: Option<String>,
 }
 
@@ -143,5 +145,9 @@ impl Token {
         } else {
             Err(format!("Invalid character {} for token!", ttype_char))
         }
+    }
+
+    pub fn ttype(&self) -> TokenType {
+        self.ttype
     }
 }

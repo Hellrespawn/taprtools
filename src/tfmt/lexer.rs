@@ -28,6 +28,13 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.index = 0;
+        self.line_no = 1;
+        self.col_no = 1;
+        self.ended = false;
+    }
+
     fn current_grapheme(&self) -> Result<&str, LexerError> {
         match self.text.get(self.index) {
             Some(string) => Ok(string),
@@ -407,7 +414,7 @@ mod tests {
 
             match lex.handle_reserved()? {
                 Some(token) => {
-                    if token.ttype == expected_type {
+                    if token.ttype() == expected_type {
                         Ok(())
                     } else {
                         Err(format!(
@@ -415,7 +422,7 @@ mod tests {
                             string,
                             // ttypes are always safe!
                             TOKEN_TYPE_STRING_MAP
-                                .get_by_left(&token.ttype)
+                                .get_by_left(&token.ttype())
                                 .unwrap(),
                             TOKEN_TYPE_STRING_MAP
                                 .get_by_left(&expected_type)
