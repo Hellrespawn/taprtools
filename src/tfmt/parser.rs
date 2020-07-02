@@ -181,39 +181,178 @@ impl<'a> Parser<'a> {
         let mut expressions: Vec<Box<dyn ast::Node>> = Vec::new();
 
         while !terminators.contains(&self.current_token().ttype()) {
-            expressions.push(Box::new(self.expression()?));
+            expressions.push(self.expression()?);
         }
 
         Ok(expressions)
     }
 
-    fn expression(&mut self) -> Result<ast::TernaryOp, TFMTError> {
+    fn expression(&mut self) -> Result<Box<dyn ast::Node>, TFMTError> {
         // Ternary ( "?" Ternary ":" Ternary )*
-        Ok(ast::TernaryOp {
-            condition: Box::new(ast::Integer {
-                token: Token::new(
-                    0,
-                    0,
-                    TokenType::INTEGER,
-                    Some("1".to_owned()),
-                ),
+        let mut expression: Box<dyn ast::Node> = self.ternary()?;
+
+        while self.current_token().ttype() == TokenType::QUESTION_MARK {
+            self.consume(TokenType::QUESTION_MARK)?;
+            let true_expr = self.ternary()?;
+            self.consume(TokenType::COLON)?;
+            let false_expr = self.ternary()?;
+
+            expression = Box::new(ast::TernaryOp {
+                condition: expression,
+                true_expr,
+                false_expr,
+            });
+        }
+
+        Ok(expression)
+    }
+
+    fn ternary(&mut self) -> Result<Box<dyn ast::Node>, TFMTError> {
+        // Disjunct ( ( "||" | "|" ) Disjunct )*
+        let mut ternary = self.disjunct()?;
+
+        loop {
+            let ttype = self.current_token().ttype();
+            let operator = match ttype {
+                TokenType::DOUBLE_VERTICAL_BAR => self.consume(ttype)?,
+                TokenType::VERTICAL_BAR => self.consume(ttype)?,
+                _ => break,
+            };
+
+            ternary = Box::new(ast::BinOp {
+                left: ternary,
+                token: operator,
+                right: self.ternary()?,
+            });
+        }
+
+        Ok(ternary)
+    }
+
+    fn disjunct(&mut self) -> Result<Box<dyn ast::Node>, TFMTError> {
+        // Conjunct ( ( "&&" | "&" ) Conjunct )*
+        let mut disjunct = self.conjunct()?;
+
+        loop {
+            let ttype = self.current_token().ttype();
+            let operator = match ttype {
+                TokenType::DOUBLE_AMPERSAND => self.consume(ttype)?,
+                TokenType::AMPERSAND => self.consume(ttype)?,
+                _ => break,
+            };
+
+            disjunct = Box::new(ast::BinOp {
+                left: disjunct,
+                token: operator,
+                right: self.disjunct()?,
+            });
+        }
+
+        Ok(disjunct)
+    }
+
+    fn conjunct(&mut self) -> Result<Box<dyn ast::Node>, TFMTError> {
+        // Term ( ( "+" | "-" ) Term )*
+        let mut conjunct = self.term()?;
+
+        loop {
+            let ttype = self.current_token().ttype();
+            let operator = match ttype {
+                TokenType::PLUS => self.consume(ttype)?,
+                TokenType::HYPHEN => self.consume(ttype)?,
+                _ => break,
+            };
+
+            conjunct = Box::new(ast::BinOp {
+                left: conjunct,
+                token: operator,
+                right: self.conjunct()?,
+            });
+        }
+
+        Ok(conjunct)
+    }
+
+    fn term(&mut self) -> Result<Box<dyn ast::Node>, TFMTError> {
+        // Factor ( ( "*" | "/" | "%" ) Factor )*
+        let mut term = self.factor()?;
+
+        loop {
+            let ttype = self.current_token().ttype();
+            let operator = match ttype {
+                TokenType::ASTERISK => self.consume(ttype)?,
+                TokenType::SLASH_FORWARD => self.consume(ttype)?,
+                TokenType::PERCENT => self.consume(ttype)?,
+                _ => break,
+            };
+
+            term = Box::new(ast::BinOp {
+                left: term,
+                token: operator,
+                right: self.term()?,
+            });
+        }
+
+        Ok(term)
+    }
+
+    fn factor(&mut self) -> Result<Box<dyn ast::Node>, TFMTError> {
+        // Exponent ( ( "**" | "^" ) Exponent )*
+        let mut factor = self.exponent()?;
+
+        loop {
+            let ttype = self.current_token().ttype();
+            let operator = match ttype {
+                TokenType::DOUBLE_ASTERISK => self.consume(ttype)?,
+                TokenType::CARET => self.consume(ttype)?,
+                _ => break,
+            };
+
+            factor = Box::new(ast::BinOp {
+                left: factor,
+                token: operator,
+                right: self.factor()?,
+            });
+        }
+
+        Ok(factor)
+    }
+
+    fn exponent(&mut self) -> Result<Box<dyn ast::Node>, TFMTError> {
+        // "+" Exponent | "-" Exponent | "(" Expression+ ")" | Statement
+        let ttype = self.current_token().ttype();
+
+        let exponent: Box<dyn ast::Node> = match ttype {
+            TokenType::PLUS => Box::new(ast::UnaryOp {
+                token: self.consume(ttype)?,
+                operand: self.exponent()?,
             }),
-            true_expr: Box::new(ast::Integer {
-                token: Token::new(
-                    0,
-                    0,
-                    TokenType::INTEGER,
-                    Some("1".to_owned()),
-                ),
+            TokenType::HYPHEN => Box::new(ast::UnaryOp {
+                token: self.consume(ttype)?,
+                operand: self.exponent()?,
             }),
-            false_expr: Box::new(ast::Integer {
-                token: Token::new(
-                    0,
-                    0,
-                    TokenType::INTEGER,
-                    Some("1".to_owned()),
-                ),
-            }),
-        })
+            TokenType::PARENTHESIS_LEFT => {
+                self.consume(ttype)?;
+
+                let expressions: Vec<Box<dyn ast::Node>> =
+                    self.expressions(vec![TokenType::PARENTHESIS_RIGHT])?;
+
+                self.consume(TokenType::PARENTHESIS_RIGHT)?;
+
+                if expressions.is_empty() {
+                    return Err(TFMTError::EmptyGroup);
+                }
+
+                Box::new(ast::Group { expressions })
+            }
+            _ => self.statement()?,
+        };
+
+        Ok(exponent)
+    }
+
+    fn statement(&mut self) -> Result<Box<dyn ast::Node>, TFMTError> {
+        // Comment | Function | Integer | String | Substitution | Tag
+        Err(TFMTError::Parser("Temp".to_owned()))
     }
 }

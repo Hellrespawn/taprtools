@@ -14,6 +14,7 @@ pub enum TFMTError {
     ExhaustedTokens(TokenType),
     ExhaustedText,
     ExpectedValue,
+    EmptyGroup,
 }
 
 impl fmt::Display for TFMTError {
@@ -40,6 +41,9 @@ impl fmt::Display for TFMTError {
             }
             TFMTError::ExpectedValue => {
                 write!(f, "Expected token to have value!")
+            }
+            TFMTError::EmptyGroup => {
+                write!(f, "Encountered group without expressions!")
             }
         }
     }

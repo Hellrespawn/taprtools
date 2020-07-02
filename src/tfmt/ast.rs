@@ -61,6 +61,7 @@ impl Node for Parameters {}
 // Parameter
 pub struct Parameter {
     pub token: Token,
+    // TODO? Token here is inconsistent, should be INT/STR.
     pub default: Option<Token>,
 }
 impl Node for Parameter {}
@@ -104,8 +105,8 @@ impl Operator for BinOp {}
 
 // UnaryOp
 pub struct UnaryOp {
-    token: Token,
-    operand: Box<dyn HasToken>,
+    pub token: Token,
+    pub operand: Box<dyn Node>,
 }
 impl Node for UnaryOp {}
 
@@ -118,7 +119,7 @@ impl Operator for UnaryOp {}
 
 // Group
 pub struct Group {
-    pub expression: Vec<Box<dyn Node>>,
+    pub expressions: Vec<Box<dyn Node>>,
 }
 impl Node for Group {}
 
