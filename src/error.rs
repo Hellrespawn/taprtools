@@ -5,73 +5,54 @@ use std::fmt;
 use crate::tfmt::token::TokenType;
 
 #[derive(Debug)]
-pub enum LexerError {
+pub enum TFMTError {
     Lexer(String),
     Crawler(String),
-    Token(String),
-    ExhaustedStream,
-}
-
-impl fmt::Display for LexerError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            // String already impls `Display`, so we defer to
-            // the implementations.
-            LexerError::Lexer(err) => write!(f, "Lexer error: {}", err),
-            LexerError::Crawler(err) => write!(f, "Crawler error: {}", err),
-            LexerError::Token(char) => {
-                write!(f, "Unable to convert to Token: {:?}", char)
-            }
-            LexerError::ExhaustedStream => write!(f, "Exhausted input stream!"),
-        }
-    }
-}
-
-impl Error for LexerError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        None
-    }
-}
-
-impl From<LexerError> for String {
-    fn from(error: LexerError) -> Self {
-        format!("{}", error)
-    }
-}
-
-#[derive(Debug)]
-pub enum ParserError {
+    Tokenize(String),
     Parser(String),
     UnexpectedToken(TokenType, TokenType),
-    ExhaustedStream(TokenType),
+    ExhaustedTokens(TokenType),
+    ExhaustedText,
+    ExpectedValue,
 }
 
-impl fmt::Display for ParserError {
+impl fmt::Display for TFMTError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             // String already impls `Display`, so we defer to
             // the implementations.
-            ParserError::Parser(err) => write!(f, "Parser error: {}", err),
-            ParserError::UnexpectedToken(wanted, found) => {
+            TFMTError::Lexer(err) => write!(f, "Lexer error: {}", err),
+            TFMTError::Crawler(err) => write!(f, "Crawler error: {}", err),
+            TFMTError::Tokenize(char) => {
+                write!(f, "Unable to convert to Token: {:?}", char)
+            }
+            TFMTError::Parser(err) => write!(f, "Parser error: {}", err),
+            TFMTError::UnexpectedToken(wanted, found) => {
                 write!(f, "Expected {:?}, got {:?}", wanted, found)
             }
-            ParserError::ExhaustedStream(ttype) => write!(
+            TFMTError::ExhaustedTokens(ttype) => write!(
                 f,
                 "Exhausted token stream while searching for {:?}!",
                 ttype
             ),
+            TFMTError::ExhaustedText => {
+                write!(f, "Exhausted text input stream!")
+            }
+            TFMTError::ExpectedValue => {
+                write!(f, "Expected token to have value!")
+            }
         }
     }
 }
 
-impl Error for ParserError {
+impl Error for TFMTError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         None
     }
 }
 
-impl From<ParserError> for String {
-    fn from(error: ParserError) -> Self {
+impl From<TFMTError> for String {
+    fn from(error: TFMTError) -> Self {
         format!("{}", error)
     }
 }

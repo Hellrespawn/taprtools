@@ -3,13 +3,13 @@ use std::str::FromStr;
 use super::token::Token;
 
 // Hierarchy of traits
-trait Node {}
+pub trait Node {}
 
-trait HasToken: Node {
+pub trait HasToken: Node {
     fn token(&self) -> &Token;
 }
 
-trait Literal<T: FromStr>: HasToken {
+pub trait Literal<T: FromStr>: HasToken {
     fn value(&self) -> Result<T, T::Err> {
         // TODO Do something safer?
         self.token()
@@ -20,7 +20,7 @@ trait Literal<T: FromStr>: HasToken {
     }
 }
 
-trait ID: HasToken {
+pub trait ID: HasToken {
     fn identifier(&self) -> &str {
         &self
             .token()
@@ -30,7 +30,7 @@ trait ID: HasToken {
     }
 }
 
-trait Operator: HasToken {
+pub trait Operator: HasToken {
     fn operator(&self) -> &Token {
         &self.token()
     }
@@ -38,10 +38,10 @@ trait Operator: HasToken {
 
 // Program
 pub struct Program {
-    name: Token,
-    parameters: Parameters,
-    description: Option<Token>,
-    block: Block,
+    pub name: Token,
+    pub parameters: Parameters,
+    pub description: Option<Token>,
+    pub block: Block,
 }
 
 impl Node for Program {}
@@ -54,14 +54,14 @@ impl HasToken for Program {
 
 // Parameters
 pub struct Parameters {
-    parameters: Vec<Parameter>,
+    pub parameters: Vec<Parameter>,
 }
 impl Node for Parameters {}
 
 // Parameter
 pub struct Parameter {
-    token: Token,
-    default: Option<Token>,
+    pub token: Token,
+    pub default: Option<Token>,
 }
 impl Node for Parameter {}
 
@@ -74,24 +74,24 @@ impl ID for Parameter {}
 
 // Block
 pub struct Block {
-    drive: Option<Box<dyn Literal<String>>>,
-    expression: Vec<Box<dyn HasToken>>,
+    pub drive: Option<DriveLetter>,
+    pub expressions: Vec<Box<dyn Node>>,
 }
 impl Node for Block {}
 
 // TernaryOp
 pub struct TernaryOp {
-    condition: Box<dyn HasToken>,
-    true_expr: Box<dyn HasToken>,
-    false_expr: Box<dyn HasToken>,
+    pub condition: Box<dyn Node>,
+    pub true_expr: Box<dyn Node>,
+    pub false_expr: Box<dyn Node>,
 }
 impl Node for TernaryOp {}
 
 // BinOp
 pub struct BinOp {
-    left: Box<dyn HasToken>,
-    token: Token,
-    right: Box<dyn HasToken>,
+    pub left: Box<dyn Node>,
+    pub token: Token,
+    pub right: Box<dyn Node>,
 }
 impl Node for BinOp {}
 
@@ -118,15 +118,15 @@ impl Operator for UnaryOp {}
 
 // Group
 pub struct Group {
-    expression: Vec<Box<dyn HasToken>>,
+    pub expression: Vec<Box<dyn Node>>,
 }
 impl Node for Group {}
 
 // Function
 pub struct Function {
-    start_token: Token,
-    arguments: Vec<Box<dyn HasToken>>,
-    end_token: Token,
+    pub start_token: Token,
+    pub arguments: Vec<Box<dyn Node>>,
+    pub end_token: Token,
 }
 impl Node for Function {}
 
@@ -137,24 +137,66 @@ impl HasToken for Function {
 }
 impl ID for Function {}
 
-pub struct LiteralStruct {
-    token: Token,
+// Integer
+pub struct Integer {
+    pub token: Token,
 }
 
-impl Node for LiteralStruct {}
-impl HasToken for LiteralStruct {
+impl Node for Integer {}
+impl HasToken for Integer {
     fn token(&self) -> &Token {
         &self.token
     }
 }
 
-impl Literal<u32> for LiteralStruct {}
-impl Literal<String> for LiteralStruct {}
+impl Literal<u32> for Integer {}
+
+// String
+pub struct StringNode {
+    pub token: Token,
+}
+
+impl Node for StringNode {}
+impl HasToken for StringNode {
+    fn token(&self) -> &Token {
+        &self.token
+    }
+}
+
+impl Literal<String> for StringNode {}
+
+// String
+pub struct Substitution {
+    pub token: Token,
+}
+
+impl Node for Substitution {}
+impl HasToken for Substitution {
+    fn token(&self) -> &Token {
+        &self.token
+    }
+}
+
+impl Literal<String> for Substitution {}
+
+// DriveLetter
+pub struct DriveLetter {
+    pub token: Token,
+}
+
+impl Node for DriveLetter {}
+impl HasToken for DriveLetter {
+    fn token(&self) -> &Token {
+        &self.token
+    }
+}
+
+impl Literal<String> for DriveLetter {}
 
 // Tag
 pub struct Tag {
-    start_token: Token,
-    end_token: Token,
+    pub start_token: Token,
+    pub end_token: Token,
 }
 impl Node for Tag {}
 impl HasToken for Tag {

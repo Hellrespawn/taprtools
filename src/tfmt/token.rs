@@ -106,7 +106,7 @@ pub static FORBIDDEN_GRAPHEMES: [&str; 9] =
 
 pub static IGNORED: [TokenType; 1] = [TokenType::COMMENT];
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Token {
     line_no: u32,
     col_no: u32,

@@ -6,7 +6,7 @@ use unicode_segmentation::UnicodeSegmentation;
 use super::token::{
     self, Token, TokenType, RESERVED_STRINGS, TOKEN_TYPE_STRING_MAP,
 };
-use crate::error::LexerError;
+use crate::error::TFMTError;
 
 pub struct Lexer<'a> {
     text: Vec<&'a str>,
@@ -35,10 +35,10 @@ impl<'a> Lexer<'a> {
         self.ended = false;
     }
 
-    fn current_grapheme(&self) -> Result<&str, LexerError> {
+    fn current_grapheme(&self) -> Result<&str, TFMTError> {
         match self.text.get(self.index) {
             Some(string) => Ok(string),
-            None => Err(LexerError::ExhaustedStream),
+            None => Err(TFMTError::ExhaustedText),
         }
     }
 
@@ -56,7 +56,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn advance(&mut self) -> Result<(), LexerError> {
+    fn advance(&mut self) -> Result<(), TFMTError> {
         if let Ok(string) = self.current_grapheme() {
             if string == "\n" {
                 self.line_no += 1;
@@ -65,14 +65,14 @@ impl<'a> Lexer<'a> {
                 self.col_no += 1;
             }
         } else {
-            return Err(LexerError::ExhaustedStream);
+            return Err(TFMTError::ExhaustedText);
         }
 
         self.index += 1;
         Ok(())
     }
 
-    fn advance_times(&mut self, times: u32) -> Result<(), LexerError> {
+    fn advance_times(&mut self, times: u32) -> Result<(), TFMTError> {
         for _ in 1..=times {
             self.advance()?;
         }
@@ -85,7 +85,7 @@ impl<'a> Lexer<'a> {
         discard_terminator: bool,
         terminate_on_eof: bool,
         skip_graphemes: u32,
-    ) -> Result<String, LexerError> {
+    ) -> Result<String, TFMTError> {
         self.advance_times(skip_graphemes)?;
 
         let mut string = String::new();
@@ -112,7 +112,7 @@ impl<'a> Lexer<'a> {
                 Ok(grapheme) => string.push_str(grapheme),
                 Err(_) => {
                     if !terminate_on_eof {
-                        return Err(LexerError::Crawler(
+                        return Err(TFMTError::Crawler(
                             "Crawl reached EOF before terminator!".to_owned(),
                         ));
                     } else {
@@ -126,7 +126,7 @@ impl<'a> Lexer<'a> {
         Ok(string)
     }
 
-    fn handle_string(&mut self, multiline: bool) -> Result<String, LexerError> {
+    fn handle_string(&mut self, multiline: bool) -> Result<String, TFMTError> {
         let quote = String::from(
             self.current_grapheme()
                 .expect("Checked in handle_bounded. Should never panic."),
@@ -138,7 +138,7 @@ impl<'a> Lexer<'a> {
 
         for grapheme in &token::FORBIDDEN_GRAPHEMES {
             if string.contains(grapheme) {
-                return Err(LexerError::Lexer(format!(
+                return Err(TFMTError::Lexer(format!(
                     "String contains forbidden grapheme {:?}!",
                     grapheme
                 )));
@@ -148,7 +148,7 @@ impl<'a> Lexer<'a> {
         Ok(string)
     }
 
-    fn handle_bounded(&mut self) -> Result<Option<Token>, LexerError> {
+    fn handle_bounded(&mut self) -> Result<Option<Token>, TFMTError> {
         // Might panic here?
         let current_grapheme = &self.current_grapheme()?;
 
@@ -214,7 +214,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn handle_reserved(&mut self) -> Result<Option<Token>, LexerError> {
+    fn handle_reserved(&mut self) -> Result<Option<Token>, TFMTError> {
         for string in token::RESERVED_STRINGS.iter() {
             if self.test_current_string(string) {
                 let token = Token::new_type_from_string(
@@ -233,7 +233,7 @@ impl<'a> Lexer<'a> {
         Ok(None)
     }
 
-    fn handle_misc_tokens(&mut self) -> Result<Token, LexerError> {
+    fn handle_misc_tokens(&mut self) -> Result<Token, TFMTError> {
         let (line_no_start, col_no_start) = (self.line_no, self.col_no);
 
         let current_grapheme = self.current_grapheme()?;
@@ -281,12 +281,12 @@ impl<'a> Lexer<'a> {
                     Some(value),
                 ))
             } else {
-                Err(LexerError::Token(value))
+                Err(TFMTError::Tokenize(value))
             }
         }
     }
 
-    pub fn next_token(&mut self) -> Result<Option<Token>, LexerError> {
+    pub fn next_token(&mut self) -> Result<Option<Token>, TFMTError> {
         let token = {
             match self.current_grapheme() {
                 Err(_) => {
@@ -537,7 +537,7 @@ mod tests {
             discard_terminator: bool,
             terminate_on_eof: bool,
             skip_graphemes: u32,
-        ) -> Result<(), LexerError> {
+        ) -> Result<(), TFMTError> {
             let mut lex = Lexer::new(&string);
 
             let output = lex.crawl(
@@ -552,7 +552,7 @@ mod tests {
             Ok(())
         }
 
-        fn string_test(string: &str) -> Result<(), LexerError> {
+        fn string_test(string: &str) -> Result<(), TFMTError> {
             let string = String::from(string);
             let reference = dequote(&string);
             let terminators = vec![string.chars().next().unwrap().to_string()];
@@ -561,17 +561,17 @@ mod tests {
         }
 
         #[test]
-        fn test_double_quoted() -> Result<(), LexerError> {
+        fn test_double_quoted() -> Result<(), TFMTError> {
             string_test(DOUBLE_QUOTED_STRING)
         }
 
         #[test]
-        fn test_single_quoted() -> Result<(), LexerError> {
+        fn test_single_quoted() -> Result<(), TFMTError> {
             string_test(SINGLE_QUOTED_STRING)
         }
 
         #[test]
-        fn test_single_line_comment() -> Result<(), LexerError> {
+        fn test_single_line_comment() -> Result<(), TFMTError> {
             crawler_test(
                 &String::from(SINGLE_LINE_COMMENT),
                 slice_ends(&SINGLE_LINE_COMMENT, 1, 0),
@@ -594,7 +594,7 @@ mod tests {
         }
 
         #[test]
-        fn test_multiline_comment() -> Result<(), LexerError> {
+        fn test_multiline_comment() -> Result<(), TFMTError> {
             crawler_test(
                 &String::from(MULTILINE_COMMENT),
                 slice_ends(&MULTILINE_COMMENT, 2, 2),
