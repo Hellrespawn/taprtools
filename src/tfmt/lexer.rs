@@ -318,9 +318,9 @@ impl<'a> Lexer<'a> {
             }
         };
 
-        if let Some(token) = &token {
-            trace!("{:?}", token);
-        }
+        // if let Some(token) = &token {
+        //     trace!("{:?}", token);
+        // }
         Ok(token)
     }
 }

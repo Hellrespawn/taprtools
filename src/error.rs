@@ -12,6 +12,7 @@ pub enum TFMTError {
     Parser(String),
     UnexpectedToken(TokenType, TokenType),
     ExhaustedTokens(TokenType),
+    UnrecognizedToken(TokenType),
     ExhaustedText,
     ExpectedValue,
     EmptyGroup,
@@ -36,6 +37,9 @@ impl fmt::Display for TFMTError {
                 "Exhausted token stream while searching for {:?}!",
                 ttype
             ),
+            TFMTError::UnrecognizedToken(ttype) => {
+                write!(f, "Unable to parse token type {:?}!", ttype)
+            }
             TFMTError::ExhaustedText => {
                 write!(f, "Exhausted text input stream!")
             }

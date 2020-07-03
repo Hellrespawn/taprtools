@@ -197,12 +197,12 @@ impl Literal<String> for DriveLetter {}
 // Tag
 pub struct Tag {
     pub start_token: Token,
-    pub end_token: Token,
+    pub token: Token,
 }
 impl Node for Tag {}
 impl HasToken for Tag {
     fn token(&self) -> &Token {
-        &self.start_token
+        &self.token
     }
 }
 

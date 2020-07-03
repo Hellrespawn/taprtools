@@ -1,4 +1,4 @@
-use log::debug;
+use log::{debug, trace};
 use std::env::args;
 use std::fs;
 use std::path;
@@ -20,6 +20,8 @@ pub fn main() -> Result<(), String> {
 
     println!("Running {:?}", args().next().unwrap());
 
+    let filename = "simple_input.tfmt";
+
     let mut path = path::PathBuf::from(file!());
     for _ in 1..=3 {
         path.pop();
@@ -27,10 +29,10 @@ pub fn main() -> Result<(), String> {
     path.push("tests");
     path.push("files");
     path.push("config");
-    path.push("typical_input.tfmt");
+    path.push(filename);
 
-    let test_string =
-        fs::read_to_string(path).expect("typical_input.tfmt doesn't exist!");
+    let test_string = fs::read_to_string(path)
+        .unwrap_or_else(|_| panic!("{} doesn't exist!", filename));
 
     let mut lex = tfmt::lexer::Lexer::new(&test_string);
 
@@ -38,7 +40,10 @@ pub fn main() -> Result<(), String> {
 
     loop {
         match lex.next_token() {
-            Ok(Some(token)) => tokens.push(token),
+            Ok(Some(token)) => {
+                trace!("{:?}", token);
+                tokens.push(token);
+            }
             Ok(None) => {
                 break;
             }
@@ -48,6 +53,12 @@ pub fn main() -> Result<(), String> {
             }
         }
     }
+
+    lex.reset();
+
+    let mut parser = tfmt::parser::Parser::from_lexer(lex);
+
+    let root = parser.parse()?;
 
     Ok(())
 }
