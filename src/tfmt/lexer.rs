@@ -1,4 +1,3 @@
-use log::trace;
 use std::iter::Iterator;
 
 use unicode_segmentation::UnicodeSegmentation;

@@ -21,6 +21,7 @@ pub fn main() -> Result<(), String> {
     println!("Running {:?}", args().next().unwrap());
 
     let filename = "simple_input.tfmt";
+    //let filename = "typical_input.tfmt";
 
     let mut path = path::PathBuf::from(file!());
     for _ in 1..=3 {
@@ -59,6 +60,16 @@ pub fn main() -> Result<(), String> {
     let mut parser = tfmt::parser::Parser::from_lexer(lex);
 
     let root = parser.parse()?;
+
+    let mut path = path::PathBuf::from(file!());
+    for _ in 1..=3 {
+        path.pop();
+    }
+    path.push("log");
+
+    if tfmt::genastdot::visualize_ast(root, &path, "musictools", false).is_err() {
+        panic!("viz failed!");
+    }
 
     Ok(())
 }

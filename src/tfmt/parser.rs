@@ -217,9 +217,9 @@ impl<'a> Parser<'a> {
                 terminators
             ));
 
-            if self.depth > 24 {
+            if self.depth > 48 {
                 return Err(TFMTError::Parser(
-                    "Iteration depth > 24!".to_owned(),
+                    "Iteration depth > 48!".to_owned(),
                 ));
             }
             expressions.push(self.expression()?);
@@ -266,7 +266,7 @@ impl<'a> Parser<'a> {
                 _ => break,
             };
 
-            ternary = Box::new(ast::BinOp {
+            ternary = Box::new(ast::BinaryOp {
                 left: ternary,
                 token: operator,
                 right: self.ternary()?,
@@ -292,7 +292,7 @@ impl<'a> Parser<'a> {
                 _ => break,
             };
 
-            disjunct = Box::new(ast::BinOp {
+            disjunct = Box::new(ast::BinaryOp {
                 left: disjunct,
                 token: operator,
                 right: self.disjunct()?,
@@ -317,7 +317,7 @@ impl<'a> Parser<'a> {
                 _ => break,
             };
 
-            conjunct = Box::new(ast::BinOp {
+            conjunct = Box::new(ast::BinaryOp {
                 left: conjunct,
                 token: operator,
                 right: self.conjunct()?,
@@ -344,7 +344,7 @@ impl<'a> Parser<'a> {
                 _ => break,
             };
 
-            term = Box::new(ast::BinOp {
+            term = Box::new(ast::BinaryOp {
                 left: term,
                 token: operator,
                 right: self.term()?,
@@ -370,7 +370,7 @@ impl<'a> Parser<'a> {
                 _ => break,
             };
 
-            factor = Box::new(ast::BinOp {
+            factor = Box::new(ast::BinaryOp {
                 left: factor,
                 token: operator,
                 right: self.factor()?,
@@ -434,7 +434,7 @@ impl<'a> Parser<'a> {
                     let substitution = ast::Substitution {
                         token: self.consume(TokenType::ID)?,
                     };
-                    self.consume(TokenType::PARENTHESIS_LEFT)?;
+                    self.consume(TokenType::PARENTHESIS_RIGHT)?;
                     Box::new(substitution)
                 } else {
                     self.function()?
@@ -456,17 +456,30 @@ impl<'a> Parser<'a> {
 
     fn function(&mut self) -> Result<Box<dyn ast::Node>, TFMTError> {
         self.depth += 1;
-        self.trace("Function (unimpl)");
+        self.trace("Function");
+
+        let identifier = self.consume(TokenType::ID)?;
+
+        self.consume(TokenType::PARENTHESIS_LEFT)?;
+
+        let mut arguments: Vec<Box<dyn ast::Node>> = Vec::new();
+
+        // while self.current_token().ttype() != TokenType::PARENTHESIS_RIGHT {
+        loop {
+            arguments.push(self.expression()?);
+            if self.consume(TokenType::COMMA).is_err() {
+                break;
+            }
+        }
+
+        let function = ast::Function {
+            start_token: identifier,
+            arguments,
+            end_token: self.consume(TokenType::PARENTHESIS_RIGHT)?,
+        };
+
         self.depth -= 1;
-        self.advance()?;
-        Ok(Box::new(ast::StringNode {
-            token: Token::new(
-                0,
-                0,
-                TokenType::STRING,
-                Some("function".to_owned()),
-            ),
-        }))
+        Ok(Box::new(function))
     }
 
     fn tag(&mut self) -> Result<Box<dyn ast::Node>, TFMTError> {
@@ -481,7 +494,7 @@ impl<'a> Parser<'a> {
 
         let tag = ast::Tag {
             start_token,
-            token: identifier
+            token: identifier,
         };
 
         self.depth -= 1;
