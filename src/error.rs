@@ -16,6 +16,7 @@ pub enum TFMTError {
     ExhaustedText,
     ExpectedValue,
     EmptyGroup,
+    GenAstDot,
 }
 
 impl fmt::Display for TFMTError {
@@ -49,6 +50,10 @@ impl fmt::Display for TFMTError {
             TFMTError::EmptyGroup => {
                 write!(f, "Encountered group without expressions!")
             }
+            TFMTError::GenAstDot => write!(
+                f,
+                "Unable to run dot! Is GraphViz installed and is it in PATH?"
+            ),
         }
     }
 }

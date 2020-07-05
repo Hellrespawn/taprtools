@@ -1,5 +1,6 @@
 use super::ast::{self, Node};
 use super::token::TOKEN_TYPE_STRING_MAP;
+use crate::error::TFMTError;
 
 use std::error::Error;
 use std::fs;
@@ -7,10 +8,9 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-#[derive(Default)]
-pub struct GenAstDot {
-    node_count: u32,
-    dot_body: Vec<String>,
+pub struct GenAstDot<'a> {
+    dot_body: &'a mut String,
+    counter: u32,
 }
 
 pub fn visualize_ast(
@@ -19,7 +19,9 @@ pub fn visualize_ast(
     name: &str,
     remove_dot_file: bool,
 ) -> Result<(), Box<dyn Error>> {
-    let mut g = GenAstDot::new();
+    let mut dot_body = String::new();
+
+    let mut g = GenAstDot::new(&mut dot_body);
 
     root.accept(&mut g);
 
@@ -31,7 +33,7 @@ pub fn visualize_ast(
         ranksep=0.75;\n  "
         .to_owned();
 
-    dot.push_str(&g.dot_body.join(""));
+    dot.push_str(&dot_body);
 
     dot.push_str("}");
 
@@ -43,15 +45,16 @@ pub fn visualize_ast(
     let mut file = fs::File::create(&path)?;
     file.write_all(dot.as_bytes())?;
 
-    let output = Command::new("dot")
+    let result = Command::new("dot")
         .current_dir(directory)
         .arg("-Tpng")
-        .arg(format!("-o {:?}.png", name))
-        .arg(format!("{:?}.dot", name))
-        .output()
-        .expect("Something failed!");
+        .args(&["-o", &format!("{}.png", name)])
+        .arg(format!("{}.dot", name))
+        .spawn();
 
-    println!("{:?}", output.stdout);
+    if result.is_err() {
+        return Err(Box::new(TFMTError::GenAstDot));
+    }
 
     if remove_dot_file {
         fs::remove_file(path)?;
@@ -60,9 +63,17 @@ pub fn visualize_ast(
     Ok(())
 }
 
-impl GenAstDot {
-    pub fn new() -> GenAstDot {
-        Default::default()
+impl<'a> GenAstDot<'a> {
+    pub fn new(dot_body: &'a mut String) -> GenAstDot<'a> {
+        GenAstDot {
+            dot_body,
+            counter: 0,
+        }
+    }
+
+    fn increment(&mut self) -> u32 {
+        self.counter += 1;
+        self.counter - 1
     }
 
     fn create_node(&mut self, label: &str, hidden: bool) -> u32 {
@@ -75,11 +86,9 @@ impl GenAstDot {
         };
 
         self.dot_body
-            .push(format!("node{} {}\n", self.node_count, label_str));
+            .push_str(&format!("  node{} {}\n", self.counter, label_str));
 
-        self.node_count += 1;
-
-        self.node_count - 1
+        self.increment()
     }
 
     fn new_node(&mut self, label: &str) -> u32 {
@@ -115,7 +124,7 @@ impl GenAstDot {
 
         string.push_str("\n");
 
-        self.dot_body.push(string);
+        self.dot_body.push_str(&string);
     }
 
     fn connect_nodes(&mut self, node1: u32, node2: u32) {
@@ -132,7 +141,7 @@ impl GenAstDot {
     }
 }
 
-impl ast::Visitor for GenAstDot {
+impl<'a> ast::Visitor for GenAstDot<'a> {
     //type Result;
     fn visit_program(&mut self, program: &ast::Program) {
         let program_node = self.new_node(&format!(
@@ -145,20 +154,20 @@ impl ast::Visitor for GenAstDot {
         ));
 
         self.dot_body
-            .push("subgraph header {\nrankdir=\"RL\";\n".to_owned());
+            .push_str("subgraph header {\nrankdir=\"RL\";\n");
 
-        let parameters_node = self.node_count;
+        let parameters_node = self.counter;
         program.parameters.accept(self);
         self.connect_nodes(parameters_node, program_node);
 
         self.dot_body
-            .push("}\nsubgraph block  {\nrankdir=\"LR\";\n".to_owned());
+            .push_str("}\nsubgraph block  {\nrankdir=\"LR\";\n");
 
-        let block_node = self.node_count;
+        let block_node = self.counter;
         program.block.accept(self);
         self.connect_nodes(block_node, program_node);
 
-        self.dot_body.push("}\n".to_owned());
+        self.dot_body.push_str("}\n");
     }
 
     fn visit_parameters(&mut self, parameters: &ast::Parameters) {
@@ -166,7 +175,7 @@ impl ast::Visitor for GenAstDot {
             .new_node(&format!("Params:\n({})", parameters.parameters.len()));
 
         for parameter in parameters.parameters.iter() {
-            let parameter_node = self.node_count;
+            let parameter_node = self.counter;
             parameter.accept(self);
             self.connect_nodes(parameter_node, parameters_node);
         }
@@ -196,7 +205,7 @@ impl ast::Visitor for GenAstDot {
         let block_node = self.new_node("Block");
 
         if let Some(drive) = &block.drive {
-            let drive_node = self.node_count;
+            let drive_node = self.counter;
             drive.accept(self);
             self.connect_nodes_with_label(
                 drive_node,
@@ -214,7 +223,7 @@ impl ast::Visitor for GenAstDot {
         );
 
         for expression in block.expressions.iter() {
-            let expression_node = self.node_count;
+            let expression_node = self.counter;
             expression.accept(self);
             self.connect_nodes(expression_node, expressions_node)
         }
@@ -223,15 +232,15 @@ impl ast::Visitor for GenAstDot {
     fn visit_ternaryop(&mut self, ternaryop: &ast::TernaryOp) {
         let ternaryop_node = self.new_node("TernOp:\n\'?:\'");
 
-        let condition_node = self.node_count;
+        let condition_node = self.counter;
         ternaryop.condition.accept(self);
         self.connect_nodes_with_label(condition_node, ternaryop_node, "cond");
 
-        let true_node = self.node_count;
+        let true_node = self.counter;
         ternaryop.true_expr.accept(self);
         self.connect_nodes_with_label(true_node, ternaryop_node, "cond");
 
-        let false_node = self.node_count;
+        let false_node = self.counter;
         ternaryop.false_expr.accept(self);
         self.connect_nodes_with_label(false_node, ternaryop_node, "cond");
     }
@@ -244,11 +253,11 @@ impl ast::Visitor for GenAstDot {
                 .unwrap()
         ));
 
-        let left_node = self.node_count;
+        let left_node = self.counter;
         binaryop.left.accept(self);
         self.connect_nodes(left_node, binaryop_node);
 
-        let right_node = self.node_count;
+        let right_node = self.counter;
         binaryop.right.accept(self);
         self.connect_nodes(right_node, binaryop_node);
     }
@@ -261,7 +270,7 @@ impl ast::Visitor for GenAstDot {
                 .unwrap()
         ));
 
-        let operand_node = self.node_count;
+        let operand_node = self.counter;
         unaryop.operand.accept(self);
         self.connect_nodes(operand_node, unaryop_node);
     }
@@ -270,7 +279,7 @@ impl ast::Visitor for GenAstDot {
         let group_node = self.new_node("Group\n\'(...)\'");
 
         for expression in group.expressions.iter() {
-            let expression_node = self.node_count;
+            let expression_node = self.counter;
             expression.accept(self);
             self.connect_nodes(expression_node, group_node);
         }
@@ -287,7 +296,7 @@ impl ast::Visitor for GenAstDot {
         ));
 
         for (i, expression) in function.arguments.iter().enumerate() {
-            let expression_node = self.node_count;
+            let expression_node = self.counter;
             expression.accept(self);
             self.connect_nodes_with_label(
                 expression_node,
