@@ -7,6 +7,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+#[derive(Default)]
 pub struct GenAstDot {
     node_count: u32,
     dot_body: Vec<String>,
@@ -61,17 +62,15 @@ pub fn visualize_ast(
 
 impl GenAstDot {
     pub fn new() -> GenAstDot {
-        GenAstDot {
-            node_count: 0,
-            dot_body: Vec::new(),
-        }
+        Default::default()
     }
 
     fn create_node(&mut self, label: &str, hidden: bool) -> u32 {
         let label_str = {
-            match hidden {
-                true => "[shape=point]".to_owned(),
-                false => format!("[label=\"{}\"]", label.replace("\n", "\\n")),
+            if hidden {
+                "[shape=point]".to_owned()
+            } else {
+                format!("[label=\"{}\"]", label.replace("\n", "\\n"))
             }
         };
 
@@ -163,10 +162,8 @@ impl ast::Visitor for GenAstDot {
     }
 
     fn visit_parameters(&mut self, parameters: &ast::Parameters) {
-        let parameters_node = self.new_node(&format!(
-            "Params:\n({})",
-            parameters.parameters.len()
-        ));
+        let parameters_node = self
+            .new_node(&format!("Params:\n({})", parameters.parameters.len()));
 
         for parameter in parameters.parameters.iter() {
             let parameter_node = self.node_count;
@@ -176,23 +173,21 @@ impl ast::Visitor for GenAstDot {
     }
 
     fn visit_parameter(&mut self, parameter: &ast::Parameter) {
-        let parameter_node = self.new_node(&format!(
-            "{}",
+        let parameter_node = self.new_node(
             parameter
                 .token
                 .value
                 .as_ref()
-                .expect("Parameter token must have value!")
-        ));
+                .expect("Parameter token must have value!"),
+        );
 
         if let Some(default) = parameter.default.as_ref() {
-            let default_node = self.new_node(&format!(
-                "{}",
+            let default_node = self.new_node(
                 default
                     .value
                     .as_ref()
-                    .expect("Parameter default token must have value!")
-            ));
+                    .expect("Parameter default token must have value!"),
+            );
             self.connect_nodes(default_node, parameter_node);
         }
     }
@@ -226,7 +221,7 @@ impl ast::Visitor for GenAstDot {
     }
 
     fn visit_ternaryop(&mut self, ternaryop: &ast::TernaryOp) {
-        let ternaryop_node = self.new_node(&format!("TernOp:\n\'?:\'"));
+        let ternaryop_node = self.new_node("TernOp:\n\'?:\'");
 
         let condition_node = self.node_count;
         ternaryop.condition.accept(self);
@@ -244,7 +239,9 @@ impl ast::Visitor for GenAstDot {
     fn visit_binaryop(&mut self, binaryop: &ast::BinaryOp) {
         let binaryop_node = self.new_node(&format!(
             "BinOp:\n{}",
-            TOKEN_TYPE_STRING_MAP.get_by_left(&binaryop.token.ttype()).unwrap()
+            TOKEN_TYPE_STRING_MAP
+                .get_by_left(&binaryop.token.ttype())
+                .unwrap()
         ));
 
         let left_node = self.node_count;
@@ -259,7 +256,9 @@ impl ast::Visitor for GenAstDot {
     fn visit_unaryop(&mut self, unaryop: &ast::UnaryOp) {
         let unaryop_node = self.new_node(&format!(
             "UnOp:\n{}",
-            TOKEN_TYPE_STRING_MAP.get_by_left(&unaryop.token.ttype()).unwrap()
+            TOKEN_TYPE_STRING_MAP
+                .get_by_left(&unaryop.token.ttype())
+                .unwrap()
         ));
 
         let operand_node = self.node_count;
@@ -268,7 +267,7 @@ impl ast::Visitor for GenAstDot {
     }
 
     fn visit_group(&mut self, group: &ast::Group) {
-        let group_node = self.new_node(&format!("Group\n\'(...)\'"));
+        let group_node = self.new_node("Group\n\'(...)\'");
 
         for expression in group.expressions.iter() {
             let expression_node = self.node_count;
@@ -346,8 +345,7 @@ impl ast::Visitor for GenAstDot {
     fn visit_tag(&mut self, tag: &ast::Tag) {
         self.new_node(&format!(
             "Tag:\n<{}>",
-            tag
-                .token
+            tag.token
                 .value
                 .as_ref()
                 .expect("Token in Tag must have value!")
