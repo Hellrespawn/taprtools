@@ -13,6 +13,7 @@ path = "src/bin/tag_to_filename.rs"
 [dependencies]
 bimap = "0.4"
 chrono = "0.4"
+dirs = "3.0.1"
 fern = "0.6"
 gumdrop = "0.8"
 lazy_static = "1.4"

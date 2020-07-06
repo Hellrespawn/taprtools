@@ -1,3 +1,4 @@
+use dirs::home_dir;
 use log::{debug, trace};
 use std::env::args;
 use std::fs;
@@ -8,11 +9,19 @@ use crate::{logger, tfmt};
 pub fn main() -> Result<(), String> {
     let verbosity = logger::verbosity_from_args();
 
-    if let Err(err) = logger::setup_logger(
-        verbosity,
-        logger::path_relative_to_source_file(),
-        "musictools",
-    ) {
+    let mut project_path = home_dir()
+        .expect("Unable to find home folder!")
+        .canonicalize()
+        .unwrap();
+    project_path.push("projects");
+    project_path.push("rust");
+    project_path.push("musictools_rust");
+
+    let mut log_folder = path::PathBuf::from(&project_path);
+    log_folder.push("log");
+
+    if let Err(err) = logger::setup_logger(verbosity, log_folder, "musictools")
+    {
         panic!("Unable to initialize logger: {}", err)
     };
 
@@ -23,17 +32,14 @@ pub fn main() -> Result<(), String> {
     //let filename = "simple_input.tfmt";
     let filename = "typical_input.tfmt";
 
-    let mut path = path::PathBuf::from(file!());
-    for _ in 1..=3 {
-        path.pop();
-    }
-    path.push("tests");
-    path.push("files");
-    path.push("config");
-    path.push(filename);
+    let mut input_file = path::PathBuf::from(&project_path);
+    input_file.push("tests");
+    input_file.push("files");
+    input_file.push("config");
+    input_file.push(filename);
 
-    let test_string = fs::read_to_string(path)
-        .unwrap_or_else(|_| panic!("{} doesn't exist!", filename));
+    let test_string = fs::read_to_string(&input_file)
+        .unwrap_or_else(|_| panic!("{:?} doesn't exist!", &input_file));
 
     let mut lex = tfmt::lexer::Lexer::new(&test_string);
 
