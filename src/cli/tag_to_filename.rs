@@ -73,9 +73,8 @@ pub fn main() -> Result<(), String> {
     }
     path.push("log");
 
-    if tfmt::genastdot::visualize_ast(root, &path, "musictools", false).is_err()
-    {
-        panic!("viz failed!");
+    if let Err(error) = tfmt::genastdot::visualize_ast(root, &path, "musictools", false) {
+        println!("{}", error)
     }
 
     Ok(())
