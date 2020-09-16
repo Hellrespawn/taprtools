@@ -2,11 +2,12 @@ use super::ast::{self, Node};
 use super::token::TOKEN_TYPE_STRING_MAP;
 use crate::error::TFMTError;
 
-use std::error::Error;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+
+use anyhow::Result;
 
 pub struct GenAstDot<'a> {
     dot_body: &'a mut String,
@@ -18,7 +19,7 @@ pub fn visualize_ast(
     directory: &Path,
     name: &str,
     remove_dot_file: bool,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<()> {
     let mut dot_body = String::new();
 
     let mut g = GenAstDot::new(&mut dot_body);
@@ -53,7 +54,7 @@ pub fn visualize_ast(
         .spawn();
 
     if result.is_err() {
-        return Err(Box::new(TFMTError::GenAstDot));
+        return Err(TFMTError::GenAstDot.into());
     }
 
     if remove_dot_file {

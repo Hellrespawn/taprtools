@@ -11,6 +11,7 @@ name = "ttf_rs"
 path = "src/bin/tag_to_filename.rs"
 
 [dependencies]
+anyhow = "1.0"
 bimap = "0.4"
 chrono = "0.4"
 dirs = "3.0.1"

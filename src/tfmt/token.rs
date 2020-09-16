@@ -1,5 +1,6 @@
 #![allow(non_camel_case_types)]
 
+use anyhow::{anyhow, Result};
 use bimap::BiMap;
 use lazy_static::lazy_static;
 
@@ -134,7 +135,7 @@ impl Token {
         col_no: u32,
         ttype_char: &str,
         value: Option<String>,
-    ) -> Result<Token, String> {
+    ) -> Result<Token> {
         if let Some(ttype) = TOKEN_TYPE_STRING_MAP.get_by_right(&ttype_char) {
             Ok(Token {
                 line_no,
@@ -143,7 +144,7 @@ impl Token {
                 value,
             })
         } else {
-            Err(format!("Invalid character {} for token!", ttype_char))
+            Err(anyhow!("Invalid character {} for token!", ttype_char))
         }
     }
 

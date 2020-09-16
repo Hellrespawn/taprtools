@@ -1,6 +1,7 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
+use anyhow::{anyhow, Result};
 use gumdrop::Options;
 use log::log;
 use log::LevelFilter;
@@ -35,12 +36,15 @@ pub fn path_relative_to_source_file() -> PathBuf {
 
 pub fn setup_logger(
     verbosity: usize,
-    path: PathBuf,
+    path: &Path,
     filename: &str,
-) -> Result<(), fern::InitError> {
+) -> Result<()> {
     // verbosity is usize, so can never be negative.
     if verbosity > LOG_LEVELS.len() - 1 {
-        panic!("Verbosity must be between 0 and {}", LOG_LEVELS.len());
+        return Err(anyhow!(
+            "Verbosity must be between 0 and {}",
+            LOG_LEVELS.len()
+        ));
     }
     if verbosity == 0 {
         Ok(())

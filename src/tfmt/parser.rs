@@ -1,5 +1,7 @@
 use log::trace;
 
+use anyhow::Result;
+
 use super::ast;
 use super::lexer::Lexer;
 use super::token::{self, Token, TokenType};
@@ -33,7 +35,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse(&mut self) -> Result<ast::Program, TFMTError> {
+    pub fn parse(&mut self) -> Result<ast::Program> {
         // Prime parser
         self._advance(true)?;
         self.program()
@@ -52,7 +54,7 @@ impl<'a> Parser<'a> {
             .expect("Should pretty much always be safe!")
     }
 
-    fn _advance(&mut self, ignore: bool) -> Result<(), TFMTError> {
+    fn _advance(&mut self, ignore: bool) -> Result<()> {
         if !ignore {
             self.previous_token = self.current_token.take()
         }
@@ -68,25 +70,23 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    fn advance(&mut self) -> Result<(), TFMTError> {
+    fn advance(&mut self) -> Result<()> {
         self._advance(false)
     }
 
-    fn consume(
-        &mut self,
-        expected_ttype: TokenType,
-    ) -> Result<Token, TFMTError> {
+    fn consume(&mut self, expected_ttype: TokenType) -> Result<Token> {
         let current_ttype = self.current_token.as_ref().unwrap().ttype();
 
         if current_ttype == TokenType::EOF {
-            return Err(TFMTError::ExhaustedTokens(current_ttype));
+            return Err(TFMTError::ExhaustedTokens(current_ttype).into());
         }
 
         if current_ttype != expected_ttype {
             return Err(TFMTError::UnexpectedToken(
                 expected_ttype,
                 current_ttype,
-            ));
+            )
+            .into());
         }
 
         self.advance()?;
@@ -106,7 +106,7 @@ impl<'a> Parser<'a> {
     }
 
     // Grammar functions
-    fn program(&mut self) -> Result<ast::Program, TFMTError> {
+    fn program(&mut self) -> Result<ast::Program> {
         // ID "(" Parameters ")" ( String )? "{" Block "}"
         self.depth += 1;
         self.trace("Program");
@@ -138,7 +138,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn parameters(&mut self) -> Result<ast::Parameters, TFMTError> {
+    fn parameters(&mut self) -> Result<ast::Parameters> {
         // ( Parameter ( "," Parameter )* )?
         self.depth += 1;
         self.trace("Parameters");
@@ -159,7 +159,7 @@ impl<'a> Parser<'a> {
         Ok(ast::Parameters { parameters })
     }
 
-    fn parameter(&mut self) -> Result<ast::Parameter, TFMTError> {
+    fn parameter(&mut self) -> Result<ast::Parameter> {
         // ID ( "=" ( Integer | String ) )?
         self.depth += 1;
         self.trace("Parameter");
@@ -174,7 +174,8 @@ impl<'a> Parser<'a> {
                 } else {
                     return Err(TFMTError::Parser(
                         "Paramater has invalid default!".to_owned(),
-                    ));
+                    )
+                    .into());
                 }
             }
             Err(_) => None,
@@ -188,7 +189,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn block(&mut self) -> Result<ast::Block, TFMTError> {
+    fn block(&mut self) -> Result<ast::Block> {
         // ( DriveLetter )? Expression*
         self.depth += 1;
         self.trace("Block");
@@ -208,7 +209,7 @@ impl<'a> Parser<'a> {
     fn expressions(
         &mut self,
         terminators: Vec<TokenType>,
-    ) -> Result<Vec<Box<dyn ast::Node>>, TFMTError> {
+    ) -> Result<Vec<Box<dyn ast::Node>>> {
         let mut expressions: Vec<Box<dyn ast::Node>> = Vec::new();
 
         while !terminators.contains(&self.current_token().ttype()) {
@@ -220,7 +221,8 @@ impl<'a> Parser<'a> {
             if self.depth > 48 {
                 return Err(TFMTError::Parser(
                     "Iteration depth > 48!".to_owned(),
-                ));
+                )
+                .into());
             }
             expressions.push(self.expression()?);
         }
@@ -228,7 +230,7 @@ impl<'a> Parser<'a> {
         Ok(expressions)
     }
 
-    fn expression(&mut self) -> Result<Box<dyn ast::Node>, TFMTError> {
+    fn expression(&mut self) -> Result<Box<dyn ast::Node>> {
         // Ternary ( "?" Ternary ":" Ternary )*
         self.depth += 1;
         self.trace("Expression");
@@ -251,7 +253,7 @@ impl<'a> Parser<'a> {
         Ok(expression)
     }
 
-    fn ternary(&mut self) -> Result<Box<dyn ast::Node>, TFMTError> {
+    fn ternary(&mut self) -> Result<Box<dyn ast::Node>> {
         // Disjunct ( ( "||" | "|" ) Disjunct )*
         self.depth += 1;
         self.trace("Ternary");
@@ -277,7 +279,7 @@ impl<'a> Parser<'a> {
         Ok(ternary)
     }
 
-    fn disjunct(&mut self) -> Result<Box<dyn ast::Node>, TFMTError> {
+    fn disjunct(&mut self) -> Result<Box<dyn ast::Node>> {
         // Conjunct ( ( "&&" | "&" ) Conjunct )*
         self.depth += 1;
         self.trace("Disjunct");
@@ -303,7 +305,7 @@ impl<'a> Parser<'a> {
         Ok(disjunct)
     }
 
-    fn conjunct(&mut self) -> Result<Box<dyn ast::Node>, TFMTError> {
+    fn conjunct(&mut self) -> Result<Box<dyn ast::Node>> {
         // Term ( ( "+" | "-" ) Term )*
         self.depth += 1;
         self.trace("Conjunct");
@@ -328,7 +330,7 @@ impl<'a> Parser<'a> {
         Ok(conjunct)
     }
 
-    fn term(&mut self) -> Result<Box<dyn ast::Node>, TFMTError> {
+    fn term(&mut self) -> Result<Box<dyn ast::Node>> {
         // Factor ( ( "*" | "/" | "%" ) Factor )*
         self.depth += 1;
         self.trace("Term");
@@ -355,7 +357,7 @@ impl<'a> Parser<'a> {
         Ok(term)
     }
 
-    fn factor(&mut self) -> Result<Box<dyn ast::Node>, TFMTError> {
+    fn factor(&mut self) -> Result<Box<dyn ast::Node>> {
         // Exponent ( ( "**" | "^" ) Exponent )*
         self.depth += 1;
         self.trace("Factor");
@@ -381,7 +383,7 @@ impl<'a> Parser<'a> {
         Ok(factor)
     }
 
-    fn exponent(&mut self) -> Result<Box<dyn ast::Node>, TFMTError> {
+    fn exponent(&mut self) -> Result<Box<dyn ast::Node>> {
         // "+" Exponent | "-" Exponent | "(" Expression+ ")" | Statement
         self.depth += 1;
         self.trace("Exponent");
@@ -406,7 +408,7 @@ impl<'a> Parser<'a> {
                 self.consume(TokenType::PARENTHESIS_RIGHT)?;
 
                 if expressions.is_empty() {
-                    return Err(TFMTError::EmptyGroup);
+                    return Err(TFMTError::EmptyGroup.into());
                 }
 
                 Box::new(ast::Group { expressions })
@@ -418,7 +420,7 @@ impl<'a> Parser<'a> {
         Ok(exponent)
     }
 
-    fn statement(&mut self) -> Result<Box<dyn ast::Node>, TFMTError> {
+    fn statement(&mut self) -> Result<Box<dyn ast::Node>> {
         // Comment | Function | Integer | String | Substitution | Tag
         self.depth += 1;
         self.trace("Statement");
@@ -447,14 +449,14 @@ impl<'a> Parser<'a> {
             TokenType::STRING => Box::new(ast::StringNode {
                 token: self.consume(ttype)?,
             }),
-            _ => return Err(TFMTError::UnrecognizedToken(ttype)),
+            _ => return Err(TFMTError::UnrecognizedToken(ttype).into()),
         };
 
         self.depth -= 1;
         Ok(statement)
     }
 
-    fn function(&mut self) -> Result<Box<dyn ast::Node>, TFMTError> {
+    fn function(&mut self) -> Result<Box<dyn ast::Node>> {
         self.depth += 1;
         self.trace("Function");
 
@@ -482,7 +484,7 @@ impl<'a> Parser<'a> {
         Ok(Box::new(function))
     }
 
-    fn tag(&mut self) -> Result<Box<dyn ast::Node>, TFMTError> {
+    fn tag(&mut self) -> Result<Box<dyn ast::Node>> {
         self.depth += 1;
         self.trace("Tag");
 

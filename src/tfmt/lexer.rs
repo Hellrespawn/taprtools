@@ -1,5 +1,6 @@
 use std::iter::Iterator;
 
+use anyhow::Result;
 use unicode_segmentation::UnicodeSegmentation;
 
 use super::token::{
@@ -34,10 +35,10 @@ impl<'a> Lexer<'a> {
         self.ended = false;
     }
 
-    fn current_grapheme(&self) -> Result<&str, TFMTError> {
+    fn current_grapheme(&self) -> Result<&str> {
         match self.text.get(self.index) {
             Some(string) => Ok(string),
-            None => Err(TFMTError::ExhaustedText),
+            None => Err(TFMTError::ExhaustedText.into()),
         }
     }
 
@@ -55,7 +56,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn advance(&mut self) -> Result<(), TFMTError> {
+    fn advance(&mut self) -> Result<()> {
         if let Ok(string) = self.current_grapheme() {
             if string == "\n" {
                 self.line_no += 1;
@@ -64,14 +65,14 @@ impl<'a> Lexer<'a> {
                 self.col_no += 1;
             }
         } else {
-            return Err(TFMTError::ExhaustedText);
+            return Err(TFMTError::ExhaustedText.into());
         }
 
         self.index += 1;
         Ok(())
     }
 
-    fn advance_times(&mut self, times: u32) -> Result<(), TFMTError> {
+    fn advance_times(&mut self, times: u32) -> Result<()> {
         for _ in 1..=times {
             self.advance()?;
         }
@@ -84,7 +85,7 @@ impl<'a> Lexer<'a> {
         discard_terminator: bool,
         terminate_on_eof: bool,
         skip_graphemes: u32,
-    ) -> Result<String, TFMTError> {
+    ) -> Result<String> {
         self.advance_times(skip_graphemes)?;
 
         let mut string = String::new();
@@ -113,7 +114,8 @@ impl<'a> Lexer<'a> {
                     if !terminate_on_eof {
                         return Err(TFMTError::Crawler(
                             "Crawl reached EOF before terminator!".to_owned(),
-                        ));
+                        )
+                        .into());
                     } else {
                         break;
                     }
@@ -125,7 +127,7 @@ impl<'a> Lexer<'a> {
         Ok(string)
     }
 
-    fn handle_string(&mut self, multiline: bool) -> Result<String, TFMTError> {
+    fn handle_string(&mut self, multiline: bool) -> Result<String> {
         let quote = String::from(
             self.current_grapheme()
                 .expect("Checked in handle_bounded. Should never panic."),
@@ -140,14 +142,15 @@ impl<'a> Lexer<'a> {
                 return Err(TFMTError::Lexer(format!(
                     "String contains forbidden grapheme {:?}!",
                     grapheme
-                )));
+                ))
+                .into());
             }
         }
 
         Ok(string)
     }
 
-    fn handle_bounded(&mut self) -> Result<Option<Token>, TFMTError> {
+    fn handle_bounded(&mut self) -> Result<Option<Token>> {
         // Might panic here?
         let current_grapheme = &self.current_grapheme()?;
 
@@ -213,7 +216,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn handle_reserved(&mut self) -> Result<Option<Token>, TFMTError> {
+    fn handle_reserved(&mut self) -> Result<Option<Token>> {
         for string in token::RESERVED_STRINGS.iter() {
             if self.test_current_string(string) {
                 let token = Token::new_type_from_string(
@@ -232,7 +235,7 @@ impl<'a> Lexer<'a> {
         Ok(None)
     }
 
-    fn handle_misc_tokens(&mut self) -> Result<Token, TFMTError> {
+    fn handle_misc_tokens(&mut self) -> Result<Token> {
         let (line_no_start, col_no_start) = (self.line_no, self.col_no);
 
         let current_grapheme = self.current_grapheme()?;
@@ -280,12 +283,12 @@ impl<'a> Lexer<'a> {
                     Some(value),
                 ))
             } else {
-                Err(TFMTError::Tokenize(value))
+                Err(TFMTError::Tokenize(value).into())
             }
         }
     }
 
-    pub fn next_token(&mut self) -> Result<Option<Token>, TFMTError> {
+    pub fn next_token(&mut self) -> Result<Option<Token>> {
         let token = {
             match self.current_grapheme() {
                 Err(_) => {
@@ -327,6 +330,7 @@ impl<'a> Lexer<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use anyhow::anyhow;
 
     static DOUBLE_QUOTED_STRING: &str = "\"This is a double-quoted string\"";
     static SINGLE_QUOTED_STRING: &str = "'This is a single-quoted string'";
@@ -347,7 +351,7 @@ mod tests {
         Lexer::new(&string)
     }
 
-    fn run_lexer(string: &str, pop_eof: bool) -> Result<Vec<Token>, String> {
+    fn run_lexer(string: &str, pop_eof: bool) -> Result<Vec<Token>> {
         let mut lex = Lexer::new(&string);
 
         let mut tokens: Vec<Token> = Vec::new();
@@ -362,7 +366,7 @@ mod tests {
         Ok(tokens)
     }
 
-    fn lexer_test(string: &str, reference: Vec<Token>) -> Result<(), String> {
+    fn lexer_test(string: &str, reference: Vec<Token>) -> Result<()> {
         let tokens = run_lexer(string, true)?;
 
         assert_eq!(tokens, reference);
@@ -375,7 +379,7 @@ mod tests {
         use std::fs;
         use std::path;
 
-        fn file_test(filename: &str) -> Result<(), String> {
+        fn file_test(filename: &str) -> Result<()> {
             let mut path = path::PathBuf::from(file!());
             for _ in 1..=3 {
                 path.pop();
@@ -392,12 +396,12 @@ mod tests {
         }
 
         #[test]
-        fn test_simple_input() -> Result<(), String> {
+        fn test_simple_input() -> Result<()> {
             file_test("simple_input.tfmt")
         }
 
         #[test]
-        fn test_typical_input() -> Result<(), String> {
+        fn test_typical_input() -> Result<()> {
             file_test("typical_input.tfmt")
         }
     }
@@ -405,10 +409,7 @@ mod tests {
     mod handle_reserved {
         use super::*;
 
-        fn reserved_test(
-            string: &str,
-            expected_type: TokenType,
-        ) -> Result<(), String> {
+        fn reserved_test(string: &str, expected_type: TokenType) -> Result<()> {
             let mut lex = create_lexer(string);
 
             match lex.handle_reserved()? {
@@ -416,7 +417,7 @@ mod tests {
                     if token.ttype() == expected_type {
                         Ok(())
                     } else {
-                        Err(format!(
+                        Err(anyhow!(
                             "{} was parsed as {}, not {}!",
                             string,
                             // ttypes are always safe!
@@ -429,19 +430,19 @@ mod tests {
                         ))
                     }
                 }
-                None => Err(format!("Unable to parse {} as Token!", string)),
+                None => Err(anyhow!("Unable to parse {} as Token!", string)),
             }
         }
 
         #[test]
-        fn test_single_char_string() -> Result<(), String> {
+        fn test_single_char_string() -> Result<()> {
             reserved_test("+", TokenType::PLUS)?;
             reserved_test("-", TokenType::HYPHEN)?;
             Ok(())
         }
 
         #[test]
-        fn test_double_char_string() -> Result<(), String> {
+        fn test_double_char_string() -> Result<()> {
             reserved_test("&&", TokenType::DOUBLE_AMPERSAND)?;
             reserved_test("||", TokenType::DOUBLE_VERTICAL_BAR)?;
             Ok(())
@@ -452,7 +453,7 @@ mod tests {
         use super::*;
 
         #[test]
-        fn test_double_quoted() -> Result<(), String> {
+        fn test_double_quoted() -> Result<()> {
             let reference = vec![Token::new(
                 1,
                 1,
@@ -463,7 +464,7 @@ mod tests {
         }
 
         #[test]
-        fn test_single_quoted() -> Result<(), String> {
+        fn test_single_quoted() -> Result<()> {
             let reference = vec![Token::new(
                 1,
                 1,
@@ -474,14 +475,14 @@ mod tests {
         }
 
         #[test]
-        fn test_string_with_forbidden_graphemes() -> Result<(), String> {
+        fn test_string_with_forbidden_graphemes() -> Result<()> {
             match run_lexer(STRING_WITH_FORBIDDEN_GRAPHEMES, false) {
-                Ok(tokens) => Err(format!("Lexer did not error on forbidden characters, returned {:?}", tokens)),
+                Ok(tokens) => Err(anyhow!("Lexer did not error on forbidden characters, returned {:?}", tokens)),
                 Err(err) => {
-                    if err.contains("forbidden grapheme") {
+                    if err.to_string().contains("forbidden grapheme") {
                         Ok(())
                     } else {
-                        Err(format!("Unrelated error {:?}!", err))
+                        Err(anyhow!("Unrelated error {:?}!", err))
                     }
                 }
             }
@@ -492,7 +493,7 @@ mod tests {
         use super::*;
 
         #[test]
-        fn test_id() -> Result<(), String> {
+        fn test_id() -> Result<()> {
             lexer_test(
                 "id",
                 vec![Token::new(1, 1, TokenType::ID, Some(String::from("id")))],
@@ -500,7 +501,7 @@ mod tests {
         }
 
         #[test]
-        fn test_drive() -> Result<(), String> {
+        fn test_drive() -> Result<()> {
             lexer_test(
                 "D:\\",
                 vec![Token::new(
@@ -513,7 +514,7 @@ mod tests {
         }
 
         #[test]
-        fn test_integer() -> Result<(), String> {
+        fn test_integer() -> Result<()> {
             lexer_test(
                 "1",
                 vec![Token::new(
@@ -536,7 +537,7 @@ mod tests {
             discard_terminator: bool,
             terminate_on_eof: bool,
             skip_graphemes: u32,
-        ) -> Result<(), TFMTError> {
+        ) -> Result<()> {
             let mut lex = Lexer::new(&string);
 
             let output = lex.crawl(
@@ -551,7 +552,7 @@ mod tests {
             Ok(())
         }
 
-        fn string_test(string: &str) -> Result<(), TFMTError> {
+        fn string_test(string: &str) -> Result<()> {
             let string = String::from(string);
             let reference = dequote(&string);
             let terminators = vec![string.chars().next().unwrap().to_string()];
@@ -560,17 +561,17 @@ mod tests {
         }
 
         #[test]
-        fn test_double_quoted() -> Result<(), TFMTError> {
+        fn test_double_quoted() -> Result<()> {
             string_test(DOUBLE_QUOTED_STRING)
         }
 
         #[test]
-        fn test_single_quoted() -> Result<(), TFMTError> {
+        fn test_single_quoted() -> Result<()> {
             string_test(SINGLE_QUOTED_STRING)
         }
 
         #[test]
-        fn test_single_line_comment() -> Result<(), TFMTError> {
+        fn test_single_line_comment() -> Result<()> {
             crawler_test(
                 &String::from(SINGLE_LINE_COMMENT),
                 slice_ends(&SINGLE_LINE_COMMENT, 1, 0),
@@ -593,7 +594,7 @@ mod tests {
         }
 
         #[test]
-        fn test_multiline_comment() -> Result<(), TFMTError> {
+        fn test_multiline_comment() -> Result<()> {
             crawler_test(
                 &String::from(MULTILINE_COMMENT),
                 slice_ends(&MULTILINE_COMMENT, 2, 2),
