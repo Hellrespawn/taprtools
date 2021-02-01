@@ -1,5 +1,5 @@
 [package]
-name = "musictools"
+name = "tfmttools"
 version = "0.1.0"
 authors = ["Stef Korporaal <stefkorporaal@gmail.com>"]
 edition = "2018"
