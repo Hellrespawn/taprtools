@@ -2,7 +2,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Result};
-use gumdrop::Options;
 use log::log;
 use log::LevelFilter;
 
@@ -16,13 +15,14 @@ static LOG_LEVELS: [log::LevelFilter; 6] = [
 ];
 
 pub fn verbosity_from_args() -> usize {
-    #[derive(Debug, Options)]
-    struct VerbOptions {
-        #[options(count, help = "increase a counting value")]
-        verbosity: usize,
-    }
+    // #[derive(Debug, Options)]
+    // struct VerbOptions {
+    //     #[options(count, help = "increase a counting value")]
+    //     verbosity: usize,
+    // }
 
-    VerbOptions::parse_args_default_or_exit().verbosity
+    // VerbOptions::parse_args_default_or_exit().verbosity
+    5
 }
 
 pub fn path_relative_to_source_file() -> PathBuf {

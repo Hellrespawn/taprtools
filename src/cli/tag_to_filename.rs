@@ -1,77 +1,11 @@
-use anyhow::{anyhow, Result};
-use dirs::home_dir;
-use log::{debug, trace};
-use std::env::args;
-use std::fs;
-use std::path;
-
-use crate::{logger, tfmt};
-
-const FILENAME: &str = "tag_to_filename";
+use anyhow::Result;
+use clap::{App, load_yaml};
 
 pub fn main() -> Result<()> {
-    let verbosity = logger::verbosity_from_args();
+    let yaml = load_yaml!("tag_to_filename.yml");
+    let matches = App::from_yaml(yaml).get_matches();
 
-    let project_path = match option_env!("CARGO_MANIFEST_DIR") {
-        Some(folder) => path::PathBuf::from(folder),
-        None => home_dir().expect("Unable to find home folder!"),
-    };
-
-    println!("Project folder: \"{}\"", project_path.to_string_lossy());
-
-    let mut log_folder = path::PathBuf::from(&project_path);
-    log_folder.push("log");
-
-    if let Err(err) = logger::setup_logger(verbosity, &log_folder, FILENAME) {
-        return Err(anyhow!("Unable to initialize logger: {}", err));
-    };
-
-    debug!("Verbosity: {}", verbosity);
-
-    println!("Running {:?}", args().next().unwrap());
-
-    //let filename = "simple_input.tfmt";
-    let filename = "typical_input.tfmt";
-
-    let mut input_file = path::PathBuf::from(&project_path);
-    input_file.push("tests");
-    input_file.push("files");
-    input_file.push("config");
-    input_file.push(filename);
-
-    let test_string = fs::read_to_string(&input_file)?;
-
-    let mut lex = tfmt::lexer::Lexer::new(&test_string);
-
-    let mut tokens: Vec<tfmt::token::Token> = Vec::new();
-
-    loop {
-        match lex.next_token() {
-            Ok(Some(token)) => {
-                trace!("{:?}", token);
-                tokens.push(token);
-            }
-            Ok(None) => {
-                break;
-            }
-            Err(err) => {
-                println!("Error: {}", err);
-                break;
-            }
-        }
-    }
-
-    lex.reset();
-
-    let mut parser = tfmt::parser::Parser::from_lexer(lex);
-
-    let root = parser.parse()?;
-
-    if let Err(error) =
-        tfmt::genastdot::visualize_ast(root, &log_folder, FILENAME, false)
-    {
-        println!("{}", error)
-    }
+    println!("{:#?}", matches);
 
     Ok(())
 }
