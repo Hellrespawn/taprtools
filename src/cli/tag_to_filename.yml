@@ -2,31 +2,116 @@ name: tag_to_filename
 version: "0.1"
 author: S. Korporaal
 about: Rename filenames according to their tags.
+
+settings:
+    - SubcommandRequired
+
 args:
-    - config:
-        short: c
-        long: config
-        value_name: FILE
-        help: Sets a custom config file
-        takes_value: true
-    - INPUT:
-        help: Sets the input file to use
-        required: true
-        index: 1
     - verbose:
         short: v
         multiple: true
-        help: Sets the level of verbosity
+        help: Sets the level of verbosity.
+
+    - dry-run:
+        long: dry-run
+        help: Simulate file actions only.
+
 subcommands:
-    - test:
-        about: controls testing features
-        version: "1.3"
-        author: Someone E. <someone_else@other.com>
+    - clear-history:
+        about: Clears undo/redo history.
         args:
-            - debug:
-                short: d
-                help: print debug information
             - verbose:
                 short: v
                 multiple: true
-                help: Sets the level of verbosity
+                help: Sets the level of verbosity.
+
+            - dry-run:
+                long: dry-run
+                help: Simulate file actions only.
+
+    - default-config:
+        about: Print default config.toml.
+        args:
+            - verbose:
+                short: v
+                multiple: true
+                help: Sets the level of verbosity.
+
+            - dry-run:
+                long: dry-run
+                help: Simulate file actions only.
+
+    - list-scripts:
+        about: List scripts.
+        args:
+            - verbose:
+                short: v
+                multiple: true
+                help: Sets the level of verbosity.
+
+            - dry-run:
+                long: dry-run
+                help: Simulate file actions only.
+
+    - undo:
+        about: Undo <amount> actions.
+        args:
+            - verbose:
+                short: v
+                multiple: true
+                help: Sets the level of verbosity.
+
+            - dry-run:
+                long: dry-run
+                help: Simulate file actions only.
+
+            - amount:
+                help: Number of times to undo.
+                index: 1
+                default_value: "1"
+
+    - redo:
+        about: Redo <amount> actions.
+        args:
+            - verbose:
+                short: v
+                multiple: true
+                help: Sets the level of verbosity.
+
+            - dry-run:
+                long: dry-run
+                help: Simulate file actions only.
+
+            - amount:
+                help: Number of times to redo.
+                index: 1
+                default_value: "1"
+
+    - inspect:
+        about: Inspect script <name>.
+        args:
+            - verbose:
+                short: v
+                multiple: true
+                help: Sets the level of verbosity.
+
+            - dry-run:
+                long: dry-run
+                help: Simulate file actions only.
+
+            - name:
+                help: Name of script to inspect.
+                index: 1
+                required: true
+
+    - rename:
+        about: Rename files according to tags.
+        args:
+            - verbose:
+                short: v
+                multiple: true
+                help: Sets the level of verbosity.
+
+            - dry-run:
+                long: dry-run
+                help: Simulate file actions only.
