@@ -8,7 +8,12 @@ pub enum SubArgs {
     Undo { amount: u64 },
     Redo { amount: u64 },
     Inspect { name: String },
-    Rename {},
+    Rename {
+        name: String,
+        arguments: Option<Vec<String>>,
+        recursive: bool,
+        allow_case_difference: bool
+    },
 }
 
 #[derive(Debug, Default)]
@@ -27,7 +32,7 @@ impl Args {
 }
 
 pub fn parse_args() -> Result<()> {
-    let yaml = load_yaml!("tag_to_filename.yml");
+    let yaml = load_yaml!("tfmttools.yml");
     let matches = App::from_yaml(yaml).get_matches();
 
     let mut args: Args = Default::default();
@@ -38,11 +43,10 @@ pub fn parse_args() -> Result<()> {
         args.accumulate_ArgMatches(&submatches);
 
         args.sub_args = match name {
-            "undo" => Some(SubArgs::Undo { amount: 1 }),
-            "redo" => Some(SubArgs::Redo { amount: 1 }),
-            "inspect" => Some(SubArgs::Inspect {
-                name: "test".to_string(),
-            }),
+            "undo" => Some(parse_undo(&submatches)),
+            "redo" => Some(parse_redo(&submatches)),
+            "inspect" => Some(parse_inspect(&submatches)),
+            "rename" => Some(parse_rename(&submatches)),
             _ => None,
         };
     }
@@ -50,4 +54,29 @@ pub fn parse_args() -> Result<()> {
     println!("{:#?}", args);
 
     Ok(())
+}
+
+fn parse_undo(submatches: &ArgMatches) -> SubArgs {
+    // Has default in ttf.yaml, so we can unwrap safely.
+    SubArgs::Undo { amount: submatches.value_of("amount").unwrap().parse::<u64>().expect("Invalid amount!") }
+}
+
+fn parse_redo(submatches: &ArgMatches) -> SubArgs {
+    // Has default in ttf.yaml, so we can unwrap safely.
+    SubArgs::Redo { amount: submatches.value_of("amount").unwrap().parse::<u64>().expect("Invalid amount!") }
+}
+
+fn parse_inspect(submatches: &ArgMatches) -> SubArgs {
+    SubArgs::Inspect{ name: submatches.value_of("name").expect("Name wasn't specified!").to_string() }
+}
+
+fn parse_rename(submatches: &ArgMatches) -> SubArgs {
+    SubArgs::Rename {
+        name: submatches.value_of("name").expect("Name wasn't specified!").to_string(),
+        // Option::map maps Option<T> to Option<U>
+        // Iterator::map items in iterator
+        arguments: submatches.values_of("arguments").map(|i| i.map(String::from).collect()),
+        allow_case_difference: submatches.is_present("allow-case-difference"),
+        recursive: submatches.is_present("recursive"),
+    }
 }
