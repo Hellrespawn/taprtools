@@ -11,7 +11,7 @@ use anyhow::Result;
 
 pub struct GenAstDot<'a> {
     dot_body: &'a mut String,
-    counter: u32,
+    counter: u64,
 }
 
 pub fn visualize_ast(
@@ -72,12 +72,12 @@ impl<'a> GenAstDot<'a> {
         }
     }
 
-    fn increment(&mut self) -> u32 {
+    fn increment(&mut self) -> u64 {
         self.counter += 1;
         self.counter - 1
     }
 
-    fn create_node(&mut self, label: &str, hidden: bool) -> u32 {
+    fn create_node(&mut self, label: &str, hidden: bool) -> u64 {
         let label_str = {
             if hidden {
                 "[shape=point]".to_owned()
@@ -92,18 +92,18 @@ impl<'a> GenAstDot<'a> {
         self.increment()
     }
 
-    fn new_node(&mut self, label: &str) -> u32 {
+    fn new_node(&mut self, label: &str) -> u64 {
         self.create_node(label, false)
     }
 
-    fn hidden_node(&mut self) -> u32 {
+    fn hidden_node(&mut self) -> u64 {
         self.create_node("", true)
     }
 
     fn node_connector(
         &mut self,
-        node1: u32,
-        node2: u32,
+        node1: u64,
+        node2: u64,
         label: Option<&str>,
         directed: bool,
     ) {
@@ -128,14 +128,14 @@ impl<'a> GenAstDot<'a> {
         self.dot_body.push_str(&string);
     }
 
-    fn connect_nodes(&mut self, node1: u32, node2: u32) {
+    fn connect_nodes(&mut self, node1: u64, node2: u64) {
         self.node_connector(node1, node2, None, true)
     }
 
     fn connect_nodes_with_label(
         &mut self,
-        node1: u32,
-        node2: u32,
+        node1: u64,
+        node2: u64,
         label: &str,
     ) {
         self.node_connector(node1, node2, Some(label), true)

@@ -14,17 +14,6 @@ static LOG_LEVELS: [log::LevelFilter; 6] = [
     LevelFilter::Trace,
 ];
 
-pub fn verbosity_from_args() -> usize {
-    // #[derive(Debug, Options)]
-    // struct VerbOptions {
-    //     #[options(count, help = "increase a counting value")]
-    //     verbosity: usize,
-    // }
-
-    // VerbOptions::parse_args_default_or_exit().verbosity
-    5
-}
-
 pub fn path_relative_to_source_file() -> PathBuf {
     let mut path = PathBuf::from(file!());
     path.pop();
@@ -34,18 +23,18 @@ pub fn path_relative_to_source_file() -> PathBuf {
     path
 }
 
-pub fn setup_logger(
-    verbosity: usize,
-    path: &Path,
-    filename: &str,
-) -> Result<()> {
+pub fn setup_logger(verbosity: u64, path: &Path, filename: &str) -> Result<()> {
+    let verbosity = verbosity as usize;
+
     // verbosity is usize, so can never be negative.
     if verbosity > LOG_LEVELS.len() - 1 {
         return Err(anyhow!(
-            "Verbosity must be between 0 and {}",
-            LOG_LEVELS.len()
+            "Verbosity must be between 0 and {}, not {}!",
+            LOG_LEVELS.len() - 1,
+            verbosity
         ));
     }
+
     if verbosity == 0 {
         Ok(())
     } else {
@@ -60,7 +49,7 @@ pub fn setup_logger(
             .write(true)
             .create(true)
             .truncate(true)
-            .open(path)?;
+            .open(&path)?;
 
         fern::Dispatch::new()
             .format(|out, message, record| {

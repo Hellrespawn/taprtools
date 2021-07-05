@@ -10,7 +10,7 @@ use crate::error::TFMTError;
 
 pub struct Parser<'a> {
     lexer: Lexer<'a>,
-    depth: u32,
+    depth: u64,
     current_token: Option<Token>,
     previous_token: Option<Token>,
 }

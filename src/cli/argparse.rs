@@ -1,9 +1,24 @@
 use std::u64;
 
-use anyhow::Result;
 use clap::{load_yaml, App, ArgMatches};
+use std::ffi::OsString;
 
-#[derive(Debug)]
+#[derive(Debug, Default, PartialEq)]
+pub struct Args {
+    pub verbosity: u64,
+    pub dry_run: bool,
+    pub sub_args: Option<SubArgs>,
+}
+
+impl Args {
+    #[allow(non_snake_case)]
+    pub fn accumulate_ArgMatches(&mut self, matches: &ArgMatches) {
+        self.verbosity += matches.occurrences_of("verbose");
+        self.dry_run |= matches.is_present("dry-run");
+    }
+}
+
+#[derive(Debug, PartialEq)]
 pub enum SubArgs {
     Undo {
         amount: u64,
@@ -64,24 +79,17 @@ impl SubArgs {
     }
 }
 
-#[derive(Debug, Default)]
-pub struct Args {
-    verbose: u64,
-    dry_run: bool,
-    sub_args: Option<SubArgs>,
+pub fn parse_args() -> Args {
+    _parse_args(std::env::args_os())
 }
 
-impl Args {
-    #[allow(non_snake_case)]
-    pub fn accumulate_ArgMatches(&mut self, matches: &ArgMatches) {
-        self.verbose += matches.occurrences_of("verbose");
-        self.dry_run |= matches.is_present("dry-run");
-    }
-}
-
-pub fn parse_args() -> Result<()> {
+fn _parse_args<I, T>(itr: I) -> Args
+where
+    I: IntoIterator<Item = T>,
+    T: Into<OsString> + Clone,
+{
     let yaml = load_yaml!("tfmttools.yml");
-    let matches = App::from_yaml(yaml).get_matches();
+    let matches = App::from_yaml(yaml).get_matches_from(itr);
 
     let mut args: Args = Default::default();
     args.accumulate_ArgMatches(&matches);
@@ -93,7 +101,33 @@ pub fn parse_args() -> Result<()> {
         args.sub_args = SubArgs::from_subcommand(name, submatches);
     }
 
-    println!("{:#?}", args);
+    args
+}
 
-    Ok(())
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_argparser() {
+        // Don't forget program name!
+        let cli_args =
+            "argparse.exe -vv rename -vv Sync -- these are arguments";
+        let test_args = Args {
+            verbosity: 4,
+            dry_run: false,
+            sub_args: Some(SubArgs::Rename {
+                name: "Sync".to_string(),
+                arguments: Some(vec![
+                    "these".to_string(),
+                    "are".to_string(),
+                    "arguments".to_string(),
+                ]),
+                recursive: false,
+                allow_case_difference: false,
+            }),
+        };
+
+        assert_eq!(_parse_args(cli_args.split_whitespace()), test_args)
+    }
 }

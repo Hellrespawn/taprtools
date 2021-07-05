@@ -12,11 +12,11 @@ path = "src/bin/main.rs"
 
 [dependencies]
 anyhow = "1.0"
-bimap = "0.4"
+bimap = "0.6.1"
 chrono = "0.4"
 clap = {version = "~2.33.0", features = ["yaml"]}
-dirs = "3.0.1"
+# dirs = "3.0.2"
 fern = "0.6"
 lazy_static = "1.4"
 log = "0.4"
-unicode-segmentation = "1.6"
+unicode-segmentation = "1.8"
