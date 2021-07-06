@@ -1,7 +1,9 @@
-use super::ast::{self, Node};
+// TODO Refactor to work with new visitor that returns values.
+use super::ast::{self, Expression, Node};
 use super::token::TOKEN_TYPE_STRING_MAP;
 use super::visitor::Visitor;
 use crate::error::TFMTError;
+use crate::tfmt::token::Token;
 
 use std::fs;
 use std::io::Write;
@@ -143,7 +145,7 @@ impl GenAstDot {
     }
 }
 
-impl Visitor for GenAstDot {
+impl Visitor<()> for GenAstDot {
     //type Result;
     fn visit_program(&mut self, program: &ast::Program) {
         let program_node = self.new_node(&format!(
@@ -231,117 +233,6 @@ impl Visitor for GenAstDot {
         }
     }
 
-    fn visit_ternaryop(&mut self, ternaryop: &ast::TernaryOp) {
-        let ternaryop_node = self.new_node("TernOp:\n\'?:\'");
-
-        let condition_node = self.counter;
-        ternaryop.condition.accept(self);
-        self.connect_nodes_with_label(condition_node, ternaryop_node, "cond");
-
-        let true_node = self.counter;
-        ternaryop.true_expr.accept(self);
-        self.connect_nodes_with_label(true_node, ternaryop_node, "cond");
-
-        let false_node = self.counter;
-        ternaryop.false_expr.accept(self);
-        self.connect_nodes_with_label(false_node, ternaryop_node, "cond");
-    }
-
-    fn visit_binaryop(&mut self, binaryop: &ast::BinaryOp) {
-        let binaryop_node = self.new_node(&format!(
-            "BinOp:\n{}",
-            TOKEN_TYPE_STRING_MAP
-                .get_by_left(&binaryop.token.ttype)
-                .unwrap()
-        ));
-
-        let left_node = self.counter;
-        binaryop.left.accept(self);
-        self.connect_nodes(left_node, binaryop_node);
-
-        let right_node = self.counter;
-        binaryop.right.accept(self);
-        self.connect_nodes(right_node, binaryop_node);
-    }
-
-    fn visit_unaryop(&mut self, unaryop: &ast::UnaryOp) {
-        let unaryop_node = self.new_node(&format!(
-            "UnOp:\n{}",
-            TOKEN_TYPE_STRING_MAP
-                .get_by_left(&unaryop.token.ttype)
-                .unwrap()
-        ));
-
-        let operand_node = self.counter;
-        unaryop.operand.accept(self);
-        self.connect_nodes(operand_node, unaryop_node);
-    }
-
-    fn visit_group(&mut self, group: &ast::Group) {
-        let group_node = self.new_node("Group\n\'(...)\'");
-
-        for expression in group.expressions.iter() {
-            let expression_node = self.counter;
-            expression.accept(self);
-            self.connect_nodes(expression_node, group_node);
-        }
-    }
-
-    fn visit_function(&mut self, function: &ast::Function) {
-        let function_node = self.new_node(&format!(
-            "Function:\n${}(...)",
-            function
-                .start_token
-                .value
-                .as_ref()
-                .expect("Token in Function must have value!")
-        ));
-
-        for (i, expression) in function.arguments.iter().enumerate() {
-            let expression_node = self.counter;
-            expression.accept(self);
-            self.connect_nodes_with_label(
-                expression_node,
-                function_node,
-                &format!("a{}", i + 1),
-            );
-        }
-    }
-
-    fn visit_integer(&mut self, integer: &ast::IntegerNode) {
-        self.new_node(&format!(
-            "Int:\n{}",
-            integer
-                .integer
-                .value
-                .as_ref()
-                .expect("Token in Integer must have value!")
-        ));
-    }
-
-    fn visit_string(&mut self, stringnode: &ast::StringNode) {
-        //TODO trim string
-        self.new_node(&format!(
-            "String:\n{}",
-            stringnode
-                .string
-                .value
-                .as_ref()
-                .expect("Token in StringNode must have value!")
-        ));
-    }
-
-    fn visit_substitution(&mut self, substitution: &ast::Substitution) {
-        self.new_node(&format!(
-            "Sub:\n{}",
-            substitution
-                .token
-                .value
-                .as_ref()
-                .expect("Token in Substitution must have value!")
-        ));
-    }
-
     fn visit_driveletter(&mut self, driveletter: &ast::DriveLetter) {
         self.new_node(&format!(
             "Drive: {}:\\",
@@ -353,13 +244,157 @@ impl Visitor for GenAstDot {
         ));
     }
 
-    fn visit_tag(&mut self, tag: &ast::Tag) {
-        self.new_node(&format!(
-            "Tag:\n<{}>",
-            tag.token
+    fn visit_expression(&mut self, expression: &Expression) {
+        match expression {
+            Expression::TernaryOp {
+                condition,
+                true_expr,
+                false_expr,
+            } => self.visit_ternaryop(condition, true_expr, false_expr),
+            Expression::BinaryOp { left, token, right } => {
+                self.visit_binaryop(left, token, right)
+            }
+            Expression::UnaryOp { token, operand } => {
+                self.visit_unaryop(token, operand)
+            }
+            Expression::Group { expressions } => self.visit_group(expressions),
+            Expression::Function {
+                start_token,
+                arguments,
+                ..
+            } => self.visit_function(start_token, arguments),
+            Expression::StringNode { string } => self.visit_string(string),
+            Expression::IntegerNode { integer } => self.visit_integer(integer),
+            Expression::Substitution { substitution } => {
+                self.visit_substitution(substitution)
+            }
+            Expression::Tag { token, .. } => self.visit_tag(token),
+        }
+    }
+}
+
+impl GenAstDot {
+    fn visit_ternaryop(
+        &mut self,
+        condition: &Expression,
+        true_expr: &Expression,
+        false_expr: &Expression,
+    ) {
+        let ternaryop_node = self.new_node("TernOp:\n\'?:\'");
+
+        let condition_node = self.counter;
+        condition.accept(self);
+        self.connect_nodes_with_label(condition_node, ternaryop_node, "cond");
+
+        let true_node = self.counter;
+        true_expr.accept(self);
+        self.connect_nodes_with_label(true_node, ternaryop_node, "cond");
+
+        let false_node = self.counter;
+        false_expr.accept(self);
+        self.connect_nodes_with_label(false_node, ternaryop_node, "cond");
+    }
+
+    fn visit_binaryop(
+        &mut self,
+        left: &Expression,
+        token: &Token,
+        right: &Expression,
+    ) {
+        let binaryop_node = self.new_node(&format!(
+            "BinOp:\n{}",
+            TOKEN_TYPE_STRING_MAP.get_by_left(&token.ttype).unwrap()
+        ));
+
+        let left_node = self.counter;
+        left.accept(self);
+        self.connect_nodes(left_node, binaryop_node);
+
+        let right_node = self.counter;
+        right.accept(self);
+        self.connect_nodes(right_node, binaryop_node);
+    }
+
+    fn visit_unaryop(&mut self, token: &Token, operand: &Expression) {
+        let unaryop_node = self.new_node(&format!(
+            "UnOp:\n{}",
+            TOKEN_TYPE_STRING_MAP.get_by_left(&token.ttype).unwrap()
+        ));
+
+        let operand_node = self.counter;
+        operand.accept(self);
+        self.connect_nodes(operand_node, unaryop_node);
+    }
+
+    fn visit_group(&mut self, expressions: &[Expression]) {
+        let group_node = self.new_node("Group\n\'(...)\'");
+
+        for expression in expressions.iter() {
+            let expression_node = self.counter;
+            expression.accept(self);
+            self.connect_nodes(expression_node, group_node);
+        }
+    }
+
+    fn visit_function(
+        &mut self,
+        start_token: &Token,
+        arguments: &[Expression],
+    ) {
+        let function_node = self.new_node(&format!(
+            "Function:\n${}(...)",
+            start_token
                 .value
                 .as_ref()
-                .expect("Token in Tag must have value!")
+                .expect("Token in Function must have value!")
+        ));
+
+        for (i, expression) in arguments.iter().enumerate() {
+            let expression_node = self.counter;
+            expression.accept(self);
+            self.connect_nodes_with_label(
+                expression_node,
+                function_node,
+                &format!("a{}", i + 1),
+            );
+        }
+    }
+
+    fn visit_integer(&mut self, integer: &Token) {
+        self.new_node(&format!(
+            "Int:\n{}",
+            integer
+                .value
+                .as_ref()
+                .expect("Token in Integer must have value!")
+        ));
+    }
+
+    fn visit_string(&mut self, string: &Token) {
+        //TODO trim string
+        self.new_node(&format!(
+            "String:\n{}",
+            string
+                .value
+                .as_ref()
+                .expect("Token in StringNode must have value!")
+        ));
+    }
+
+    fn visit_substitution(&mut self, substitution: &Token) {
+        self.new_node(&format!(
+            "Sub:\n{}",
+            substitution
+                .value
+                .as_ref()
+                .expect("Token in Substitution must have value!")
+        ));
+    }
+
+    fn visit_tag(&mut self, token: &Token) {
+        self.new_node(&format!(
+            "Tag:\n<{}>",
+            token.value.as_ref().expect("Token in Tag must have value!")
         ));
     }
 }

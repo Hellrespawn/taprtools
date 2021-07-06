@@ -2,7 +2,7 @@ use log::trace;
 
 use anyhow::Result;
 
-use super::ast;
+use super::ast::{self, Expression};
 use super::lexer::Lexer;
 use super::token::{self, Token, TokenType};
 use crate::error::TFMTError;
@@ -42,7 +42,7 @@ impl Parser {
         // Allows replacing without deinit, even without Clone/Copy
         let prev = std::mem::replace(
             &mut self.current_token,
-            self.lexer.next_token()?.expect("FIXME this is temporary"),
+            self.lexer.next_token()?,
         );
 
         if !ignore {
@@ -186,7 +186,7 @@ impl Parser {
             Err(_) => None,
         };
 
-        let expressions: Vec<Box<dyn ast::Node>> =
+        let expressions: Vec<Expression> =
             self.expressions(vec![TokenType::CurlyBraceRight])?;
 
         self.depth -= 1;
@@ -196,8 +196,8 @@ impl Parser {
     fn expressions(
         &mut self,
         terminators: Vec<TokenType>,
-    ) -> Result<Vec<Box<dyn ast::Node>>> {
-        let mut expressions: Vec<Box<dyn ast::Node>> = Vec::new();
+    ) -> Result<Vec<Expression>> {
+        let mut expressions: Vec<Expression> = Vec::new();
 
         while !terminators.contains(&self.current_token.ttype) {
             self.trace(&format!(
@@ -217,13 +217,11 @@ impl Parser {
         Ok(expressions)
     }
 
-    fn expression(&mut self) -> Result<Box<dyn ast::Node>> {
-        // FIXME add Expression(s) node, so we don't need to use trait?
-        // FIXME Tighten up grammar?
+    fn expression(&mut self) -> Result<Expression> {
         // Ternary ( "?" Ternary ":" Ternary )*
         self.depth += 1;
         self.trace("Expression");
-        let mut expression: Box<dyn ast::Node> = self.ternary()?;
+        let mut expression = self.ternary()?;
 
         while self.current_token.ttype == TokenType::QuestionMark {
             self.consume(TokenType::QuestionMark)?;
@@ -231,18 +229,18 @@ impl Parser {
             self.consume(TokenType::Colon)?;
             let false_expr = self.ternary()?;
 
-            expression = Box::new(ast::TernaryOp {
-                condition: expression,
-                true_expr,
-                false_expr,
-            });
+            expression = Expression::TernaryOp {
+                condition: Box::new(expression),
+                true_expr: Box::new(true_expr),
+                false_expr: Box::new(false_expr),
+            };
         }
 
         self.depth -= 1;
         Ok(expression)
     }
 
-    fn ternary(&mut self) -> Result<Box<dyn ast::Node>> {
+    fn ternary(&mut self) -> Result<Expression> {
         // Disjunct ( ( "||" | "|" ) Disjunct )*
         self.depth += 1;
         self.trace("Ternary");
@@ -257,18 +255,18 @@ impl Parser {
                 _ => break,
             };
 
-            ternary = Box::new(ast::BinaryOp {
-                left: ternary,
+            ternary = Expression::BinaryOp {
+                left: Box::new(ternary),
                 token: operator,
-                right: self.ternary()?,
-            });
+                right: Box::new(self.ternary()?),
+            };
         }
 
         self.depth -= 1;
         Ok(ternary)
     }
 
-    fn disjunct(&mut self) -> Result<Box<dyn ast::Node>> {
+    fn disjunct(&mut self) -> Result<Expression> {
         // Conjunct ( ( "&&" | "&" ) Conjunct )*
         self.depth += 1;
         self.trace("Disjunct");
@@ -283,18 +281,18 @@ impl Parser {
                 _ => break,
             };
 
-            disjunct = Box::new(ast::BinaryOp {
-                left: disjunct,
+            disjunct = Expression::BinaryOp {
+                left: Box::new(disjunct),
                 token: operator,
-                right: self.disjunct()?,
-            });
+                right: Box::new(self.disjunct()?),
+            };
         }
 
         self.depth -= 1;
         Ok(disjunct)
     }
 
-    fn conjunct(&mut self) -> Result<Box<dyn ast::Node>> {
+    fn conjunct(&mut self) -> Result<Expression> {
         // Term ( ( "+" | "-" ) Term )*
         self.depth += 1;
         self.trace("Conjunct");
@@ -308,18 +306,18 @@ impl Parser {
                 _ => break,
             };
 
-            conjunct = Box::new(ast::BinaryOp {
-                left: conjunct,
+            conjunct = Expression::BinaryOp {
+                left: Box::new(conjunct),
                 token: operator,
-                right: self.conjunct()?,
-            });
+                right: Box::new(self.conjunct()?),
+            };
         }
 
         self.depth -= 1;
         Ok(conjunct)
     }
 
-    fn term(&mut self) -> Result<Box<dyn ast::Node>> {
+    fn term(&mut self) -> Result<Expression> {
         // Factor ( ( "*" | "/" | "%" ) Factor )*
         self.depth += 1;
         self.trace("Term");
@@ -335,18 +333,18 @@ impl Parser {
                 _ => break,
             };
 
-            term = Box::new(ast::BinaryOp {
-                left: term,
+            term = Expression::BinaryOp {
+                left: Box::new(term),
                 token: operator,
-                right: self.term()?,
-            });
+                right: Box::new(self.term()?),
+            };
         }
 
         self.depth -= 1;
         Ok(term)
     }
 
-    fn factor(&mut self) -> Result<Box<dyn ast::Node>> {
+    fn factor(&mut self) -> Result<Expression> {
         // Exponent ( ( "**" | "^" ) Exponent )*
         self.depth += 1;
         self.trace("Factor");
@@ -361,37 +359,37 @@ impl Parser {
                 _ => break,
             };
 
-            factor = Box::new(ast::BinaryOp {
-                left: factor,
+            factor = Expression::BinaryOp {
+                left: Box::new(factor),
                 token: operator,
-                right: self.factor()?,
-            });
+                right: Box::new(self.factor()?),
+            };
         }
 
         self.depth -= 1;
         Ok(factor)
     }
 
-    fn exponent(&mut self) -> Result<Box<dyn ast::Node>> {
+    fn exponent(&mut self) -> Result<Expression> {
         // "+" Exponent | "-" Exponent | "(" Expression+ ")" | Statement
         self.depth += 1;
         self.trace("Exponent");
 
         let ttype = self.current_token.ttype;
 
-        let exponent: Box<dyn ast::Node> = match ttype {
-            TokenType::Plus => Box::new(ast::UnaryOp {
+        let exponent = match ttype {
+            TokenType::Plus => Expression::UnaryOp {
                 token: self.consume(ttype)?,
-                operand: self.exponent()?,
-            }),
-            TokenType::Hyphen => Box::new(ast::UnaryOp {
+                operand: Box::new(self.exponent()?),
+            },
+            TokenType::Hyphen => Expression::UnaryOp {
                 token: self.consume(ttype)?,
-                operand: self.exponent()?,
-            }),
+                operand: Box::new(self.exponent()?),
+            },
             TokenType::ParenthesisLeft => {
                 self.consume(ttype)?;
 
-                let expressions: Vec<Box<dyn ast::Node>> =
+                let expressions: Vec<Expression> =
                     self.expressions(vec![TokenType::ParenthesisRight])?;
 
                 self.consume(TokenType::ParenthesisRight)?;
@@ -400,7 +398,7 @@ impl Parser {
                     return Err(TFMTError::EmptyGroup.into());
                 }
 
-                Box::new(ast::Group { expressions })
+                Expression::Group { expressions }
             }
             _ => self.statement()?,
         };
@@ -409,35 +407,35 @@ impl Parser {
         Ok(exponent)
     }
 
-    fn statement(&mut self) -> Result<Box<dyn ast::Node>> {
+    fn statement(&mut self) -> Result<Expression> {
         // Comment | Function | Integer | String | Substitution | Tag
         self.depth += 1;
         self.trace("Statement");
 
         let ttype = self.current_token.ttype;
 
-        let statement: Box<dyn ast::Node> = match ttype {
+        let statement = match ttype {
             TokenType::Dollar => {
                 self.consume(ttype)?;
 
                 if self.current_token.ttype == TokenType::ParenthesisLeft {
                     self.consume(TokenType::ParenthesisLeft)?;
-                    let substitution = ast::Substitution {
-                        token: self.consume(TokenType::ID)?,
+                    let substitution = Expression::Substitution {
+                        substitution: self.consume(TokenType::ID)?,
                     };
                     self.consume(TokenType::ParenthesisRight)?;
-                    Box::new(substitution)
+                    substitution
                 } else {
                     self.function()?
                 }
             }
             TokenType::AngleBracketLeft => self.tag()?,
-            TokenType::Integer => Box::new(ast::IntegerNode {
+            TokenType::Integer => Expression::IntegerNode {
                 integer: self.consume(ttype)?,
-            }),
-            TokenType::String => Box::new(ast::StringNode {
+            },
+            TokenType::String => Expression::StringNode {
                 string: self.consume(ttype)?,
-            }),
+            },
             _ => return Err(TFMTError::UnrecognizedToken(ttype).into()),
         };
 
@@ -445,7 +443,7 @@ impl Parser {
         Ok(statement)
     }
 
-    fn function(&mut self) -> Result<Box<dyn ast::Node>> {
+    fn function(&mut self) -> Result<Expression> {
         self.depth += 1;
         self.trace("Function");
 
@@ -453,7 +451,7 @@ impl Parser {
 
         self.consume(TokenType::ParenthesisLeft)?;
 
-        let mut arguments: Vec<Box<dyn ast::Node>> = Vec::new();
+        let mut arguments: Vec<Expression> = Vec::new();
 
         // while self.current_token.ttype() != TokenType::ParenthesisRight {
         loop {
@@ -463,17 +461,17 @@ impl Parser {
             }
         }
 
-        let function = ast::Function {
+        let function = Expression::Function {
             start_token: identifier,
             arguments,
             end_token: self.consume(TokenType::ParenthesisRight)?,
         };
 
         self.depth -= 1;
-        Ok(Box::new(function))
+        Ok(function)
     }
 
-    fn tag(&mut self) -> Result<Box<dyn ast::Node>> {
+    fn tag(&mut self) -> Result<Expression> {
         self.depth += 1;
         self.trace("Tag");
 
@@ -483,12 +481,12 @@ impl Parser {
 
         self.consume(TokenType::AngleBracketRight)?;
 
-        let tag = ast::Tag {
+        let tag = Expression::Tag {
             start_token,
             token: identifier,
         };
 
         self.depth -= 1;
-        Ok(Box::new(tag))
+        Ok(tag)
     }
 }

@@ -196,7 +196,6 @@ impl Lexer {
                     vec!["\n"],
                     true,
                     true,
-                    // FIXME Learn about casts.
                     single_line_comment.len() as u64,
                 )?),
             )))
@@ -209,7 +208,6 @@ impl Lexer {
                     vec![multiline_comment_end],
                     true,
                     false,
-                    // FIXME Learn about casts.
                     multiline_comment_end.len() as u64,
                 )?),
             )))
@@ -228,7 +226,6 @@ impl Lexer {
                     None,
                 )
                 .expect("Uses string from TOKEN_TYPE_STRING_MAP, should always be safe.");
-                // FIXME Learn about casts.
                 self.advance_times(string.len() as u64)?;
                 return Ok(Some(token));
             }
@@ -293,33 +290,32 @@ impl Lexer {
         }
     }
 
-    pub fn next_token(&mut self) -> Result<Option<Token>> {
+    pub fn next_token(&mut self) -> Result<Token> {
         let token = {
             match self.current_grapheme() {
-                Err(_) => {
+                Err(err) => {
                     if self.ended {
-                        None
+                        return Err(err);
                     } else {
                         self.ended = true;
-                        let token = Token::new(
+                        Token::new(
                             self.line_no,
                             self.col_no,
                             TokenType::EOF,
                             None,
-                        );
-                        Some(token)
+                        )
                     }
                 }
                 Ok(current_grapheme) => {
                     if current_grapheme.chars().all(|c| c.is_whitespace()) {
                         self.advance()?;
-                        return self.next_token();
+                        self.next_token()?
                     } else if let Some(token) = self.handle_bounded()? {
-                        Some(token)
+                        token
                     } else if let Some(token) = self.handle_reserved()? {
-                        Some(token)
+                        token
                     } else {
-                        Some(self.handle_misc_tokens()?)
+                        self.handle_misc_tokens()?
                     }
                 }
             }
@@ -360,7 +356,7 @@ mod tests {
         let mut lex = Lexer::new(&string);
 
         let mut tokens: Vec<Token> = Vec::new();
-        while let Some(token) = lex.next_token()? {
+        while let Ok(token) = lex.next_token() {
             tokens.push(token);
         }
 

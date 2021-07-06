@@ -1,8 +1,9 @@
 use super::token::Token;
 use super::visitor::Visitor;
 
-pub trait Node: std::fmt::Debug {
-    fn accept(&self, visitor: &mut dyn Visitor);
+// TODO? Leave visitor immutable?
+pub trait Node<T>: std::fmt::Debug {
+    fn accept(&self, visitor: &mut dyn Visitor<T>) -> T;
 }
 
 #[derive(Debug)]
@@ -13,8 +14,8 @@ pub struct Program {
     pub block: Block,
 }
 
-impl Node for Program {
-    fn accept(&self, visitor: &mut dyn Visitor) {
+impl<T> Node<T> for Program {
+    fn accept(&self, visitor: &mut dyn Visitor<T>) -> T {
         visitor.visit_program(self)
     }
 }
@@ -24,8 +25,8 @@ pub struct Parameters {
     pub parameters: Vec<Parameter>,
 }
 
-impl Node for Parameters {
-    fn accept(&self, visitor: &mut dyn Visitor) {
+impl<T> Node<T> for Parameters {
+    fn accept(&self, visitor: &mut dyn Visitor<T>) -> T {
         visitor.visit_parameters(self)
     }
 }
@@ -36,132 +37,76 @@ pub struct Parameter {
     pub default: Option<Token>,
 }
 
-impl Node for Parameter {
-    fn accept(&self, visitor: &mut dyn Visitor) {
+impl<T> Node<T> for Parameter {
+    fn accept(&self, visitor: &mut dyn Visitor<T>) -> T {
         visitor.visit_parameter(self)
+    }
+}
+#[derive(Debug)]
+pub struct DriveLetter {
+    pub token: Token,
+}
+
+impl<T> Node<T> for DriveLetter {
+    fn accept(&self, visitor: &mut dyn Visitor<T>) -> T {
+        visitor.visit_driveletter(&self)
     }
 }
 
 #[derive(Debug)]
 pub struct Block {
     pub drive: Option<DriveLetter>,
-    pub expressions: Vec<Box<dyn Node>>,
+    pub expressions: Vec<Expression>,
 }
 
-impl Node for Block {
-    fn accept(&self, visitor: &mut dyn Visitor) {
+impl<T> Node<T> for Block {
+    fn accept(&self, visitor: &mut dyn Visitor<T>) -> T {
         visitor.visit_block(self)
     }
 }
 
 #[derive(Debug)]
-pub struct TernaryOp {
-    pub condition: Box<dyn Node>,
-    pub true_expr: Box<dyn Node>,
-    pub false_expr: Box<dyn Node>,
-}
-impl Node for TernaryOp {
-    fn accept(&self, visitor: &mut dyn Visitor) {
-        visitor.visit_ternaryop(&self)
-    }
-}
-
-#[derive(Debug)]
-pub struct BinaryOp {
-    pub left: Box<dyn Node>,
-    pub token: Token,
-    pub right: Box<dyn Node>,
-}
-impl Node for BinaryOp {
-    fn accept(&self, visitor: &mut dyn Visitor) {
-        visitor.visit_binaryop(&self)
-    }
-}
-
-#[derive(Debug)]
-pub struct UnaryOp {
-    pub token: Token,
-    pub operand: Box<dyn Node>,
-}
-impl Node for UnaryOp {
-    fn accept(&self, visitor: &mut dyn Visitor) {
-        visitor.visit_unaryop(&self)
-    }
-}
-
-#[derive(Debug)]
-pub struct Group {
-    pub expressions: Vec<Box<dyn Node>>,
-}
-impl Node for Group {
-    fn accept(&self, visitor: &mut dyn Visitor) {
-        visitor.visit_group(&self)
-    }
+pub enum Expression {
+    TernaryOp {
+        condition: Box<Expression>,
+        true_expr: Box<Expression>,
+        false_expr: Box<Expression>,
+    },
+    BinaryOp {
+        left: Box<Expression>,
+        token: Token,
+        right: Box<Expression>,
+    },
+    UnaryOp {
+        token: Token,
+        operand: Box<Expression>,
+    },
+    Group {
+        expressions: Vec<Expression>,
+    },
+    Function {
+        start_token: Token,
+        arguments: Vec<Expression>,
+        end_token: Token,
+    },
+    //TODO? Replace literals with tuple struct?
+    StringNode {
+        string: Token,
+    },
+    IntegerNode {
+        integer: Token,
+    },
+    Substitution {
+        substitution: Token,
+    },
+    Tag {
+        start_token: Token,
+        token: Token,
+    },
 }
 
-#[derive(Debug)]
-pub struct Function {
-    pub start_token: Token,
-    pub arguments: Vec<Box<dyn Node>>,
-    pub end_token: Token,
-}
-impl Node for Function {
-    fn accept(&self, visitor: &mut dyn Visitor) {
-        visitor.visit_function(&self)
-    }
-}
-
-#[derive(Debug)]
-pub struct StringNode {
-    pub string: Token,
-}
-
-impl Node for StringNode {
-    fn accept(&self, visitor: &mut dyn Visitor) {
-        visitor.visit_string(self)
-    }
-}
-
-#[derive(Debug)]
-pub struct IntegerNode {
-    pub integer: Token,
-}
-
-impl Node for IntegerNode {
-    fn accept(&self, visitor: &mut dyn Visitor) {
-        visitor.visit_integer(self)
-    }
-}
-
-#[derive(Debug)]
-pub struct Substitution {
-    pub token: Token,
-}
-
-impl Node for Substitution {
-    fn accept(&self, visitor: &mut dyn Visitor) {
-        visitor.visit_substitution(&self)
-    }
-}
-
-#[derive(Debug)]
-pub struct DriveLetter {
-    pub token: Token,
-}
-
-impl Node for DriveLetter {
-    fn accept(&self, visitor: &mut dyn Visitor) {
-        visitor.visit_driveletter(&self)
-    }
-}
-
-#[derive(Debug)]
-pub struct Tag {
-    pub start_token: Token,
-    pub token: Token,
-}
-impl Node for Tag {
-    fn accept(&self, visitor: &mut dyn Visitor) {
-        visitor.visit_tag(&self)
+impl<T> Node<T> for Expression {
+    fn accept(&self, visitor: &mut dyn Visitor<T>) -> T {
+        visitor.visit_expression(&self)
     }
 }
