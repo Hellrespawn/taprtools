@@ -90,15 +90,9 @@ pub enum Expression {
         end_token: Token,
     },
     //TODO? Replace literals with tuple struct?
-    StringNode {
-        string: Token,
-    },
-    IntegerNode {
-        integer: Token,
-    },
-    Substitution {
-        substitution: Token,
-    },
+    StringNode(Token),
+    IntegerNode(Token),
+    Substitution(Token),
     Tag {
         start_token: Token,
         token: Token,

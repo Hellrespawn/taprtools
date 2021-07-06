@@ -328,6 +328,18 @@ impl Lexer {
     }
 }
 
+impl Iterator for Lexer {
+    type Item = Result<Token>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.ended {
+            None
+        } else {
+            Some(self.next_token())
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

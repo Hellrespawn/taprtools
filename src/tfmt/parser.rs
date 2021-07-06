@@ -8,18 +8,23 @@ use super::token::{self, Token, TokenType};
 use crate::error::TFMTError;
 // use std::error::Error;
 
-pub struct Parser {
-    lexer: Lexer,
+pub struct Parser<I>
+where
+    I: Iterator<Item = Result<Token>>,
+{
+    iterator: I,
     depth: u64,
     current_token: Token,
     previous_token: Token,
 }
 
-impl Parser {
-    // Constructors
-    pub fn from_lexer(lexer: Lexer) -> Parser {
+impl<I> Parser<I>
+where
+    I: Iterator<Item = Result<Token>>,
+{
+    pub fn from_iterator(iterator: I) -> Parser<I> {
         Parser {
-            lexer,
+            iterator,
             depth: 0,
             //Dummy tokens
             current_token: Token::new(0, 0, TokenType::Uninitialized, None),
@@ -27,8 +32,8 @@ impl Parser {
         }
     }
 
-    pub fn from_string(string: &str) -> Parser {
-        Parser::from_lexer(Lexer::new(string))
+    pub fn from_string(string: &str) -> Parser<Lexer> {
+        Parser::from_iterator(Lexer::new(string))
     }
 
     pub fn parse(&mut self) -> Result<ast::Program> {
@@ -42,7 +47,9 @@ impl Parser {
         // Allows replacing without deinit, even without Clone/Copy
         let prev = std::mem::replace(
             &mut self.current_token,
-            self.lexer.next_token()?,
+            self.iterator
+                .next()
+                .expect("Parser exhausted tokens without encountering EOF!")?,
         );
 
         if !ignore {
@@ -420,9 +427,8 @@ impl Parser {
 
                 if self.current_token.ttype == TokenType::ParenthesisLeft {
                     self.consume(TokenType::ParenthesisLeft)?;
-                    let substitution = Expression::Substitution {
-                        substitution: self.consume(TokenType::ID)?,
-                    };
+                    let substitution =
+                        Expression::Substitution(self.consume(TokenType::ID)?);
                     self.consume(TokenType::ParenthesisRight)?;
                     substitution
                 } else {
@@ -430,12 +436,8 @@ impl Parser {
                 }
             }
             TokenType::AngleBracketLeft => self.tag()?,
-            TokenType::Integer => Expression::IntegerNode {
-                integer: self.consume(ttype)?,
-            },
-            TokenType::String => Expression::StringNode {
-                string: self.consume(ttype)?,
-            },
+            TokenType::Integer => Expression::IntegerNode(self.consume(ttype)?),
+            TokenType::String => Expression::StringNode(self.consume(ttype)?),
             _ => return Err(TFMTError::UnrecognizedToken(ttype).into()),
         };
 

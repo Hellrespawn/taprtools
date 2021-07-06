@@ -79,7 +79,10 @@ impl GenAstDot {
             }
         };
 
-        (format!("  node{} {}\n", self.counter, label_str), self.increment())
+        (
+            format!("  node{} {}\n", self.counter, label_str),
+            self.increment(),
+        )
     }
 
     fn new_node(&mut self, label: &str) -> (String, u64) {
@@ -262,11 +265,9 @@ impl Visitor<String> for GenAstDot {
                 arguments,
                 ..
             } => self.visit_function(start_token, arguments),
-            Expression::StringNode { string } => self.visit_string(string),
-            Expression::IntegerNode { integer } => self.visit_integer(integer),
-            Expression::Substitution { substitution } => {
-                self.visit_substitution(substitution)
-            }
+            Expression::StringNode(string) => self.visit_string(string),
+            Expression::IntegerNode(integer) => self.visit_integer(integer),
+            Expression::Substitution(subst) => self.visit_substitution(subst),
             Expression::Tag { token, .. } => self.visit_tag(token),
         }
     }
@@ -283,15 +284,21 @@ impl GenAstDot {
 
         let condition_node = self.counter;
         string += &condition.accept(self);
-        string += &self.connect_nodes_with_label(condition_node, ternaryop_node, "cond");
+        string += &self.connect_nodes_with_label(
+            condition_node,
+            ternaryop_node,
+            "cond",
+        );
 
         let true_node = self.counter;
         string += &true_expr.accept(self);
-        string += &self.connect_nodes_with_label(true_node, ternaryop_node, "cond");
+        string +=
+            &self.connect_nodes_with_label(true_node, ternaryop_node, "cond");
 
         let false_node = self.counter;
         string += &false_expr.accept(self);
-        string += &self.connect_nodes_with_label(false_node, ternaryop_node, "cond");
+        string +=
+            &self.connect_nodes_with_label(false_node, ternaryop_node, "cond");
 
         string
     }

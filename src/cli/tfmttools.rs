@@ -42,7 +42,7 @@ fn lexer_test(filename: &str) -> Lexer {
 }
 
 fn parser_test(lex: Lexer) -> Result<ast::Program> {
-    let mut p = Parser::from_lexer(lex);
+    let mut p = Parser::from_iterator(lex);
 
     p.parse()
 }
