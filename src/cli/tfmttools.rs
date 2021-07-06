@@ -1,4 +1,8 @@
 use crate::cli::{argparse, logging};
+use crate::tfmt::ast;
+use crate::tfmt::genastdot::visualize_ast;
+use crate::tfmt::lexer::Lexer;
+use crate::tfmt::parser::Parser;
 use anyhow::Result;
 use log::{debug, info};
 
@@ -11,10 +15,17 @@ pub fn main() -> Result<()> {
 
     info!("{:#?}", args);
 
-    test("simple_input.tfmt")
+    let lex = lexer_test("typical_input.tfmt");
+    let root = parser_test(lex)?;
+
+    debug!("{:#?}", root);
+
+    visualize_ast(root, &temp_dir, "genastdot", true)?;
+
+    Ok(())
 }
 
-fn test(filename: &str) -> Result<()> {
+fn lexer_test(filename: &str) -> Lexer {
     let mut path = std::path::PathBuf::from(file!());
     for _ in 1..=3 {
         path.pop();
@@ -27,14 +38,11 @@ fn test(filename: &str) -> Result<()> {
     let input = std::fs::read_to_string(path)
         .unwrap_or_else(|_| format!("{} doesn't exist!", filename));
 
-    let mut lex = crate::tfmt::lexer::Lexer::new(&input);
+    Lexer::new(&input)
+}
 
-    let mut tokens: Vec<crate::tfmt::token::Token> = Vec::new();
-    while let Some(token) = lex.next_token()? {
-        tokens.push(token);
-    }
+fn parser_test(lex: Lexer) -> Result<ast::Program> {
+    let mut p = Parser::from_lexer(lex);
 
-    debug!("tokens: {:#?}", tokens);
-
-    Ok(())
+    p.parse()
 }

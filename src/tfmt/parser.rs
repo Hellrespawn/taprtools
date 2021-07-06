@@ -2,7 +2,7 @@ use log::trace;
 
 use anyhow::Result;
 
-use super::ast::ast;
+use super::ast;
 use super::lexer::Lexer;
 use super::token::{self, Token, TokenType};
 use crate::error::TFMTError;
@@ -40,7 +40,10 @@ impl Parser {
     // FIXME Why do we need previous_token? Just for error handling?
     fn _advance(&mut self, ignore: bool) -> Result<()> {
         // Allows replacing without deinit, even without Clone/Copy
-        let prev = std::mem::replace(&mut self.current_token,  self.lexer.next_token()?.expect("FIXME this is temporary"));
+        let prev = std::mem::replace(
+            &mut self.current_token,
+            self.lexer.next_token()?.expect("FIXME this is temporary"),
+        );
 
         if !ignore {
             self.previous_token = prev
@@ -83,7 +86,7 @@ impl Parser {
         for i in 1..=self.depth {
             string.push_str(&(i % 10).to_string());
         }
-        string.push_str(" ");
+        string.push(' ');
         string.push_str(log_string);
 
         trace!("{}", string)

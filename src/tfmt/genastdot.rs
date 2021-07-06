@@ -1,6 +1,6 @@
-use super::ast::ast::{self, Node};
-use super::ast::visitor::Visitor;
+use super::ast::{self, Node};
 use super::token::TOKEN_TYPE_STRING_MAP;
+use super::visitor::Visitor;
 use crate::error::TFMTError;
 
 use std::fs;
@@ -35,7 +35,7 @@ pub fn visualize_ast(
 
     dot.push_str(&g.dot_body);
 
-    dot.push_str("}");
+    dot.push('}');
 
     let mut path = PathBuf::from(directory);
     path.push(format!("{}.dot", name));
@@ -45,16 +45,18 @@ pub fn visualize_ast(
     let mut file = fs::File::create(&path)?;
     file.write_all(dot.as_bytes())?;
 
-    let result = Command::new("dot")
+    let spawn_result = Command::new("dot")
         .current_dir(directory)
         .arg("-Tpng")
         .args(&["-o", &format!("{}.png", name)])
         .arg(format!("{}.dot", name))
         .spawn();
 
-    if result.is_err() {
+    if let Ok(mut child) = spawn_result {
+        child.wait()?
+    } else {
         return Err(TFMTError::GenAstDot.into());
-    }
+    };
 
     if remove_dot_file {
         fs::remove_file(path)?;
@@ -122,7 +124,7 @@ impl GenAstDot {
             string.push_str(&format!(" [{}]", args.join(", ")))
         }
 
-        string.push_str("\n");
+        string.push('\n');
 
         self.dot_body.push_str(&string);
     }
