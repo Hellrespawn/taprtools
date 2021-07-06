@@ -2,37 +2,33 @@ use log::trace;
 
 use anyhow::Result;
 
-use super::ast;
+use super::ast::ast;
 use super::lexer::Lexer;
 use super::token::{self, Token, TokenType};
 use crate::error::TFMTError;
 // use std::error::Error;
 
-pub struct Parser<'a> {
-    lexer: Lexer<'a>,
+pub struct Parser {
+    lexer: Lexer,
     depth: u64,
-    current_token: Option<Token>,
-    previous_token: Option<Token>,
+    current_token: Token,
+    previous_token: Token,
 }
 
-impl<'a> Parser<'a> {
+impl Parser {
     // Constructors
     pub fn from_lexer(lexer: Lexer) -> Parser {
         Parser {
             lexer,
             depth: 0,
-            current_token: None,
-            previous_token: None,
+            //Dummy tokens
+            current_token: Token::new(0, 0, TokenType::Uninitialized, None),
+            previous_token: Token::new(0, 0, TokenType::Uninitialized, None),
         }
     }
 
     pub fn from_string(string: &str) -> Parser {
-        Parser {
-            lexer: Lexer::new(string),
-            depth: 0,
-            current_token: None,
-            previous_token: None,
-        }
+        Parser::from_lexer(Lexer::new(string))
     }
 
     pub fn parse(&mut self) -> Result<ast::Program> {
@@ -41,30 +37,17 @@ impl<'a> Parser<'a> {
         self.program()
     }
 
-    // Fields
-    fn current_token(&mut self) -> Token {
-        self.current_token
-            .clone()
-            .expect("Should pretty much always be safe!")
-    }
-
-    fn previous_token(&mut self) -> Token {
-        self.previous_token
-            .clone()
-            .expect("Should pretty much always be safe!")
-    }
-
+    // FIXME Why do we need previous_token? Just for error handling?
     fn _advance(&mut self, ignore: bool) -> Result<()> {
+        // Allows replacing without deinit, even without Clone/Copy
+        let prev = std::mem::replace(&mut self.current_token,  self.lexer.next_token()?.expect("FIXME this is temporary"));
+
         if !ignore {
-            self.previous_token = self.current_token.take()
+            self.previous_token = prev
         }
 
-        self.current_token = self.lexer.next_token()?;
-
-        if let Some(token) = self.current_token.as_ref() {
-            if token::IGNORED.contains(&token.ttype()) {
-                self._advance(true)?;
-            }
+        if token::IGNORED.contains(&self.current_token.ttype) {
+            self._advance(true)?;
         }
 
         Ok(())
@@ -75,7 +58,7 @@ impl<'a> Parser<'a> {
     }
 
     fn consume(&mut self, expected_ttype: TokenType) -> Result<Token> {
-        let current_ttype = self.current_token.as_ref().unwrap().ttype();
+        let current_ttype = self.current_token.ttype;
 
         if current_ttype == TokenType::EOF {
             return Err(TFMTError::ExhaustedTokens(current_ttype).into());
@@ -91,7 +74,8 @@ impl<'a> Parser<'a> {
 
         self.advance()?;
 
-        Ok(self.previous_token())
+        // Explicitly clone here, we need the original in previous, but also to return it.
+        Ok(self.previous_token.clone())
     }
 
     fn trace(&mut self, log_string: &str) {
@@ -113,20 +97,20 @@ impl<'a> Parser<'a> {
 
         let name = self.consume(TokenType::ID)?;
 
-        self.consume(TokenType::PARENTHESIS_LEFT)?;
+        self.consume(TokenType::ParenthesisLeft)?;
 
         let parameters = self.parameters()?;
 
-        self.consume(TokenType::PARENTHESIS_RIGHT)?;
+        self.consume(TokenType::ParenthesisRight)?;
 
-        let description = match self.consume(TokenType::STRING) {
-            Ok(_) => Some(self.previous_token()),
+        let description = match self.consume(TokenType::String) {
+            Ok(token) => Some(token),
             Err(_) => None,
         };
 
-        self.consume(TokenType::CURLY_BRACE_LEFT)?;
+        self.consume(TokenType::CurlyBraceLeft)?;
         let block = self.block()?;
-        self.consume(TokenType::CURLY_BRACE_RIGHT)?;
+        self.consume(TokenType::CurlyBraceRight)?;
 
         self.depth -= 1;
 
@@ -151,7 +135,7 @@ impl<'a> Parser<'a> {
                 Err(_) => break,
             }
 
-            if self.consume(TokenType::COMMA).is_err() {
+            if self.consume(TokenType::Comma).is_err() {
                 break;
             }
         }
@@ -165,11 +149,11 @@ impl<'a> Parser<'a> {
         self.trace("Parameter");
         let identifier = self.consume(TokenType::ID)?;
 
-        let default = match self.consume(TokenType::EQUALS) {
+        let default = match self.consume(TokenType::Equals) {
             Ok(_) => {
-                if let Ok(token) = self.consume(TokenType::INTEGER) {
+                if let Ok(token) = self.consume(TokenType::Integer) {
                     Some(token)
-                } else if let Ok(token) = self.consume(TokenType::STRING) {
+                } else if let Ok(token) = self.consume(TokenType::String) {
                     Some(token)
                 } else {
                     return Err(TFMTError::Parser(
@@ -194,13 +178,13 @@ impl<'a> Parser<'a> {
         self.depth += 1;
         self.trace("Block");
 
-        let drive = match self.consume(TokenType::DRIVE) {
+        let drive = match self.consume(TokenType::Drive) {
             Ok(token) => Some(ast::DriveLetter { token }),
             Err(_) => None,
         };
 
         let expressions: Vec<Box<dyn ast::Node>> =
-            self.expressions(vec![TokenType::CURLY_BRACE_RIGHT])?;
+            self.expressions(vec![TokenType::CurlyBraceRight])?;
 
         self.depth -= 1;
         Ok(ast::Block { drive, expressions })
@@ -212,7 +196,7 @@ impl<'a> Parser<'a> {
     ) -> Result<Vec<Box<dyn ast::Node>>> {
         let mut expressions: Vec<Box<dyn ast::Node>> = Vec::new();
 
-        while !terminators.contains(&self.current_token().ttype()) {
+        while !terminators.contains(&self.current_token.ttype) {
             self.trace(&format!(
                 "Gathering expressions until {:?}",
                 terminators
@@ -231,15 +215,17 @@ impl<'a> Parser<'a> {
     }
 
     fn expression(&mut self) -> Result<Box<dyn ast::Node>> {
+        // FIXME add Expression(s) node, so we don't need to use trait?
+        // FIXME Tighten up grammar?
         // Ternary ( "?" Ternary ":" Ternary )*
         self.depth += 1;
         self.trace("Expression");
         let mut expression: Box<dyn ast::Node> = self.ternary()?;
 
-        while self.current_token().ttype() == TokenType::QUESTION_MARK {
-            self.consume(TokenType::QUESTION_MARK)?;
+        while self.current_token.ttype == TokenType::QuestionMark {
+            self.consume(TokenType::QuestionMark)?;
             let true_expr = self.ternary()?;
-            self.consume(TokenType::COLON)?;
+            self.consume(TokenType::Colon)?;
             let false_expr = self.ternary()?;
 
             expression = Box::new(ast::TernaryOp {
@@ -261,10 +247,10 @@ impl<'a> Parser<'a> {
         let mut ternary = self.disjunct()?;
 
         loop {
-            let ttype = self.current_token().ttype();
+            let ttype = self.current_token.ttype;
             let operator = match ttype {
-                TokenType::DOUBLE_VERTICAL_BAR => self.consume(ttype)?,
-                TokenType::VERTICAL_BAR => self.consume(ttype)?,
+                TokenType::DoubleVerticalBar => self.consume(ttype)?,
+                TokenType::VerticalBar => self.consume(ttype)?,
                 _ => break,
             };
 
@@ -287,10 +273,10 @@ impl<'a> Parser<'a> {
         let mut disjunct = self.conjunct()?;
 
         loop {
-            let ttype = self.current_token().ttype();
+            let ttype = self.current_token.ttype;
             let operator = match ttype {
-                TokenType::DOUBLE_AMPERSAND => self.consume(ttype)?,
-                TokenType::AMPERSAND => self.consume(ttype)?,
+                TokenType::DoubleAmpersand => self.consume(ttype)?,
+                TokenType::Ampersand => self.consume(ttype)?,
                 _ => break,
             };
 
@@ -312,10 +298,10 @@ impl<'a> Parser<'a> {
         let mut conjunct = self.term()?;
 
         loop {
-            let ttype = self.current_token().ttype();
+            let ttype = self.current_token.ttype;
             let operator = match ttype {
-                TokenType::PLUS => self.consume(ttype)?,
-                TokenType::HYPHEN => self.consume(ttype)?,
+                TokenType::Plus => self.consume(ttype)?,
+                TokenType::Hyphen => self.consume(ttype)?,
                 _ => break,
             };
 
@@ -338,11 +324,11 @@ impl<'a> Parser<'a> {
         let mut term = self.factor()?;
 
         loop {
-            let ttype = self.current_token().ttype();
+            let ttype = self.current_token.ttype;
             let operator = match ttype {
-                TokenType::ASTERISK => self.consume(ttype)?,
-                TokenType::SLASH_FORWARD => self.consume(ttype)?,
-                TokenType::PERCENT => self.consume(ttype)?,
+                TokenType::Asterisk => self.consume(ttype)?,
+                TokenType::SlashForward => self.consume(ttype)?,
+                TokenType::Percent => self.consume(ttype)?,
                 _ => break,
             };
 
@@ -365,10 +351,10 @@ impl<'a> Parser<'a> {
         let mut factor = self.exponent()?;
 
         loop {
-            let ttype = self.current_token().ttype();
+            let ttype = self.current_token.ttype;
             let operator = match ttype {
-                TokenType::DOUBLE_ASTERISK => self.consume(ttype)?,
-                TokenType::CARET => self.consume(ttype)?,
+                TokenType::DoubleAsterisk => self.consume(ttype)?,
+                TokenType::Caret => self.consume(ttype)?,
                 _ => break,
             };
 
@@ -388,24 +374,24 @@ impl<'a> Parser<'a> {
         self.depth += 1;
         self.trace("Exponent");
 
-        let ttype = self.current_token().ttype();
+        let ttype = self.current_token.ttype;
 
         let exponent: Box<dyn ast::Node> = match ttype {
-            TokenType::PLUS => Box::new(ast::UnaryOp {
+            TokenType::Plus => Box::new(ast::UnaryOp {
                 token: self.consume(ttype)?,
                 operand: self.exponent()?,
             }),
-            TokenType::HYPHEN => Box::new(ast::UnaryOp {
+            TokenType::Hyphen => Box::new(ast::UnaryOp {
                 token: self.consume(ttype)?,
                 operand: self.exponent()?,
             }),
-            TokenType::PARENTHESIS_LEFT => {
+            TokenType::ParenthesisLeft => {
                 self.consume(ttype)?;
 
                 let expressions: Vec<Box<dyn ast::Node>> =
-                    self.expressions(vec![TokenType::PARENTHESIS_RIGHT])?;
+                    self.expressions(vec![TokenType::ParenthesisRight])?;
 
-                self.consume(TokenType::PARENTHESIS_RIGHT)?;
+                self.consume(TokenType::ParenthesisRight)?;
 
                 if expressions.is_empty() {
                     return Err(TFMTError::EmptyGroup.into());
@@ -425,29 +411,29 @@ impl<'a> Parser<'a> {
         self.depth += 1;
         self.trace("Statement");
 
-        let ttype = self.current_token().ttype();
+        let ttype = self.current_token.ttype;
 
         let statement: Box<dyn ast::Node> = match ttype {
-            TokenType::DOLLAR => {
+            TokenType::Dollar => {
                 self.consume(ttype)?;
 
-                if self.current_token().ttype() == TokenType::PARENTHESIS_LEFT {
-                    self.consume(TokenType::PARENTHESIS_LEFT)?;
+                if self.current_token.ttype == TokenType::ParenthesisLeft {
+                    self.consume(TokenType::ParenthesisLeft)?;
                     let substitution = ast::Substitution {
                         token: self.consume(TokenType::ID)?,
                     };
-                    self.consume(TokenType::PARENTHESIS_RIGHT)?;
+                    self.consume(TokenType::ParenthesisRight)?;
                     Box::new(substitution)
                 } else {
                     self.function()?
                 }
             }
-            TokenType::ANGLE_BRACKET_LEFT => self.tag()?,
-            TokenType::INTEGER => Box::new(ast::Integer {
-                token: self.consume(ttype)?,
+            TokenType::AngleBracketLeft => self.tag()?,
+            TokenType::Integer => Box::new(ast::IntegerNode {
+                integer: self.consume(ttype)?,
             }),
-            TokenType::STRING => Box::new(ast::StringNode {
-                token: self.consume(ttype)?,
+            TokenType::String => Box::new(ast::StringNode {
+                string: self.consume(ttype)?,
             }),
             _ => return Err(TFMTError::UnrecognizedToken(ttype).into()),
         };
@@ -462,14 +448,14 @@ impl<'a> Parser<'a> {
 
         let identifier = self.consume(TokenType::ID)?;
 
-        self.consume(TokenType::PARENTHESIS_LEFT)?;
+        self.consume(TokenType::ParenthesisLeft)?;
 
         let mut arguments: Vec<Box<dyn ast::Node>> = Vec::new();
 
-        // while self.current_token().ttype() != TokenType::PARENTHESIS_RIGHT {
+        // while self.current_token.ttype() != TokenType::ParenthesisRight {
         loop {
             arguments.push(self.expression()?);
-            if self.consume(TokenType::COMMA).is_err() {
+            if self.consume(TokenType::Comma).is_err() {
                 break;
             }
         }
@@ -477,7 +463,7 @@ impl<'a> Parser<'a> {
         let function = ast::Function {
             start_token: identifier,
             arguments,
-            end_token: self.consume(TokenType::PARENTHESIS_RIGHT)?,
+            end_token: self.consume(TokenType::ParenthesisRight)?,
         };
 
         self.depth -= 1;
@@ -488,11 +474,11 @@ impl<'a> Parser<'a> {
         self.depth += 1;
         self.trace("Tag");
 
-        let start_token = self.consume(TokenType::ANGLE_BRACKET_LEFT)?;
+        let start_token = self.consume(TokenType::AngleBracketLeft)?;
 
         let identifier = self.consume(TokenType::ID)?;
 
-        self.consume(TokenType::ANGLE_BRACKET_RIGHT)?;
+        self.consume(TokenType::AngleBracketRight)?;
 
         let tag = ast::Tag {
             start_token,

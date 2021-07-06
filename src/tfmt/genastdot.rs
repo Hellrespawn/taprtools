@@ -1,4 +1,5 @@
-use super::ast::{self, Node};
+use super::ast::ast::{self, Node};
+use super::ast::visitor::Visitor;
 use super::token::TOKEN_TYPE_STRING_MAP;
 use crate::error::TFMTError;
 
@@ -9,8 +10,8 @@ use std::process::Command;
 
 use anyhow::Result;
 
-pub struct GenAstDot<'a> {
-    dot_body: &'a mut String,
+pub struct GenAstDot {
+    dot_body: String,
     counter: u64,
 }
 
@@ -20,9 +21,7 @@ pub fn visualize_ast(
     name: &str,
     remove_dot_file: bool,
 ) -> Result<()> {
-    let mut dot_body = String::new();
-
-    let mut g = GenAstDot::new(&mut dot_body);
+    let mut g = GenAstDot::new(String::new());
 
     root.accept(&mut g);
 
@@ -34,7 +33,7 @@ pub fn visualize_ast(
         ranksep=0.75;\n  "
         .to_owned();
 
-    dot.push_str(&dot_body);
+    dot.push_str(&g.dot_body);
 
     dot.push_str("}");
 
@@ -64,8 +63,8 @@ pub fn visualize_ast(
     Ok(())
 }
 
-impl<'a> GenAstDot<'a> {
-    pub fn new(dot_body: &'a mut String) -> GenAstDot<'a> {
+impl GenAstDot {
+    pub fn new(dot_body: String) -> GenAstDot {
         GenAstDot {
             dot_body,
             counter: 0,
@@ -142,7 +141,7 @@ impl<'a> GenAstDot<'a> {
     }
 }
 
-impl<'a> ast::Visitor for GenAstDot<'a> {
+impl Visitor for GenAstDot {
     //type Result;
     fn visit_program(&mut self, program: &ast::Program) {
         let program_node = self.new_node(&format!(
@@ -250,7 +249,7 @@ impl<'a> ast::Visitor for GenAstDot<'a> {
         let binaryop_node = self.new_node(&format!(
             "BinOp:\n{}",
             TOKEN_TYPE_STRING_MAP
-                .get_by_left(&binaryop.token.ttype())
+                .get_by_left(&binaryop.token.ttype)
                 .unwrap()
         ));
 
@@ -267,7 +266,7 @@ impl<'a> ast::Visitor for GenAstDot<'a> {
         let unaryop_node = self.new_node(&format!(
             "UnOp:\n{}",
             TOKEN_TYPE_STRING_MAP
-                .get_by_left(&unaryop.token.ttype())
+                .get_by_left(&unaryop.token.ttype)
                 .unwrap()
         ));
 
@@ -307,23 +306,23 @@ impl<'a> ast::Visitor for GenAstDot<'a> {
         }
     }
 
-    fn visit_integer(&mut self, integer: &ast::Integer) {
+    fn visit_integer(&mut self, integer: &ast::IntegerNode) {
         self.new_node(&format!(
             "Int:\n{}",
             integer
-                .token
+                .integer
                 .value
                 .as_ref()
                 .expect("Token in Integer must have value!")
         ));
     }
 
-    fn visit_stringnode(&mut self, stringnode: &ast::StringNode) {
+    fn visit_string(&mut self, stringnode: &ast::StringNode) {
         //TODO trim string
         self.new_node(&format!(
             "String:\n{}",
             stringnode
-                .token
+                .string
                 .value
                 .as_ref()
                 .expect("Token in StringNode must have value!")

@@ -54,13 +54,6 @@ impl Lexer {
         }
     }
 
-    // fn current_string(&self, length: usize) -> Option<String> {
-    //     match self.text.get(self.index..self.index + length) {
-    //         Some(slice) => Some(slice.join("")),
-    //         None => None,
-    //     }
-    // }
-
     fn test_current_string(&self, string: &str) -> bool {
         match self.current_string(string.len()) {
             Ok(current) => current == string,
@@ -69,11 +62,8 @@ impl Lexer {
     }
 
     fn advance(&mut self) -> Result<()> {
-        // Handle ExhaustedStream
-        let string = self.current_grapheme()?;
-
         // Handle newline
-        if string == "\n" {
+        if self.current_grapheme()? == "\n" {
             self.line_no += 1;
             self.col_no = 1;
         } else {
@@ -429,7 +419,7 @@ mod tests {
 
             match lex.handle_reserved()? {
                 Some(token) => {
-                    if token.ttype() == &expected_type {
+                    if token.ttype == expected_type {
                         Ok(())
                     } else {
                         Err(anyhow!(
@@ -437,7 +427,7 @@ mod tests {
                             string,
                             // ttypes are always safe!
                             TOKEN_TYPE_STRING_MAP
-                                .get_by_left(&token.ttype())
+                                .get_by_left(&token.ttype)
                                 .unwrap(),
                             TOKEN_TYPE_STRING_MAP
                                 .get_by_left(&expected_type)

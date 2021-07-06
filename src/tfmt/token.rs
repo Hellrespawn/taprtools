@@ -38,10 +38,12 @@ pub enum TokenType {
 
     Comment,
     Drive,
-    EOF,
     ID,
     Integer,
     String,
+
+    EOF,
+    Uninitialized,
 }
 
 lazy_static! {
@@ -79,10 +81,10 @@ lazy_static! {
 
         ttypes.insert(TokenType::Comment, "COMMENT");
         ttypes.insert(TokenType::Drive, "DRIVE");
-        ttypes.insert(TokenType::EOF, "EOF");
         ttypes.insert(TokenType::ID, "ID");
         ttypes.insert(TokenType::Integer, "INTEGER");
         ttypes.insert(TokenType::String, "STRING");
+
         ttypes
     };
 }
@@ -107,12 +109,12 @@ pub static FORBIDDEN_GRAPHEMES: [&str; 9] =
 
 pub static IGNORED: [TokenType; 1] = [TokenType::Comment];
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Token {
-    line_no: u64,
-    col_no: u64,
-    ttype: TokenType,
-    value: Option<String>,
+    pub line_no: u64,
+    pub col_no: u64,
+    pub ttype: TokenType,
+    pub value: Option<String>,
 }
 
 impl Token {
@@ -146,9 +148,5 @@ impl Token {
         } else {
             Err(anyhow!("Invalid character {} for token!", ttype_char))
         }
-    }
-
-    pub fn ttype(&self) -> &TokenType {
-        &self.ttype
     }
 }
