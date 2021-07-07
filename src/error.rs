@@ -32,8 +32,8 @@ impl fmt::Display for TFMTError {
                 write!(f, "Unable to convert to Token: {:?}", char)
             }
             TFMTError::Parser(err) => write!(f, "Parser error: {}", err),
-            TFMTError::UnexpectedToken(wanted, found) => {
-                write!(f, "Expected {:?}, got {:?}", wanted, found)
+            TFMTError::UnexpectedToken(expected, found) => {
+                write!(f, "Expected {:?}, got {:?}", expected, found)
             }
             TFMTError::ExhaustedTokens(ttype) => write!(
                 f,

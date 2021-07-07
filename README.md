@@ -13,3 +13,8 @@ Operators in order of precedence, from lowest to highest:
 | `a * b`<br>`a / b`<br>`a % b`        | `/` does integer division only.               |
 | `a ** b`<br>`a ^ b`                  | Exponentiation                                |
 | `+ a`<br>`- a`<br>`(expressions...)` |                                               |
+
+## To-do
+
+* TODO Learn about generic errors in parser
+* TODO Learn about generics and Self

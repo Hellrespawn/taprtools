@@ -70,7 +70,7 @@ where
         let current_ttype = self.current_token.ttype;
 
         if current_ttype == TokenType::EOF {
-            return Err(TFMTError::ExhaustedTokens(current_ttype));
+            return Err(TFMTError::ExhaustedTokens(expected_ttype));
         }
 
         if current_ttype != expected_ttype {
@@ -111,10 +111,8 @@ where
 
         self.consume(TokenType::ParenthesisRight)?;
 
-        let description = match self.consume(TokenType::String) {
-            Ok(token) => Some(token),
-            Err(_) => None,
-        };
+        // FIXME Replicate consume(...).Ok() in other places!
+        let description =  self.consume(TokenType::String).ok();
 
         self.consume(TokenType::CurlyBraceLeft)?;
         let block = self.block()?;
