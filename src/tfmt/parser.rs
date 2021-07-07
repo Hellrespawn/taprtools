@@ -2,9 +2,8 @@ use log::trace;
 
 use super::ast::{self, Expression};
 use super::lexer::Lexer;
-use super::token::{self, Token, TokenType};
+use super::token::{Token, TokenType, IGNORED_TOKEN_TYPES};
 use crate::error::TFMTError;
-// use std::error::Error;
 
 type Result<T> = std::result::Result<T, TFMTError>;
 
@@ -42,7 +41,7 @@ where
         self.program()
     }
 
-    // FIXME Why do we need previous_token? Just for error handling?
+    // TODO? Why do we need previous_token? Just for error handling?
     fn _advance(&mut self, ignore: bool) -> Result<()> {
         // Allows replacing without deinit, even without Clone/Copy
         let prev = std::mem::replace(
@@ -56,7 +55,7 @@ where
             self.previous_token = prev
         }
 
-        if token::IGNORED.contains(&self.current_token.ttype) {
+        if IGNORED_TOKEN_TYPES.contains(&self.current_token.ttype) {
             self._advance(true)?;
         }
 

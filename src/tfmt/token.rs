@@ -107,7 +107,7 @@ lazy_static! {
 pub static FORBIDDEN_GRAPHEMES: [&str; 9] =
     ["\\", "<", ">", ":", "\"", "|", "?", "*", "~"];
 
-pub static IGNORED: [TokenType; 1] = [TokenType::Comment];
+pub static IGNORED_TOKEN_TYPES: [TokenType; 1] = [TokenType::Comment];
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Token {

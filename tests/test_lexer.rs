@@ -9,10 +9,7 @@ mod common;
 
 fn file_test(filename: &str, reference: Option<Vec<Token>>) -> Result<()> {
     let mut path = PathBuf::from(file!());
-    for _ in 1..=3 {
-        path.pop();
-    }
-    path.push("tests");
+    path.pop();
     path.push("files");
     path.push("config");
     path.push(filename);

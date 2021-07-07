@@ -1,7 +1,6 @@
 use super::token::Token;
 use super::visitor::Visitor;
 
-// TODO? Leave visitor immutable?
 pub trait Node<T>: std::fmt::Debug {
     fn accept(&self, visitor: &mut dyn Visitor<T>) -> T;
 }
@@ -89,7 +88,6 @@ pub enum Expression {
         arguments: Vec<Expression>,
         end_token: Token,
     },
-    //TODO? Replace literals with tuple struct?
     StringNode(Token),
     IntegerNode(Token),
     Substitution(Token),

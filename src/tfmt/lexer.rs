@@ -14,17 +14,22 @@ type Result<T> = std::result::Result<T, TFMTError>;
 pub struct Lexer {
     /// Text to analyze, separated into Unicode Graphemes
     text: Vec<String>,
-    /// Current index into [text]
+    /// Current index into `text`
     index: usize,
-    /// Current line number of [text]
+    /// Current line number of `text`
     line_no: u64,
-    /// Current column number of [text]
+    /// Current column number of `text`
     col_no: u64,
     /// [Lexer] status
     ended: bool,
 }
 
 impl Lexer {
+    /// Create a new [Lexer]
+    ///
+    /// # Arguments
+    ///
+    /// * `text` - a string slice
     pub fn new(text: &str) -> Result<Lexer> {
         if text.is_empty() {
             Err(TFMTError::Lexer(
@@ -44,14 +49,15 @@ impl Lexer {
         }
     }
 
-    pub fn reset(&mut self) {
-        self.index = 0;
-        self.line_no = 1;
-        self.col_no = 1;
-        self.ended = false;
-        trace!("Resetting lexer:\n{}", self.text.join(""));
-    }
+    // pub fn reset(&mut self) {
+    //     self.index = 0;
+    //     self.line_no = 1;
+    //     self.col_no = 1;
+    //     self.ended = false;
+    //     trace!("Resetting lexer:\n{}", self.text.join(""));
+    // }
 
+    /// Returns [UnicodeSegmentation::Grapheme] pointed to by [Lexer.index]
     fn current_grapheme(&self) -> Result<&str> {
         match self.text.get(self.index) {
             Some(string) => Ok(string),
@@ -59,11 +65,13 @@ impl Lexer {
         }
     }
 
+    /// Returns `length`-character [String] from [Lexer.index]
     fn current_string(&self, length: usize) -> Option<String> {
         let bound = std::cmp::min(self.text.len(), self.index + length);
         self.text.get(self.index..bound).map(|s| s.join(""))
     }
 
+    /// Returns [true] if [current_string(string.len())] matches string
     fn test_current_string(&self, string: &str) -> bool {
         match self.current_string(string.len()) {
             Some(current) => current == string,
@@ -71,6 +79,7 @@ impl Lexer {
         }
     }
 
+    /// Advances [Lexer.index] and handles [line_no] and [col_no]
     fn advance(&mut self) -> Result<()> {
         // Handle lines/columns
         // FIXME Check for carriage return or \r\n?
@@ -87,6 +96,7 @@ impl Lexer {
         Ok(())
     }
 
+    /// Call [Lexer::advance] `times` times
     fn advance_times(&mut self, times: u64) -> Result<()> {
         for _ in 1..=times {
             self.advance()?;
@@ -94,8 +104,16 @@ impl Lexer {
         Ok(())
     }
 
+    /// Crawl [Lexer.text] until a designated terminator is reached
+    ///
+    /// # Arguments:
+    ///
+    /// * `terminators` - list of strings to stop on
+    /// * `discard_terminator` - whether to advance past found terminator
+    /// * `terminate_on_eof` - stop crawl() on EOF, else return Error
     fn crawl(
         &mut self,
+        // FIXME change to slice?
         terminators: Vec<&str>,
         discard_terminator: bool,
         terminate_on_eof: bool,
@@ -133,6 +151,7 @@ impl Lexer {
         Ok(string)
     }
 
+    /// Prepare [Lexer::crawl] for reading a string.
     fn handle_string(&mut self, multiline: bool) -> Result<String> {
         let quote_length = if multiline { 3 } else { 1 };
         let quote = self.current_grapheme()?.repeat(quote_length as usize);
@@ -153,6 +172,7 @@ impl Lexer {
         Ok(string)
     }
 
+    /// Handle bounded [Token]s such as strings and comments
     fn handle_bounded(&mut self) -> Result<Option<Token>> {
         let exp_string =
             "Should never panic, all TokenTypes are in TOKEN_TYPE_STRING_MAP.";
@@ -216,6 +236,7 @@ impl Lexer {
         }
     }
 
+    /// Handle [Token]s involving reserved strings
     fn handle_reserved(&mut self) -> Result<Option<Token>> {
         for string in token::RESERVED_STRINGS.iter() {
             if self.test_current_string(string) {
@@ -234,6 +255,7 @@ impl Lexer {
         Ok(None)
     }
 
+    /// Handle remaining [Token]s
     fn handle_misc_tokens(&mut self) -> Result<Token> {
         let (line_no_start, col_no_start) = (self.line_no, self.col_no);
 
@@ -290,6 +312,7 @@ impl Lexer {
         }
     }
 
+    /// Return next [Token], if any
     pub fn next_token(&mut self) -> Result<Token> {
         let grapheme = match self.current_grapheme() {
             Ok(grapheme) => grapheme,
@@ -516,43 +539,57 @@ mod tests {
         }
     }
 
-    // mod handle_misc_tokens {
-    //     use super::*;
+    mod handle_misc_tokens {
+        use super::*;
 
-    //     #[test]
-    //     fn test_id() -> Result<()> {
-    //         lexer_test(
-    //             "id",
-    //             vec![Token::new(1, 1, TokenType::ID, Some(String::from("id")))],
-    //         )
-    //     }
+        fn misc_test(
+            input: &str,
+            expected_type: TokenType,
+            expected_value: Option<&str>,
+        ) -> Result<()> {
+            let mut lex = create_lexer(input)?;
 
-    //     #[test]
-    //     fn test_drive() -> Result<()> {
-    //         lexer_test(
-    //             "D:\\",
-    //             vec![Token::new(
-    //                 1,
-    //                 1,
-    //                 TokenType::Drive,
-    //                 Some(String::from("D:\\")),
-    //             )],
-    //         )
-    //     }
+            let expected_value = expected_value.map(String::from);
 
-    //     #[test]
-    //     fn test_integer() -> Result<()> {
-    //         lexer_test(
-    //             "1",
-    //             vec![Token::new(
-    //                 1,
-    //                 1,
-    //                 TokenType::Integer,
-    //                 Some(String::from("1")),
-    //             )],
-    //         )
-    //     }
-    // }
+            match lex.handle_misc_tokens() {
+                Ok(token) => {
+                    assert_eq!(
+                        token.ttype, expected_type,
+                        "misc_type: got {:?}, expected {:?}",
+                        token.ttype, expected_type
+                    );
+                    assert_eq!(
+                        token.value, expected_value,
+                        "misc_value: got {:?}, expected {:?}",
+                        token.value, expected_value
+                    );
+                    Ok(())
+                }
+                Err(TFMTError::Tokenize(_)) => {
+                    Err(anyhow!("misc: unable to parse {} as Token", input))
+                }
+                Err(err) => Err(anyhow!(
+                    "misc: unexpected error with input {}: {}",
+                    input,
+                    err
+                )),
+            }
+        }
+        #[test]
+        fn test_id() -> Result<()> {
+            misc_test("id", TokenType::ID, Some("id"))
+        }
+
+        #[test]
+        fn test_drive() -> Result<()> {
+            misc_test("D:\\", TokenType::Drive, Some("D:\\"))
+        }
+
+        #[test]
+        fn test_integer() -> Result<()> {
+            misc_test("1", TokenType::Integer, Some("1"))
+        }
+    }
 
     mod crawler {
         use super::*;
