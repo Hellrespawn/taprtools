@@ -1,12 +1,12 @@
 use log::trace;
 
-use anyhow::Result;
-
 use super::ast::{self, Expression};
 use super::lexer::Lexer;
 use super::token::{self, Token, TokenType};
 use crate::error::TFMTError;
 // use std::error::Error;
+
+type Result<T> = std::result::Result<T, TFMTError>;
 
 pub struct Parser<I>
 where
@@ -32,8 +32,8 @@ where
         }
     }
 
-    pub fn from_string(string: &str) -> Parser<Lexer> {
-        Parser::from_iterator(Lexer::new(string))
+    pub fn from_string(string: &str) -> Result<Parser<Lexer>> {
+        Ok(Parser::from_iterator(Lexer::new(string)?))
     }
 
     pub fn parse(&mut self) -> Result<ast::Program> {
@@ -71,15 +71,14 @@ where
         let current_ttype = self.current_token.ttype;
 
         if current_ttype == TokenType::EOF {
-            return Err(TFMTError::ExhaustedTokens(current_ttype).into());
+            return Err(TFMTError::ExhaustedTokens(current_ttype));
         }
 
         if current_ttype != expected_ttype {
             return Err(TFMTError::UnexpectedToken(
                 expected_ttype,
                 current_ttype,
-            )
-            .into());
+            ));
         }
 
         self.advance()?;
@@ -168,8 +167,7 @@ where
                 } else {
                     return Err(TFMTError::Parser(
                         "Paramater has invalid default!".to_owned(),
-                    )
-                    .into());
+                    ));
                 }
             }
             Err(_) => None,
@@ -215,8 +213,7 @@ where
             if self.depth > 48 {
                 return Err(TFMTError::Parser(
                     "Iteration depth > 48!".to_owned(),
-                )
-                .into());
+                ));
             }
             expressions.push(self.expression()?);
         }
@@ -402,7 +399,7 @@ where
                 self.consume(TokenType::ParenthesisRight)?;
 
                 if expressions.is_empty() {
-                    return Err(TFMTError::EmptyGroup.into());
+                    return Err(TFMTError::EmptyGroup);
                 }
 
                 Expression::Group { expressions }
@@ -438,7 +435,7 @@ where
             TokenType::AngleBracketLeft => self.tag()?,
             TokenType::Integer => Expression::IntegerNode(self.consume(ttype)?),
             TokenType::String => Expression::StringNode(self.consume(ttype)?),
-            _ => return Err(TFMTError::UnrecognizedToken(ttype).into()),
+            _ => return Err(TFMTError::UnrecognizedToken(ttype)),
         };
 
         self.depth -= 1;

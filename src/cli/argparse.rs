@@ -83,13 +83,13 @@ pub fn parse_args() -> Args {
     _parse_args(std::env::args_os())
 }
 
-fn _parse_args<I, T>(itr: I) -> Args
+fn _parse_args<I, T>(iterator: I) -> Args
 where
     I: IntoIterator<Item = T>,
     T: Into<OsString> + Clone,
 {
     let yaml = load_yaml!("tfmttools.yml");
-    let matches = App::from_yaml(yaml).get_matches_from(itr);
+    let matches = App::from_yaml(yaml).get_matches_from(iterator);
 
     let mut args: Args = Default::default();
     args.accumulate_ArgMatches(&matches);

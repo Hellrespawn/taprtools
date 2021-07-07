@@ -15,7 +15,7 @@ pub fn main() -> Result<()> {
 
     info!("{:#?}", args);
 
-    let lex = lexer_test("typical_input.tfmt");
+    let lex = lexer_test("typical_input.tfmt")?;
     let root = parser_test(lex)?;
 
     debug!("{:#?}", root);
@@ -25,7 +25,7 @@ pub fn main() -> Result<()> {
     Ok(())
 }
 
-fn lexer_test(filename: &str) -> Lexer {
+fn lexer_test(filename: &str) -> Result<Lexer> {
     let mut path = std::path::PathBuf::from(file!());
     for _ in 1..=3 {
         path.pop();
@@ -38,11 +38,11 @@ fn lexer_test(filename: &str) -> Lexer {
     let input = std::fs::read_to_string(path)
         .unwrap_or_else(|_| format!("{} doesn't exist!", filename));
 
-    Lexer::new(&input)
+    Ok(Lexer::new(&input)?)
 }
 
 fn parser_test(lex: Lexer) -> Result<ast::Program> {
     let mut p = Parser::from_iterator(lex);
 
-    p.parse()
+    Ok(p.parse()?)
 }
