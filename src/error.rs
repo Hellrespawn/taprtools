@@ -4,8 +4,9 @@ use std::fmt;
 
 use crate::tfmt::token::TokenType;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum TFMTError {
+    External(String),
     Lexer(String),
     Crawler(String),
     Tokenize(String),
@@ -24,6 +25,7 @@ impl fmt::Display for TFMTError {
         match self {
             // String already impls `Display`, so we defer to
             // the implementations.
+            TFMTError::External(err) => write!(f, "External error: {}", err),
             TFMTError::Lexer(err) => write!(f, "Lexer error: {}", err),
             TFMTError::Crawler(err) => write!(f, "Crawler error: {}", err),
             TFMTError::Tokenize(char) => {
