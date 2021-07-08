@@ -1,5 +1,4 @@
 use super::ast::{self, Expression, Node};
-use super::token::TOKEN_TYPE_STRING_MAP;
 use super::visitor::Visitor;
 use crate::error::TFMTError;
 use crate::tfmt::token::Token;
@@ -309,10 +308,8 @@ impl GenAstDot {
         token: &Token,
         right: &Expression,
     ) -> String {
-        let (mut string, binaryop_node) = self.new_node(&format!(
-            "BinOp:\n{}",
-            TOKEN_TYPE_STRING_MAP.get_by_left(&token.ttype).unwrap()
-        ));
+        let (mut string, binaryop_node) =
+            self.new_node(&format!("BinOp:\n{}", token.ttype.grapheme()));
 
         let left_node = self.counter;
         string += &left.accept(self);
@@ -326,10 +323,8 @@ impl GenAstDot {
     }
 
     fn visit_unaryop(&mut self, token: &Token, operand: &Expression) -> String {
-        let (mut string, unaryop_node) = self.new_node(&format!(
-            "UnOp:\n{}",
-            TOKEN_TYPE_STRING_MAP.get_by_left(&token.ttype).unwrap()
-        ));
+        let (mut string, unaryop_node) =
+            self.new_node(&format!("UnOp:\n{}", token.ttype.grapheme()));
 
         let operand_node = self.counter;
         string += &operand.accept(self);

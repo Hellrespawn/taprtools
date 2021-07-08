@@ -4,6 +4,7 @@ use anyhow::{anyhow, Result};
 use bimap::BiMap;
 use lazy_static::lazy_static;
 
+/// Describes [Token] type.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum TokenType {
     Ampersand,
@@ -47,7 +48,7 @@ pub enum TokenType {
 }
 
 lazy_static! {
-    pub(super) static ref TOKEN_TYPE_STRING_MAP: BiMap<TokenType, &'static str> = {
+    static ref TOKEN_TYPE_STRING_MAP: BiMap<TokenType, &'static str> = {
         let mut ttypes = BiMap::new();
         ttypes.insert(TokenType::Ampersand, "&");
         ttypes.insert(TokenType::AngleBracketLeft, "<");
@@ -99,7 +100,7 @@ impl TokenType {
             .map(|tt| *tt)
     }
 
-    pub fn to_string(self: &TokenType) -> &str {
+    pub fn grapheme(&self) -> &str {
         TOKEN_TYPE_STRING_MAP
             .get_by_left(self)
             .expect("fmt: All TokenTypes should be in TOKEN_TYPE_STRING_MAP")

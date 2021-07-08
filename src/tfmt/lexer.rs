@@ -173,15 +173,13 @@ impl Lexer {
     /// Handle bounded [Token]s such as strings and comments
     fn handle_bounded(&mut self) -> Result<Option<Token>> {
         let quotes = [
-            TokenType::to_string(&TokenType::QuoteDouble),
-            TokenType::to_string(&TokenType::QuoteSingle),
+            TokenType::QuoteDouble.grapheme(),
+            TokenType::QuoteSingle.grapheme(),
         ];
 
-        let single_line_comment = TokenType::to_string(&TokenType::Hash);
-        let multiline_comment_start =
-            TokenType::to_string(&TokenType::SlashAsterisk);
-        let multiline_comment_end =
-            TokenType::to_string(&TokenType::AsteriskSlash);
+        let single_line_comment = TokenType::Hash.grapheme();
+        let multiline_comment_start = TokenType::SlashAsterisk.grapheme();
+        let multiline_comment_end = TokenType::AsteriskSlash.grapheme();
 
         let current_grapheme = &self.current_grapheme()?;
 
@@ -662,7 +660,7 @@ mod tests {
             crawler_test(
                 &String::from(MULTILINE_COMMENT),
                 slice_ends(&MULTILINE_COMMENT, 2, 2),
-                vec![TokenType::to_string(&TokenType::AsteriskSlash)],
+                vec![TokenType::AsteriskSlash.grapheme()],
                 true,
                 false,
                 2,
