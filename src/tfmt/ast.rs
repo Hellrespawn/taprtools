@@ -5,7 +5,7 @@ pub trait Node<T>: std::fmt::Debug {
     fn accept(&self, visitor: &mut dyn Visitor<T>) -> T;
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Program {
     pub name: Token,
     pub parameters: Parameters,
@@ -19,7 +19,7 @@ impl<T> Node<T> for Program {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Parameters {
     pub parameters: Vec<Parameter>,
 }
@@ -30,7 +30,7 @@ impl<T> Node<T> for Parameters {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Parameter {
     pub token: Token,
     pub default: Option<Token>,
@@ -41,7 +41,7 @@ impl<T> Node<T> for Parameter {
         visitor.visit_parameter(self)
     }
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DriveLetter {
     pub token: Token,
 }
@@ -52,7 +52,7 @@ impl<T> Node<T> for DriveLetter {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Block {
     pub drive: Option<DriveLetter>,
     pub expressions: Vec<Expression>,
@@ -64,7 +64,7 @@ impl<T> Node<T> for Block {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Expression {
     TernaryOp {
         condition: Box<Expression>,
