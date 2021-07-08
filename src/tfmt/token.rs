@@ -47,7 +47,7 @@ pub enum TokenType {
 }
 
 lazy_static! {
-    pub static ref TOKEN_TYPE_STRING_MAP: BiMap<TokenType, &'static str> = {
+    pub(super) static ref TOKEN_TYPE_STRING_MAP: BiMap<TokenType, &'static str> = {
         let mut ttypes = BiMap::new();
         ttypes.insert(TokenType::Ampersand, "&");
         ttypes.insert(TokenType::AngleBracketLeft, "<");
@@ -84,9 +84,26 @@ lazy_static! {
         ttypes.insert(TokenType::ID, "ID");
         ttypes.insert(TokenType::Integer, "INTEGER");
         ttypes.insert(TokenType::String, "STRING");
+        ttypes.insert(TokenType::EOF, "EOF");
+        ttypes.insert(TokenType::Uninitialized, "UNINITIALIZED");
 
         ttypes
     };
+}
+
+impl TokenType {
+    pub fn from_string(string: &str) -> Result<TokenType> {
+        TOKEN_TYPE_STRING_MAP
+            .get_by_right(string)
+            .ok_or_else(|| anyhow!("{} is not a valid TokenType!", string))
+            .map(|tt| *tt)
+    }
+
+    pub fn to_string(self: &TokenType) -> &str {
+        TOKEN_TYPE_STRING_MAP
+            .get_by_left(self)
+            .expect("fmt: All TokenTypes should be in TOKEN_TYPE_STRING_MAP")
+    }
 }
 
 lazy_static! {
@@ -135,18 +152,14 @@ impl Token {
     pub fn new_type_from_string(
         line_no: u64,
         col_no: u64,
-        ttype_char: &str,
+        ttype_str: &str,
         value: Option<String>,
     ) -> Result<Token> {
-        if let Some(ttype) = TOKEN_TYPE_STRING_MAP.get_by_right(&ttype_char) {
-            Ok(Token {
-                line_no,
-                col_no,
-                ttype: *ttype,
-                value,
-            })
-        } else {
-            Err(anyhow!("Invalid character {} for token!", ttype_char))
-        }
+        Ok(Token {
+            line_no,
+            col_no,
+            ttype: TokenType::from_string(&ttype_str)?,
+            value,
+        })
     }
 }

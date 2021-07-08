@@ -112,7 +112,7 @@ where
         self.consume(TokenType::ParenthesisRight)?;
 
         // FIXME Replicate consume(...).Ok() in other places!
-        let description= self.consume(TokenType::String).ok();
+        let description = self.consume(TokenType::String).ok();
 
         self.consume(TokenType::CurlyBraceLeft)?;
         let block = self.block()?;

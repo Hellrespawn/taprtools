@@ -3,9 +3,7 @@ use std::iter::Iterator;
 use log::{error, trace};
 use unicode_segmentation::UnicodeSegmentation;
 
-use super::token::{
-    self, Token, TokenType, RESERVED_STRINGS, TOKEN_TYPE_STRING_MAP,
-};
+use super::token::{self, Token, TokenType, RESERVED_STRINGS};
 use crate::error::TFMTError;
 
 type Result<T> = std::result::Result<T, TFMTError>;
@@ -174,27 +172,16 @@ impl Lexer {
 
     /// Handle bounded [Token]s such as strings and comments
     fn handle_bounded(&mut self) -> Result<Option<Token>> {
-        let exp_string =
-            "Should never panic, all TokenTypes are in TOKEN_TYPE_STRING_MAP.";
         let quotes = [
-            TOKEN_TYPE_STRING_MAP
-                .get_by_left(&TokenType::QuoteDouble)
-                .expect(exp_string),
-            TOKEN_TYPE_STRING_MAP
-                .get_by_left(&TokenType::QuoteSingle)
-                .expect(exp_string),
+            TokenType::to_string(&TokenType::QuoteDouble),
+            TokenType::to_string(&TokenType::QuoteSingle),
         ];
 
-        let single_line_comment = TOKEN_TYPE_STRING_MAP
-            // FIXME Implemenet SlashSlash instead of this shit.
-            .get_by_left(&TokenType::Hash)
-            .expect(exp_string);
-        let multiline_comment_start = TOKEN_TYPE_STRING_MAP
-            .get_by_left(&TokenType::SlashAsterisk)
-            .expect(exp_string);
-        let multiline_comment_end = TOKEN_TYPE_STRING_MAP
-            .get_by_left(&TokenType::AsteriskSlash)
-            .expect(exp_string);
+        let single_line_comment = TokenType::to_string(&TokenType::Hash);
+        let multiline_comment_start =
+            TokenType::to_string(&TokenType::SlashAsterisk);
+        let multiline_comment_end =
+            TokenType::to_string(&TokenType::AsteriskSlash);
 
         let current_grapheme = &self.current_grapheme()?;
 
@@ -211,7 +198,7 @@ impl Lexer {
                 TokenType::String,
                 Some(self.handle_string(multiline)?),
             )))
-        } else if current_grapheme == single_line_comment {
+        } else if current_grapheme == &single_line_comment {
             self.advance_times(single_line_comment.len() as u64)
                 .expect(err_str);
 
@@ -675,9 +662,7 @@ mod tests {
             crawler_test(
                 &String::from(MULTILINE_COMMENT),
                 slice_ends(&MULTILINE_COMMENT, 2, 2),
-                vec![*TOKEN_TYPE_STRING_MAP
-                    .get_by_left(&TokenType::AsteriskSlash)
-                    .unwrap()],
+                vec![TokenType::to_string(&TokenType::AsteriskSlash)],
                 true,
                 false,
                 2,
