@@ -1,6 +1,4 @@
 use anyhow::{anyhow, Result};
-use std::fs;
-use std::path::PathBuf;
 use tfmttools::tfmt::lexer::Lexer;
 use tfmttools::tfmt::token::Token;
 use tfmttools::tfmt::token::TokenType::*;
@@ -8,14 +6,7 @@ use tfmttools::tfmt::token::TokenType::*;
 mod common;
 
 fn file_test(filename: &str, reference: Option<Vec<Token>>) -> Result<()> {
-    let mut path = PathBuf::from(file!());
-    path.pop();
-    path.push("files");
-    path.push("config");
-    path.push(filename);
-
-    let input = fs::read_to_string(path)
-        .expect(&format!("{} doesn't exist!", filename));
+    let input = common::get_script(filename)?;
 
     if let Some(tokens) = reference {
         lexer_test(&input, tokens)

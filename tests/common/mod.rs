@@ -1,3 +1,7 @@
+use anyhow::Result;
+use std::fs;
+use std::path::PathBuf;
+
 #[allow(unused_must_use, dead_code)]
 pub fn init_logger() {
     fern::Dispatch::new()
@@ -14,4 +18,15 @@ pub fn init_logger() {
         .level(log::LevelFilter::Trace)
         .chain(std::io::stderr())
         .apply();
+}
+
+pub fn get_script(filename: &str) -> Result<String> {
+    let mut path = PathBuf::from(file!());
+    path.pop();
+    path.pop();
+    path.push("files");
+    path.push("script");
+    path.push(filename);
+
+    Ok(fs::read_to_string(path)?)
 }
