@@ -7,6 +7,7 @@ use crate::tfmt::token::TokenType;
 #[derive(Debug, PartialEq)]
 pub enum TFMTError {
     External(String),
+    AudioFile(String),
     Lexer(String),
     Crawler(String),
     Tokenize(String),
@@ -26,6 +27,7 @@ impl fmt::Display for TFMTError {
             // String already impls `Display`, so we defer to
             // the implementations.
             TFMTError::External(err) => write!(f, "External error: {}", err),
+            TFMTError::AudioFile(err) => write!(f, "Audiofile error: {}", err),
             TFMTError::Lexer(err) => write!(f, "Lexer error: {}", err),
             TFMTError::Crawler(err) => write!(f, "Crawler error: {}", err),
             TFMTError::Tokenize(char) => {
