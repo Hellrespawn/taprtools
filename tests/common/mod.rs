@@ -24,7 +24,8 @@ pub fn get_script(filename: &str) -> Result<String> {
     let mut path = PathBuf::from(file!());
     path.pop();
     path.pop();
-    path.push("files");
+    path.pop();
+    path.push("testdata");
     path.push("script");
     path.push(filename);
 
