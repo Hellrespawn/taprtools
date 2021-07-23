@@ -9,6 +9,18 @@ pub struct MP3 {
     id3: Tag,
 }
 
+impl MP3 {
+    pub fn filter_options<T>(&self, options: Vec<Option<T>>) -> Option<T> {
+        for option in options {
+            if option.is_some() {
+                return option;
+            }
+        }
+
+        None
+    }
+}
+
 impl AudioFile for MP3 {
     fn read_from_path(path: &Path) -> Result<Box<Self>, TFMTError> {
         match Tag::read_from_path(path) {
@@ -19,12 +31,19 @@ impl AudioFile for MP3 {
             Err(err) => Err(TFMTError::AudioFile(err.to_string())),
         }
     }
+
     fn album(&self) -> Option<&str> {
         self.id3.album()
     }
 
     fn album_artist(&self) -> Option<&str> {
         self.id3.album_artist()
+    }
+
+    fn albumsort(&self) -> Option<&str> {
+        self.id3
+            .get("TSOA")
+            .and_then(|frame| frame.content().text())
     }
 
     fn artist(&self) -> Option<&str> {
@@ -68,10 +87,41 @@ impl AudioFile for MP3 {
     }
 
     fn track_number(&self) -> Option<u64> {
-        self.id3.track().map(|u32| u32 as u64)
+        let options = vec![
+            self.id3.track(),
+            self.id3
+                .get("TRCK")
+                .and_then(|frame| frame.content().text())
+                .map(|text| text.trim_matches(char::from(0)))
+                .and_then(|text| text.parse().ok()),
+        ];
+
+        self.filter_options(options).map(|n| n as u64)
     }
 
     fn year(&self) -> Option<i64> {
-        self.id3.year().map(|i32| i32 as i64)
+        let options =
+            vec![self.id3.year(), self.id3.date_recorded().map(|ts| ts.year)];
+
+        self.filter_options(options).map(|n| n as i64)
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_song() -> Result<()> {
+        let mp3 = MP3::read_from_path(Path::new("testdata/music/SET MIDI=SYNTH1 MAPG MODE1 - MASTER BOOT RECORD.mp3"))?;
+
+        assert_eq!(mp3.artist().unwrap(), "MASTER BOOT RECORD");
+        assert_eq!(mp3.album().unwrap(), r"C:\>EDIT AUTOEXEC.BAT");
+        assert_eq!(mp3.year().unwrap(), 2016);
+        assert_eq!(mp3.albumsort().unwrap(), "03");
+        assert_eq!(mp3.track_number().unwrap(), 5);
+        assert_eq!(mp3.title().unwrap(), "SET MIDI=SYNTH:1 MAP:G MODE:1");
+        assert_eq!(mp3.album_artist(), None);
+
+        Ok(())
     }
 }

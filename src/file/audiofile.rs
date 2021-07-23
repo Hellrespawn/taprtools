@@ -2,9 +2,12 @@ use super::super::error::TFMTError;
 use std::path::Path;
 pub trait AudioFile {
     fn read_from_path(path: &Path) -> Result<Box<Self>, TFMTError>;
+
     fn album(&self) -> Option<&str>;
 
     fn album_artist(&self) -> Option<&str>;
+
+    fn albumsort(&self) -> Option<&str>;
 
     fn artist(&self) -> Option<&str>;
 
