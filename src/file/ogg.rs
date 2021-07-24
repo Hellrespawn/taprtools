@@ -1,4 +1,3 @@
-use super::super::error::TFMTError;
 use super::audiofile::AudioFile;
 use anyhow::Result;
 use lewton::inside_ogg::OggStreamReader;
@@ -12,16 +11,8 @@ pub struct OGG {
 }
 
 impl OGG {
-    pub fn read_from_path(path: &Path) -> Result<Box<Self>, TFMTError> {
-        let file = match std::fs::File::open(&path) {
-            Ok(file) => file,
-            Err(err) => return Err(TFMTError::AudioFile(err.to_string())),
-        };
-
-        let stream_reader = match OggStreamReader::new(file) {
-            Ok(stream_reader) => stream_reader,
-            Err(err) => return Err(TFMTError::AudioFile(err.to_string())),
-        };
+    pub fn read_from_path(path: &Path) -> Result<Box<Self>> {
+        let stream_reader = OggStreamReader::new(std::fs::File::open(&path)?)?;
 
         let comment_list = stream_reader
             .comment_hdr
@@ -38,29 +29,29 @@ impl OGG {
         }))
     }
 
-    pub fn get(&self, key: &str) -> Option<&str> {
+    pub fn get_str(&self, key: &str) -> Option<&str> {
         self.comment_list.get(key).map(String::as_str)
     }
-    pub fn get_int<T: FromStr>(&self, key: &str) -> Option<T> {
+    pub fn get<T: FromStr>(&self, key: &str) -> Option<T> {
         self.comment_list.get(key).and_then(|s| s.parse::<T>().ok())
     }
 }
 
 impl AudioFile for OGG {
     fn album(&self) -> Option<&str> {
-        self.get("album")
+        self.get_str("album")
     }
 
     fn album_artist(&self) -> Option<&str> {
-        self.get("albumartist")
+        self.get_str("albumartist")
     }
 
     fn albumsort(&self) -> Option<&str> {
-        self.get("albumsort")
+        self.get_str("albumsort")
     }
 
     fn artist(&self) -> Option<&str> {
-        self.get("artist")
+        self.get_str("artist")
     }
 
     fn comments(&self) -> Option<&str> {
@@ -68,15 +59,15 @@ impl AudioFile for OGG {
     }
 
     fn disc_number(&self) -> Option<u64> {
-        self.get_int("discnumber")
+        self.get("discnumber")
     }
 
     fn duration(&self) -> Option<u64> {
-        self.get_int("duration")
+        self.get("duration")
     }
 
     fn genre(&self) -> Option<&str> {
-        self.get("genre")
+        self.get_str("genre")
     }
 
     fn lyrics(&self) -> Option<&str> {
@@ -88,7 +79,7 @@ impl AudioFile for OGG {
     }
 
     fn title(&self) -> Option<&str> {
-        self.get("title")
+        self.get_str("title")
     }
 
     fn total_disc_number(&self) -> Option<u64> {
@@ -100,10 +91,10 @@ impl AudioFile for OGG {
     }
 
     fn track_number(&self) -> Option<u64> {
-        self.get_int("tracknumber")
+        self.get("tracknumber")
     }
 
     fn year(&self) -> Option<i64> {
-        self.get_int("date")
+        self.get("date")
     }
 }

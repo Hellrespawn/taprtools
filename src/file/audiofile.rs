@@ -124,7 +124,10 @@ mod tests {
                 }
                 Some("Welcome To Heaven") => {
                     assert_eq!(file.album(), Some("The Talos Principle OST"));
-                    assert_eq!(file.album_artist(), Some("The Talos Principle"));
+                    assert_eq!(
+                        file.album_artist(),
+                        Some("The Talos Principle")
+                    );
                     assert_eq!(file.albumsort(), None);
                     assert_eq!(file.artist(), Some("Damjan Mravunac"));
                     assert_eq!(file.comments(), None);

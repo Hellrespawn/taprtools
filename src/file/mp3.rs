@@ -1,4 +1,3 @@
-use super::super::error::TFMTError;
 use super::audiofile::AudioFile;
 use anyhow::Result;
 use id3::Tag;
@@ -10,14 +9,11 @@ pub struct MP3 {
 }
 
 impl MP3 {
-    pub fn read_from_path(path: &Path) -> Result<Box<Self>, TFMTError> {
-        match Tag::read_from_path(path) {
-            Ok(id3) => Ok(Box::new(Self {
-                path: PathBuf::from(path),
-                id3,
-            })),
-            Err(err) => Err(TFMTError::AudioFile(err.to_string())),
-        }
+    pub fn read_from_path(path: &Path) -> Result<Box<Self>> {
+        Ok(Box::new(Self {
+            path: PathBuf::from(path),
+            id3: Tag::read_from_path(path)?,
+        }))
     }
 }
 
