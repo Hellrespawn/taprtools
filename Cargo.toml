@@ -19,5 +19,6 @@ clap = {version = "~2.33.0", features = ["yaml"]}
 fern = "0.6"
 id3 = "0.6.4"
 lazy_static = "1.4"
+lewton = "0.10.2"
 log = "0.4"
 unicode-segmentation = "1.8"

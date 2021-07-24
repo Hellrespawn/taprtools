@@ -49,7 +49,7 @@ impl AudioFile for MP3 {
     }
 
     fn duration(&self) -> Option<u64> {
-        self.id3.disc().map(|u32| u32 as u64)
+        self.id3.duration().map(|u32| u32 as u64)
     }
 
     fn genre(&self) -> Option<&str> {

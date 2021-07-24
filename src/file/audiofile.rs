@@ -38,6 +38,7 @@ pub trait AudioFile {
 mod tests {
     use super::*;
     use crate::file::mp3::MP3;
+    use crate::file::ogg::OGG;
     use anyhow::{bail, Result};
     use std::ffi::OsStr;
 
@@ -55,7 +56,7 @@ mod tests {
                             files.push(MP3::read_from_path(&entry.path())?)
                         }
                         "ogg" => {
-                            println!("Encountered OGG: \"{:?}\"", entry.path())
+                            files.push(OGG::read_from_path(&entry.path())?)
                         }
                         _ => (),
                     }
@@ -63,29 +64,10 @@ mod tests {
             }
         }
 
-        //assert_eq!(files.len(), 5);
-        assert_eq!(files.len(), 4);
+        assert_eq!(files.len(), 5);
 
         for file in &files {
             match file.title() {
-                Some("While Your Lips Are Still Red") => {
-                    assert_eq!(file.album(), None);
-                    assert_eq!(file.album_artist(), None);
-                    assert_eq!(file.albumsort(), None);
-                    assert_eq!(file.artist(), Some("Nightwish"));
-                    assert_eq!(file.comments(), None);
-                    assert_eq!(file.disc_number(), None);
-                    assert_eq!(file.duration(), None);
-                    assert_eq!(file.genre(), Some("Symphonic Metal"));
-                    assert_eq!(file.lyrics(), None);
-                    assert_eq!(file.synchronised_lyrics(), None);
-                    assert_eq!(file.total_disc_number(), None);
-                    assert_eq!(file.total_track_number(), None);
-                    assert_eq!(file.synchronised_lyrics(), None);
-                    assert_eq!(file.track_number(), None);
-                    assert_eq!(file.year(), None);
-                    assert_eq!(file.date(), file.year());
-                }
                 Some("Dune") => {
                     assert_eq!(file.album(), Some("WAREZ"));
                     assert_eq!(file.album_artist(), None);
@@ -138,6 +120,42 @@ mod tests {
                     assert_eq!(file.synchronised_lyrics(), None);
                     assert_eq!(file.track_number(), Some(5));
                     assert_eq!(file.year(), Some(2013));
+                    assert_eq!(file.date(), file.year());
+                }
+                Some("Welcome To Heaven") => {
+                    assert_eq!(file.album(), Some("The Talos Principle OST"));
+                    assert_eq!(file.album_artist(), Some("The Talos Principle"));
+                    assert_eq!(file.albumsort(), None);
+                    assert_eq!(file.artist(), Some("Damjan Mravunac"));
+                    assert_eq!(file.comments(), None);
+                    assert_eq!(file.disc_number(), None);
+                    assert_eq!(file.duration(), None);
+                    assert_eq!(file.genre(), Some("Soundtrack"));
+                    assert_eq!(file.lyrics(), None);
+                    assert_eq!(file.synchronised_lyrics(), None);
+                    assert_eq!(file.total_disc_number(), None);
+                    assert_eq!(file.total_track_number(), None);
+                    assert_eq!(file.synchronised_lyrics(), None);
+                    assert_eq!(file.track_number(), Some(1));
+                    assert_eq!(file.year(), Some(2015));
+                    assert_eq!(file.date(), file.year());
+                }
+                Some("While Your Lips Are Still Red") => {
+                    assert_eq!(file.album(), None);
+                    assert_eq!(file.album_artist(), None);
+                    assert_eq!(file.albumsort(), None);
+                    assert_eq!(file.artist(), Some("Nightwish"));
+                    assert_eq!(file.comments(), None);
+                    assert_eq!(file.disc_number(), None);
+                    assert_eq!(file.duration(), None);
+                    assert_eq!(file.genre(), Some("Symphonic Metal"));
+                    assert_eq!(file.lyrics(), None);
+                    assert_eq!(file.synchronised_lyrics(), None);
+                    assert_eq!(file.total_disc_number(), None);
+                    assert_eq!(file.total_track_number(), None);
+                    assert_eq!(file.synchronised_lyrics(), None);
+                    assert_eq!(file.track_number(), None);
+                    assert_eq!(file.year(), None);
                     assert_eq!(file.date(), file.year());
                 }
                 Some(unknown) => bail!("Unknown track \"{}\" found!", unknown),
