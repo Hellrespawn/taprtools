@@ -1,8 +1,9 @@
 #![allow(non_camel_case_types)]
-
-use anyhow::{anyhow, Result};
+use crate::error::TokenError;
 use bimap::BiMap;
 use lazy_static::lazy_static;
+
+type Result<T> = std::result::Result<T, TokenError>;
 
 /// Describes [Token] type.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
@@ -93,13 +94,15 @@ lazy_static! {
 }
 
 impl TokenType {
+    /// Get [TokenType] from string.
     pub fn from_string(string: &str) -> Result<TokenType> {
         TOKEN_TYPE_STRING_MAP
             .get_by_right(string)
-            .ok_or_else(|| anyhow!("{} is not a valid TokenType!", string))
+            .ok_or_else(|| TokenError::InvalidType(string.to_string()))
             .map(|tt| *tt)
     }
 
+    /// Get string representation of self.[TokenType].
     pub fn grapheme(&self) -> &str {
         TOKEN_TYPE_STRING_MAP
             .get_by_left(self)
@@ -108,6 +111,7 @@ impl TokenType {
 }
 
 lazy_static! {
+    /// Reserved strings.
     pub static ref RESERVED_STRINGS: Vec<&'static str> = {
         let mut reserved = Vec::new();
         for (_, string) in TOKEN_TYPE_STRING_MAP.iter() {
@@ -122,11 +126,14 @@ lazy_static! {
 }
 
 // FIXME Filter dir separator based on platform. Currently manually removed.
+/// Forbidden graphemes that are part of TFMT.
 pub static FORBIDDEN_GRAPHEMES: [&str; 9] =
     ["\\", "<", ">", ":", "\"", "|", "?", "*", "~"];
 
+/// Ignored [TokenType]s
 pub static IGNORED_TOKEN_TYPES: [TokenType; 1] = [TokenType::Comment];
 
+/// [Token] is a lexical unit with an optional value.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Token {
     pub line_no: u64,
@@ -136,6 +143,7 @@ pub struct Token {
 }
 
 impl Token {
+    /// Default constructor.
     pub fn new(
         line_no: u64,
         col_no: u64,
@@ -150,6 +158,7 @@ impl Token {
         }
     }
 
+    /// Alternative constructor.
     pub fn new_type_from_string(
         line_no: u64,
         col_no: u64,

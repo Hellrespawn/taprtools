@@ -4,9 +4,9 @@ use log::{error, trace};
 use unicode_segmentation::UnicodeSegmentation;
 
 use super::token::{self, Token, TokenType, RESERVED_STRINGS};
-use crate::error::TFMTError;
+use crate::error::LexerError;
 
-type Result<T> = std::result::Result<T, TFMTError>;
+type Result<T> = std::result::Result<T, LexerError>;
 
 /// Lexer takes a string and returns [Token]s
 pub struct Lexer {
@@ -30,7 +30,7 @@ impl Lexer {
     /// * `text` - a string slice
     pub fn new(text: &str) -> Result<Lexer> {
         if text.is_empty() {
-            Err(TFMTError::Lexer(
+            Err(LexerError::Generic(
                 "Text provided to lexer was empty!".to_string(),
             ))
         } else {
@@ -59,7 +59,7 @@ impl Lexer {
     fn current_grapheme(&self) -> Result<&str> {
         match self.text.get(self.index) {
             Some(string) => Ok(string),
-            None => Err(TFMTError::ExhaustedText),
+            None => Err(LexerError::ExhaustedText),
         }
     }
 
@@ -137,7 +137,7 @@ impl Lexer {
                     if !terminate_on_eof {
                         let err_str = format!("Crawl reached EOF before terminator! Original error: {}", err);
                         error!("{}", err_str);
-                        return Err(TFMTError::Crawler(err_str));
+                        return Err(LexerError::CrawlerEOF(err_str));
                     } else {
                         break 'outer;
                     }
@@ -160,10 +160,9 @@ impl Lexer {
 
         for grapheme in &token::FORBIDDEN_GRAPHEMES {
             if string.contains(grapheme) {
-                return Err(TFMTError::Lexer(format!(
-                    "String contains forbidden grapheme {:?}!",
-                    grapheme
-                )));
+                return Err(LexerError::ForbiddenGrapheme(
+                    grapheme.to_string(),
+                ));
             }
         }
 
@@ -292,7 +291,7 @@ impl Lexer {
                     Some(value),
                 ))
             } else {
-                Err(TFMTError::Tokenize(value))
+                Err(LexerError::Tokenize(value))
             }
         }
     }
@@ -301,9 +300,9 @@ impl Lexer {
     pub fn next_token(&mut self) -> Result<Token> {
         let grapheme = match self.current_grapheme() {
             Ok(grapheme) => grapheme,
-            Err(TFMTError::ExhaustedText) => {
+            Err(LexerError::ExhaustedText) => {
                 if self.ended {
-                    return Err(TFMTError::ExhaustedText);
+                    return Err(LexerError::ExhaustedText);
                 } else {
                     self.ended = true;
                     return Ok(Token::new(
@@ -367,7 +366,7 @@ mod tests {
         slice_ends(&string, 1, 1)
     }
 
-    fn create_lexer(input: &str) -> Result<Lexer, TFMTError> {
+    fn create_lexer(input: &str) -> Result<Lexer> {
         Ok(Lexer::new(&input)?)
     }
 
@@ -550,7 +549,7 @@ mod tests {
                     );
                     Ok(())
                 }
-                Err(TFMTError::Tokenize(_)) => {
+                Err(LexerError::Tokenize(_)) => {
                     Err(anyhow!("misc: unable to parse {} as Token", input))
                 }
                 Err(err) => Err(anyhow!(

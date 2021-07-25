@@ -5,16 +5,18 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
+/// Representation of an Ogg-file.
 pub struct OGG {
     pub path: PathBuf,
-    comment_list: HashMap<String, String>,
+    tags: HashMap<String, String>,
 }
 
 impl OGG {
+    /// Attempt to read [OGG] from `path`.
     pub fn read_from_path(path: &Path) -> Result<Box<Self>> {
         let stream_reader = OggStreamReader::new(std::fs::File::open(&path)?)?;
 
-        let comment_list = stream_reader
+        let tags = stream_reader
             .comment_hdr
             .comment_list
             .into_iter()
@@ -25,15 +27,18 @@ impl OGG {
 
         Ok(Box::new(OGG {
             path: PathBuf::from(&path),
-            comment_list,
+            tags,
         }))
     }
 
+    /// Helper function for getting tags as `&str`.
     pub fn get_str(&self, key: &str) -> Option<&str> {
-        self.comment_list.get(key).map(String::as_str)
+        self.tags.get(key).map(String::as_str)
     }
+
+    /// Helper function for getting tags as T.
     pub fn get<T: FromStr>(&self, key: &str) -> Option<T> {
-        self.comment_list.get(key).and_then(|s| s.parse::<T>().ok())
+        self.tags.get(key).and_then(|s| s.parse::<T>().ok())
     }
 }
 

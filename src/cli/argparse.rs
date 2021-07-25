@@ -3,14 +3,19 @@ use std::u64;
 use clap::{load_yaml, App, ArgMatches};
 use std::ffi::OsString;
 
+/// Contains the collected and parsed command line arguments.
 #[derive(Debug, Default, PartialEq)]
 pub struct Args {
+    /// Verbosity
     pub verbosity: u64,
+    /// Whether or not to actually rename files.
     pub dry_run: bool,
+    /// Arguments specific to chosen subcommand.
     pub sub_args: Option<SubArgs>,
 }
 
 impl Args {
+    /// Accumulate arguments from submatches into main struct.
     #[allow(non_snake_case)]
     pub fn accumulate_ArgMatches(&mut self, matches: &ArgMatches) {
         self.verbosity += matches.occurrences_of("verbose");
@@ -18,17 +23,23 @@ impl Args {
     }
 }
 
+/// Contains the collected and parsed command line arguments specific to the
+/// chosen subcommand.
 #[derive(Debug, PartialEq)]
 pub enum SubArgs {
+    /// Undo `amount` actions.
     Undo {
         amount: u64,
     },
+    /// Redo `amount` actions.
     Redo {
         amount: u64,
     },
+    /// Inspect script `name`.
     Inspect {
         name: String,
     },
+    /// Rename files.
     Rename {
         name: String,
         arguments: Option<Vec<String>>,
@@ -79,10 +90,12 @@ impl SubArgs {
     }
 }
 
+/// Wrapper function for [`_parse_args`] using command line arguments..
 pub fn parse_args() -> Args {
     _parse_args(std::env::args_os())
 }
 
+/// Parse arguments.
 fn _parse_args<I, T>(iterator: I) -> Args
 where
     I: IntoIterator<Item = T>,

@@ -3,13 +3,15 @@ use log::trace;
 use super::ast::{self, Expression};
 use super::lexer::Lexer;
 use super::token::{Token, TokenType, IGNORED_TOKEN_TYPES};
-use crate::error::TFMTError;
+use crate::error::{LexerError, ParserError};
 
-type Result<T> = std::result::Result<T, TFMTError>;
+type Result<T> = std::result::Result<T, ParserError>;
+type LexerResult = std::result::Result<Token, LexerError>;
 
+/// Reads a stream of [Token]s and build an Abstract Syntax Tree.
 pub struct Parser<I>
 where
-    I: Iterator<Item = Result<Token>>,
+    I: Iterator<Item = LexerResult>,
 {
     iterator: I,
     depth: u64,
@@ -19,8 +21,9 @@ where
 
 impl<I> Parser<I>
 where
-    I: Iterator<Item = Result<Token>>,
+    I: Iterator<Item = LexerResult>,
 {
+    /// Create parser from Iterator<Item = [LexerResult]>.
     pub fn from_iterator(iterator: I) -> Parser<I> {
         Parser {
             iterator,
@@ -31,10 +34,12 @@ where
         }
     }
 
+    /// Create parser from string.
     pub fn from_string(string: &str) -> Result<Parser<Lexer>> {
         Ok(Parser::from_iterator(Lexer::new(string)?))
     }
 
+    /// Wrapper function for starting [Parser].
     pub fn parse(&mut self) -> Result<ast::Program> {
         // Prime parser
         self._advance(true)?;
@@ -70,11 +75,11 @@ where
         let current_ttype = self.current_token.ttype;
 
         if current_ttype == TokenType::EOF {
-            return Err(TFMTError::ExhaustedTokens(expected_ttype));
+            return Err(ParserError::ExhaustedTokens(expected_ttype));
         }
 
         if current_ttype != expected_ttype {
-            return Err(TFMTError::UnexpectedToken(
+            return Err(ParserError::UnexpectedToken(
                 expected_ttype,
                 current_ttype,
             ));
@@ -162,8 +167,8 @@ where
                 } else if let Ok(token) = self.consume(TokenType::String) {
                     Some(token)
                 } else {
-                    return Err(TFMTError::Parser(
-                        "Paramater has invalid default!".to_owned(),
+                    return Err(ParserError::Generic(
+                        "Paramater has invalid default!".to_string(),
                     ));
                 }
             }
@@ -208,9 +213,7 @@ where
             ));
 
             if self.depth > 48 {
-                return Err(TFMTError::Parser(
-                    "Iteration depth > 48!".to_owned(),
-                ));
+                return Err(ParserError::MaxIteration(48));
             }
             expressions.push(self.expression()?);
         }
@@ -396,7 +399,7 @@ where
                 self.consume(TokenType::ParenthesisRight)?;
 
                 if expressions.is_empty() {
-                    return Err(TFMTError::EmptyGroup);
+                    return Err(ParserError::EmptyGroup);
                 }
 
                 Expression::Group { expressions }
@@ -432,7 +435,7 @@ where
             TokenType::AngleBracketLeft => self.tag()?,
             TokenType::Integer => Expression::IntegerNode(self.consume(ttype)?),
             TokenType::String => Expression::StringNode(self.consume(ttype)?),
-            _ => return Err(TFMTError::UnrecognizedToken(ttype)),
+            _ => return Err(ParserError::UnrecognizedToken(ttype)),
         };
 
         self.depth -= 1;

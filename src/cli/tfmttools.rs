@@ -6,6 +6,7 @@ use crate::tfmt::parser::Parser;
 use anyhow::Result;
 use log::{debug, info};
 
+/// Main tfmttools entrypoint.
 pub fn main() -> Result<()> {
     let args = argparse::parse_args();
 

@@ -1,75 +1,78 @@
-use std::convert::From;
-use std::error::Error;
-use std::fmt;
-
 use crate::tfmt::token::TokenType;
+use thiserror::Error;
 
-#[derive(Debug, PartialEq)]
-pub enum TFMTError {
-    External(String),
-    AudioFile(String),
-    Lexer(String),
-    Crawler(String),
-    Tokenize(String),
-    Parser(String),
-    UnexpectedToken(TokenType, TokenType),
-    ExhaustedTokens(TokenType),
-    UnrecognizedToken(TokenType),
+#[derive(Error, Debug)]
+/// Error from the [token] module.
+pub enum TokenError {
+    #[error("{0} is not a valid TokenType!")]
+    /// Invalid [TokenType].
+    InvalidType(String),
+}
+
+#[derive(Error, Debug)]
+/// Error from the [lexer] module.
+pub enum LexerError {
+    /// Non-specific error.
+    #[error("Error in Lexer: {0}")]
+    Generic(String),
+
+    /// [Lexer] exhausted text input stream.
+    #[error("Lexer exhausted text input stream!")]
     ExhaustedText,
-    ExpectedValue,
+
+    /// Crawl reached EOF before terminator.
+    #[error("Crawl reached EOF before terminator! Original error:\n{0}")]
+    CrawlerEOF(String),
+
+    /// String contains forbidden grapheme.
+    #[error("String contains forbidden grapheme \"{0}\"!")]
+    ForbiddenGrapheme(String),
+
+    /// Unable to convert string to [Token].
+    #[error("Unable to convert \"{0}\" to Token!")]
+    Tokenize(String),
+}
+
+#[derive(Error, Debug)]
+/// Error from the [parser] module.
+pub enum ParserError {
+    /// Non-specific error.
+    #[error("Error in Parser: {0}")]
+    Generic(String),
+
+    /// Exhausted token stream looking for [TokenType].
+    #[error("Exhausted token stream looking for {0:?}")]
+    ExhaustedTokens(TokenType),
+
+    /// Unexpected TokenType.
+    #[error("Expected {0:?}, got {1:?}")]
+    UnexpectedToken(TokenType, TokenType),
+
+    /// Unable to parse token type.
+    #[error("Unable to parse token type {0:?}!")]
+    UnrecognizedToken(TokenType),
+
+    /// Maximum iteration depth exceeded.
+    #[error("Maximum iteration depth {0} exceeded!")]
+    MaxIteration(u64),
+
+    /// Encountered group without expressions.
+    #[error("Encountered group without expressions!")]
     EmptyGroup,
-    GenAstDot,
+
+    #[error("")]
+    /// Wrapper for LexerError.
+    Lexer {
+        #[from]
+        /// PLACEHOLDER
+        source: LexerError,
+    },
 }
 
-impl fmt::Display for TFMTError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            // String already impls `Display`, so we defer to
-            // the implementations.
-            TFMTError::External(err) => write!(f, "External error: {}", err),
-            TFMTError::AudioFile(err) => write!(f, "Audiofile error: {}", err),
-            TFMTError::Lexer(err) => write!(f, "Lexer error: {}", err),
-            TFMTError::Crawler(err) => write!(f, "Crawler error: {}", err),
-            TFMTError::Tokenize(char) => {
-                write!(f, "Unable to convert to Token: {:?}", char)
-            }
-            TFMTError::Parser(err) => write!(f, "Parser error: {}", err),
-            TFMTError::UnexpectedToken(expected, found) => {
-                write!(f, "Expected {:?}, got {:?}", expected, found)
-            }
-            TFMTError::ExhaustedTokens(ttype) => write!(
-                f,
-                "Exhausted token stream while searching for {:?}!",
-                ttype
-            ),
-            TFMTError::UnrecognizedToken(ttype) => {
-                write!(f, "Unable to parse token type {:?}!", ttype)
-            }
-            TFMTError::ExhaustedText => {
-                write!(f, "Exhausted text input stream!")
-            }
-            TFMTError::ExpectedValue => {
-                write!(f, "Expected token to have value!")
-            }
-            TFMTError::EmptyGroup => {
-                write!(f, "Encountered group without expressions!")
-            }
-            TFMTError::GenAstDot => write!(
-                f,
-                "Unable to run dot! Is GraphViz installed and is it in PATH?"
-            ),
-        }
-    }
-}
-
-impl Error for TFMTError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        None
-    }
-}
-
-impl From<TFMTError> for String {
-    fn from(error: TFMTError) -> Self {
-        format!("{}", error)
-    }
+#[derive(Error, Debug)]
+/// Error from the [genastdot] module.
+pub enum DotError {
+    /// Unable to run dot! Is GraphViz installed and is it in PATH?
+    #[error("Unable to run dot! Is GraphViz installed and is it in PATH?")]
+    CantRun,
 }

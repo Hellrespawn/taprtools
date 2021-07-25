@@ -14,15 +14,7 @@ static LOG_LEVELS: [log::LevelFilter; 6] = [
     LevelFilter::Trace,
 ];
 
-pub fn path_relative_to_source_file() -> PathBuf {
-    let mut path = PathBuf::from(file!());
-    path.pop();
-    path.pop();
-    path.push("log");
-
-    path
-}
-
+/// Setup logger.
 pub fn setup_logger(verbosity: u64, path: &Path, filename: &str) -> Result<()> {
     let verbosity = verbosity as usize;
 

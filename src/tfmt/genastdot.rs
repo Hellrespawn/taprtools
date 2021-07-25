@@ -1,6 +1,6 @@
 use super::ast::{self, Expression, Node};
 use super::visitor::Visitor;
-use crate::error::TFMTError;
+use crate::error::DotError;
 use crate::tfmt::token::Token;
 
 use std::fs;
@@ -11,10 +11,12 @@ use std::process::Command;
 use anyhow::Result;
 
 #[derive(Default)]
+/// A [Visitor] used to construct a GraphViz dot-file.
 pub struct GenAstDot {
     counter: u64,
 }
 
+/// Construct a GraphViz dot-file from a [ast::Program] and render it as a png.
 pub fn visualize_ast(
     root: ast::Program,
     directory: &Path,
@@ -53,7 +55,7 @@ pub fn visualize_ast(
     if let Ok(mut child) = spawn_result {
         child.wait()?
     } else {
-        return Err(TFMTError::GenAstDot.into());
+        return Err(DotError::CantRun.into());
     };
 
     if remove_dot_file {

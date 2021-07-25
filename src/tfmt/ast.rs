@@ -1,6 +1,9 @@
 use super::token::Token;
 use super::visitor::Visitor;
 
+/// [Node] accepts a [Visitor], according to the [Visitor pattern].
+///
+/// [Visitor pattern]: https://en.wikipedia.org/wiki/Visitor_pattern
 pub trait Node<T>: std::fmt::Debug {
     fn accept(&self, visitor: &mut dyn Visitor<T>) -> T;
 }

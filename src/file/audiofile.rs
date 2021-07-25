@@ -1,3 +1,4 @@
+/// Common functions for reading audio file tags.
 pub trait AudioFile {
     fn album(&self) -> Option<&str>;
 
