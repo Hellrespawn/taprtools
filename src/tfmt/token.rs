@@ -140,7 +140,7 @@ pub struct Token {
     pub line_no: u64,
     pub col_no: u64,
     pub ttype: TokenType,
-    pub value: Option<String>,
+    value: Option<String>,
 }
 
 impl Token {

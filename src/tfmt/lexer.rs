@@ -423,19 +423,16 @@ mod tests {
                         "bounded_type: got {:?}, expected {:?}",
                         token.ttype, expected_type
                     );
-                    if let Some(value) = token.value {
-                        assert_eq!(
-                            value, expected_value,
-                            "bounded_value: got {:?}, expected {:?}",
-                            value, expected_value
-                        );
-                        Ok(())
-                    } else {
-                        Err(anyhow!(
-                            "bounded_value: no value, expected {:?}",
-                            expected_value
-                        ))
-                    }
+
+                    assert_eq!(
+                        token.get_value(),
+                        expected_value,
+                        "bounded_value: got {:?}, expected {:?}",
+                        token.get_value(),
+                        expected_value
+                    );
+
+                    Ok(())
                 }
                 None => {
                     Err(anyhow!("bounded: unable to parse {} as Token", input))
@@ -542,11 +539,17 @@ mod tests {
                         "misc_type: got {:?}, expected {:?}",
                         token.ttype, expected_type
                     );
-                    assert_eq!(
-                        token.value, expected_value,
-                        "misc_value: got {:?}, expected {:?}",
-                        token.value, expected_value
-                    );
+
+                    if let Some(expected_value) = expected_value {
+                        assert_eq!(
+                            token.get_value(),
+                            expected_value,
+                            "misc_value: got {:?}, expected {:?}",
+                            token.get_value(),
+                            expected_value
+                        );
+                    }
+
                     Ok(())
                 }
                 Err(LexerError::Tokenize(_)) => {
