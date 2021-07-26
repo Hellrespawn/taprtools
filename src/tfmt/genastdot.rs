@@ -137,14 +137,8 @@ impl GenAstDot {
 
 impl Visitor<String> for GenAstDot {
     fn visit_program(&mut self, program: &ast::Program) -> String {
-        let (mut string, program_node) = self.new_node(&format!(
-            "Program\n{}",
-            program
-                .name
-                .value
-                .as_ref()
-                .expect("Name required for program!")
-        ));
+        let (mut string, program_node) =
+            self.new_node(&format!("Program\n{}", program.name.get_value()));
 
         string += "subgraph header {\nrankdir=\"RL\";\n";
 
@@ -179,21 +173,12 @@ impl Visitor<String> for GenAstDot {
     }
 
     fn visit_parameter(&mut self, parameter: &ast::Parameter) -> String {
-        let (mut string, parameter_node) = self.new_node(
-            parameter
-                .token
-                .value
-                .as_ref()
-                .expect("Parameter token must have value!"),
-        );
+        let (mut string, parameter_node) =
+            self.new_node(parameter.token.get_value());
 
         if let Some(default) = parameter.default.as_ref() {
-            let (default_string, default_node) = self.new_node(
-                default
-                    .value
-                    .as_ref()
-                    .expect("Parameter default token must have value!"),
-            );
+            let (default_string, default_node) =
+                self.new_node(default.get_value());
 
             string += &default_string;
             string += &self.connect_nodes(default_node, parameter_node);
@@ -234,14 +219,8 @@ impl Visitor<String> for GenAstDot {
     }
 
     fn visit_driveletter(&mut self, driveletter: &ast::DriveLetter) -> String {
-        let (string, _) = self.new_node(&format!(
-            "Drive: {}:\\",
-            driveletter
-                .token
-                .value
-                .as_ref()
-                .expect("Token in DriveLetter must have value!")
-        ));
+        let (string, _) = self
+            .new_node(&format!("Drive: {}:\\", driveletter.token.get_value()));
 
         string
     }
@@ -323,13 +302,8 @@ impl Visitor<String> for GenAstDot {
         start_token: &Token,
         arguments: &[Expression],
     ) -> String {
-        let (mut string, function_node) = self.new_node(&format!(
-            "Function:\n${}(...)",
-            start_token
-                .value
-                .as_ref()
-                .expect("Token in Function must have value!")
-        ));
+        let (mut string, function_node) = self
+            .new_node(&format!("Function:\n${}(...)", start_token.get_value()));
 
         for (i, expression) in arguments.iter().enumerate() {
             let expression_node = self.counter;
@@ -345,47 +319,30 @@ impl Visitor<String> for GenAstDot {
     }
 
     fn visit_integer(&mut self, integer: &Token) -> String {
-        let (string, _) = self.new_node(&format!(
-            "Int:\n{}",
-            integer
-                .value
-                .as_ref()
-                .expect("Token in Integer must have value!")
-        ));
+        let (string, _) =
+            self.new_node(&format!("Int:\n{}", integer.get_value()));
 
         string
     }
 
     fn visit_string(&mut self, string: &Token) -> String {
         // TODO trim string
-        let (string, _) = self.new_node(&format!(
-            "String:\n{}",
-            string
-                .value
-                .as_ref()
-                .expect("Token in StringNode must have value!")
-        ));
+        let (string, _) =
+            self.new_node(&format!("String:\n{}", string.get_value()));
 
         string
     }
 
     fn visit_substitution(&mut self, substitution: &Token) -> String {
-        let (string, _) = self.new_node(&format!(
-            "Sub:\n{}",
-            substitution
-                .value
-                .as_ref()
-                .expect("Token in Substitution must have value!")
-        ));
+        let (string, _) =
+            self.new_node(&format!("Sub:\n{}", substitution.get_value()));
 
         string
     }
 
     fn visit_tag(&mut self, token: &Token) -> String {
-        let (string, _) = self.new_node(&format!(
-            "Tag:\n<{}>",
-            token.value.as_ref().expect("Token in Tag must have value!")
-        ));
+        let (string, _) =
+            self.new_node(&format!("Tag:\n<{}>", token.get_value()));
 
         string
     }

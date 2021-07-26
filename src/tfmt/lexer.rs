@@ -194,7 +194,7 @@ impl Lexer {
                 self.col_no,
                 TokenType::String,
                 Some(self.handle_string(multiline)?),
-            )))
+            )?))
         } else if current_grapheme == &single_line_comment {
             self.advance_times(single_line_comment.len() as u64)
                 .expect(err_str);
@@ -204,7 +204,7 @@ impl Lexer {
                 self.col_no,
                 TokenType::Comment,
                 Some(self.crawl(vec!["\n"], true, true)?),
-            )))
+            )?))
         } else if self.test_current_string(multiline_comment_start) {
             self.advance_times(multiline_comment_start.len() as u64)
                 .expect(err_str);
@@ -214,7 +214,7 @@ impl Lexer {
                 self.col_no,
                 TokenType::Comment,
                 Some(self.crawl(vec![multiline_comment_end], true, false)?),
-            )))
+            )?))
         } else {
             Ok(None)
         }
@@ -257,7 +257,7 @@ impl Lexer {
                     self.current_string(3)
                         .expect("Tested above, should not panic here."),
                 ),
-            );
+            )?;
             self.advance_times(3)?;
 
             Ok(token)
@@ -282,14 +282,14 @@ impl Lexer {
                     col_no_start,
                     TokenType::ID,
                     Some(value),
-                ))
+                )?)
             } else if value.chars().all(|c| c.is_numeric()) {
                 Ok(Token::new(
                     line_no_start,
                     col_no_start,
                     TokenType::Integer,
                     Some(value),
-                ))
+                )?)
             } else {
                 Err(LexerError::Tokenize(value))
             }
@@ -310,7 +310,7 @@ impl Lexer {
                         self.col_no,
                         TokenType::EOF,
                         None,
-                    ));
+                    )?);
                 }
             }
             Err(err) => return Err(err),

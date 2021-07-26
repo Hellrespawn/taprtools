@@ -61,11 +61,7 @@ impl Visitor<Result<String>> for Interpreter {
         &mut self,
         driveletter: &DriveLetter,
     ) -> Result<String> {
-        if let Some(value) = driveletter.token.value.as_ref() {
-            Ok(value.to_string())
-        } else {
-            Err(InterpreterError::TokenWithoutValue(TokenType::Drive))
-        }
+        Ok(driveletter.token.get_value().to_string())
     }
 
     fn visit_ternaryop(
@@ -179,42 +175,21 @@ impl Visitor<Result<String>> for Interpreter {
     }
 
     fn visit_integer(&mut self, integer: &Token) -> Result<String> {
-        // TODO? Error if not number?
-        if let Some(value) = integer.value.as_ref() {
-            Ok(value.to_string())
-        } else {
-            Err(InterpreterError::TokenWithoutValue(TokenType::Integer))
-        }
+        Ok(integer.get_value().to_string())
     }
 
     fn visit_string(&mut self, string: &Token) -> Result<String> {
-        if let Some(value) = string.value.as_ref() {
-            Ok(value.to_string())
-        } else {
-            // FIXME Are empty strings valid string?
-            Err(InterpreterError::TokenWithoutValue(TokenType::String))
-        }
+        Ok(string.get_value().to_string())
     }
 
     fn visit_substitution(&mut self, substitution: &Token) -> Result<String> {
-        if let Some(value) = substitution.value.as_ref() {
-            // FIXME Get from symbol table
-            Ok(value.to_string())
-        } else {
-            Err(InterpreterError::TokenWithoutValue(TokenType::String))
-        }
+        Ok(substitution.get_value().to_string())
     }
 
     fn visit_tag(&mut self, token: &Token) -> Result<String> {
-        let tag_name = if let Some(value) = token.value.as_ref() {
-            value
-        } else {
-            return Err(InterpreterError::TokenWithoutValue(
-                TokenType::Integer,
-            ));
-        };
+        let tag_name = token.get_value();
 
-        let opt = match tag_name.as_str() {
+        let opt = match tag_name {
             // FIXME complete this.
             "album" => self.song.album(),
             "albumartist" | "album_artist" => self.song.album_artist(),

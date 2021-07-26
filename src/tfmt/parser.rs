@@ -29,8 +29,10 @@ where
             iterator,
             depth: 0,
             //Dummy tokens
-            current_token: Token::new(0, 0, TokenType::Uninitialized, None),
-            previous_token: Token::new(0, 0, TokenType::Uninitialized, None),
+            current_token: Token::new(0, 0, TokenType::Uninitialized, None)
+                .expect("Correctly using value None"),
+            previous_token: Token::new(0, 0, TokenType::Uninitialized, None)
+                .expect("Correctly using value None"),
         }
     }
 

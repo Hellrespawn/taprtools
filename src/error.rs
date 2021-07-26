@@ -7,6 +7,14 @@ pub enum TokenError {
     #[error("{0} is not a valid TokenType!")]
     /// Invalid [TokenType].
     InvalidType(String),
+
+    #[error("TokenType {0:?} does not require a value, got {1}!")]
+    /// [TokenType] does not require a value
+    HasValue(TokenType, String),
+
+    #[error("TokenType {0:?} requires a value!")]
+    /// [TokenType] requires value.
+    NoValue(TokenType),
 }
 
 #[derive(Error, Debug)]

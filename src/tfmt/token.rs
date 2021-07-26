@@ -86,6 +86,7 @@ lazy_static! {
         ttypes.insert(TokenType::ID, "ID");
         ttypes.insert(TokenType::Integer, "INTEGER");
         ttypes.insert(TokenType::String, "STRING");
+
         ttypes.insert(TokenType::EOF, "EOF");
         ttypes.insert(TokenType::Uninitialized, "UNINITIALIZED");
 
@@ -149,13 +150,35 @@ impl Token {
         col_no: u64,
         ttype: TokenType,
         value: Option<String>,
-    ) -> Token {
-        Token {
+    ) -> Result<Token> {
+        match ttype {
+            ttype
+                if [
+                    TokenType::Comment,
+                    TokenType::Drive,
+                    TokenType::ID,
+                    TokenType::Integer,
+                    TokenType::String,
+                ]
+                .contains(&ttype) =>
+            {
+                if value.is_none() {
+                    return Err(TokenError::NoValue(ttype));
+                }
+            }
+            ttype => {
+                if let Some(value) = value {
+                    return Err(TokenError::HasValue(ttype, value));
+                }
+            }
+        }
+
+        Ok(Token {
             line_no,
             col_no,
             ttype,
             value,
-        }
+        })
     }
 
     /// Alternative constructor.
@@ -165,11 +188,12 @@ impl Token {
         ttype_str: &str,
         value: Option<String>,
     ) -> Result<Token> {
-        Ok(Token {
-            line_no,
-            col_no,
-            ttype: TokenType::from_string(&ttype_str)?,
-            value,
-        })
+        Self::new(line_no, col_no, TokenType::from_string(&ttype_str)?, value)
+    }
+
+    pub fn get_value(&self) -> &str {
+        self.value
+            .as_ref()
+            .expect("Token values should be checked at creation.")
     }
 }
