@@ -3,7 +3,6 @@ use anyhow::Result;
 use lewton::inside_ogg::OggStreamReader;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 
 /// Representation of an Ogg-file.
 pub struct OGG {
@@ -31,48 +30,43 @@ impl OGG {
         }))
     }
 
-    /// Helper function for getting tags as `&str`.
-    pub fn get_str(&self, key: &str) -> Option<&str> {
+    /// Helper function for getting tags.
+    pub fn get(&self, key: &str) -> Option<&str> {
         self.tags.get(key).map(String::as_str)
-    }
-
-    /// Helper function for getting tags as T.
-    pub fn get<T: FromStr>(&self, key: &str) -> Option<T> {
-        self.tags.get(key).and_then(|s| s.parse::<T>().ok())
     }
 }
 
 impl AudioFile for OGG {
     fn album(&self) -> Option<&str> {
-        self.get_str("album")
+        self.get("album")
     }
 
     fn album_artist(&self) -> Option<&str> {
-        self.get_str("albumartist")
+        self.get("albumartist")
     }
 
     fn albumsort(&self) -> Option<&str> {
-        self.get_str("albumsort")
+        self.get("albumsort")
     }
 
     fn artist(&self) -> Option<&str> {
-        self.get_str("artist")
+        self.get("artist")
     }
 
     fn comments(&self) -> Option<&str> {
         None
     }
 
-    fn disc_number(&self) -> Option<u64> {
+    fn disc_number(&self) -> Option<&str> {
         self.get("discnumber")
     }
 
-    fn duration(&self) -> Option<u64> {
+    fn duration(&self) -> Option<&str> {
         self.get("duration")
     }
 
     fn genre(&self) -> Option<&str> {
-        self.get_str("genre")
+        self.get("genre")
     }
 
     fn lyrics(&self) -> Option<&str> {
@@ -84,22 +78,22 @@ impl AudioFile for OGG {
     }
 
     fn title(&self) -> Option<&str> {
-        self.get_str("title")
+        self.get("title")
     }
 
-    fn total_disc_number(&self) -> Option<u64> {
+    fn total_disc_number(&self) -> Option<&str> {
         None
     }
 
-    fn total_track_number(&self) -> Option<u64> {
+    fn total_track_number(&self) -> Option<&str> {
         None
     }
 
-    fn track_number(&self) -> Option<u64> {
+    fn track_number(&self) -> Option<&str> {
         self.get("tracknumber")
     }
 
-    fn year(&self) -> Option<i64> {
+    fn year(&self) -> Option<&str> {
         self.get("date")
     }
 }

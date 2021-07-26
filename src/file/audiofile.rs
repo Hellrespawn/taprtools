@@ -10,9 +10,9 @@ pub trait AudioFile {
 
     fn comments(&self) -> Option<&str>;
 
-    fn disc_number(&self) -> Option<u64>;
+    fn disc_number(&self) -> Option<&str>;
 
-    fn duration(&self) -> Option<u64>;
+    fn duration(&self) -> Option<&str>;
 
     fn genre(&self) -> Option<&str>;
 
@@ -22,15 +22,15 @@ pub trait AudioFile {
 
     fn title(&self) -> Option<&str>;
 
-    fn total_disc_number(&self) -> Option<u64>;
+    fn total_disc_number(&self) -> Option<&str>;
 
-    fn total_track_number(&self) -> Option<u64>;
+    fn total_track_number(&self) -> Option<&str>;
 
-    fn track_number(&self) -> Option<u64>;
+    fn track_number(&self) -> Option<&str>;
 
-    fn year(&self) -> Option<i64>;
+    fn year(&self) -> Option<&str>;
 
-    fn date(&self) -> Option<i64> {
+    fn date(&self) -> Option<&str> {
         self.year()
     }
 }
@@ -101,8 +101,8 @@ mod tests {
                     assert_eq!(file.total_disc_number(), None);
                     assert_eq!(file.total_track_number(), None);
                     assert_eq!(file.synchronised_lyrics(), None);
-                    assert_eq!(file.track_number(), Some(5));
-                    assert_eq!(file.year(), Some(2016));
+                    assert_eq!(file.track_number(), Some("5"));
+                    assert_eq!(file.year(), Some("2016"));
                     assert_eq!(file.date(), file.year());
                 }
                 Some("Under Siege") => {
@@ -111,7 +111,7 @@ mod tests {
                     assert_eq!(file.albumsort(), None);
                     assert_eq!(file.artist(), Some("Amon Amarth"));
                     assert_eq!(file.comments(), None);
-                    assert_eq!(file.disc_number(), None);
+                    assert_eq!(file.disc_number(), Some("1"));
                     assert_eq!(file.duration(), None);
                     assert_eq!(file.genre(), Some("Melodic Death Metal"));
                     assert_eq!(file.lyrics(), None);
@@ -119,8 +119,8 @@ mod tests {
                     assert_eq!(file.total_disc_number(), None);
                     assert_eq!(file.total_track_number(), None);
                     assert_eq!(file.synchronised_lyrics(), None);
-                    assert_eq!(file.track_number(), Some(5));
-                    assert_eq!(file.year(), Some(2013));
+                    assert_eq!(file.track_number(), Some("05"));
+                    assert_eq!(file.year(), Some("2013"));
                     assert_eq!(file.date(), file.year());
                 }
                 Some("Welcome To Heaven") => {
@@ -140,8 +140,8 @@ mod tests {
                     assert_eq!(file.total_disc_number(), None);
                     assert_eq!(file.total_track_number(), None);
                     assert_eq!(file.synchronised_lyrics(), None);
-                    assert_eq!(file.track_number(), Some(1));
-                    assert_eq!(file.year(), Some(2015));
+                    assert_eq!(file.track_number(), Some("01"));
+                    assert_eq!(file.year(), Some("2015"));
                     assert_eq!(file.date(), file.year());
                 }
                 Some("While Your Lips Are Still Red") => {

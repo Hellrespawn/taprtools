@@ -19,6 +19,16 @@ impl Interpreter {
 
         program.accept(&mut intp)
     }
+
+    pub fn strip_leading_zeroes(number: &str) -> &str {
+        let mut out = number;
+
+        while out.starts_with('0') {
+            out = &out[1..];
+        }
+
+        out
+    }
 }
 
 impl Visitor<Result<String>> for Interpreter {
@@ -32,17 +42,18 @@ impl Visitor<Result<String>> for Interpreter {
         Ok("".to_string())
     }
     fn visit_block(&mut self, block: &Block) -> Result<String> {
-         let mut string = if let Some(drive) = &block.drive {
+        let mut string = if let Some(drive) = &block.drive {
             drive.accept(self)?
         } else {
             "".to_string()
         };
 
-        string += &block.expressions
-        .iter()
-        .map(|e| e.accept(self))
-        .collect::<Result<Vec<String>>>()
-        .map(|e| e.join(""))?;
+        string += &block
+            .expressions
+            .iter()
+            .map(|e| e.accept(self))
+            .collect::<Result<Vec<String>>>()
+            .map(|e| e.join(""))?;
 
         Ok(string)
     }
@@ -142,7 +153,7 @@ impl Visitor<Result<String>> for Interpreter {
         let o = operand.accept(self)?;
         Ok(match token.ttype {
             TokenType::Plus => o,
-            TokenType::Hyphen => (o.parse::<i64>()? * -1).to_string(),
+            TokenType::Hyphen => (-o.parse::<i64>()?).to_string(),
             other => {
                 return Err(InterpreterError::InvalidTokenType(
                     other, "UnaryOp",
@@ -152,11 +163,11 @@ impl Visitor<Result<String>> for Interpreter {
     }
 
     fn visit_group(&mut self, expressions: &[Expression]) -> Result<String> {
-            expressions
+        expressions
             .iter()
             .map(|e| e.accept(self))
             .collect::<Result<Vec<String>>>()
-            .and_then(|e| Ok(e.join("")))
+            .map(|e| e.join(""))
     }
 
     fn visit_function(
@@ -198,24 +209,64 @@ impl Visitor<Result<String>> for Interpreter {
         let tag_name = if let Some(value) = token.value.as_ref() {
             value
         } else {
-            return Err(InterpreterError::TokenWithoutValue(TokenType::Integer))
+            return Err(InterpreterError::TokenWithoutValue(
+                TokenType::Integer,
+            ));
         };
 
-        let out = match tag_name.as_str() {
-            //TODO Find a better way to do this.
-            "album" => self.song.album().map(String::from),
-            "albumartist" | "album_artist" => self.song.album_artist().map(String::from),
-            "albumsort" | "album_sort" => self.song.albumsort().map(String::from),
-            "artist" => self.song.artist().map(String::from),
-            "duration" | "length" => self.song.duration().map(|n| n.to_string()),
-            "disc" | "disk" | "discnumber" | "disknumber" | "disc_number" | "disk_number" => self.song.disc_number().map(|n| n.to_string()),
-            "genre" => self.song.genre().map(String::from),
-            "title" | "name" => self.song.title().map(String::from),
-            "track" | "tracknumber" | "track_number" => self.song.track_number().map(|n| n.to_string()),
-            "year" | "date" => self.song.year().map(|n| n.to_string()),
-            _ => None
-        };
+        let opt = match tag_name.as_str() {
+            // FIXME complete this.
+            "album" => self.song.album(),
+            "albumartist" | "album_artist" => self.song.album_artist(),
+            "albumsort" | "album_sort" => self.song.albumsort(),
+            "artist" => self.song.artist(),
+            "duration" | "length" => self.song.duration(),
+            "disc" | "disk" | "discnumber" | "disknumber" | "disc_number"
+            | "disk_number" => {
+                self.song.disc_number().map(Self::strip_leading_zeroes)
+            }
+            "genre" => self.song.genre(),
+            "title" | "name" => self.song.title(),
+            "track" | "tracknumber" | "track_number" => {
+                self.song.track_number().map(Self::strip_leading_zeroes)
+            }
+            "year" | "date" => self.song.year(),
+            _ => None,
+        }
+        .map(String::from);
 
-        Ok(out.unwrap_or("".to_string()))
+        Ok(opt.unwrap_or_else(|| "".to_string()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::file::mp3::MP3;
+    use crate::tfmt::token::Token;
+    use anyhow::Result;
+    use std::path::PathBuf;
+
+    fn get_song() -> Result<Box<dyn AudioFile>> {
+        Ok(MP3::read_from_path(&PathBuf::from(
+            "testdata/music/Under Siege - Amon Amarth.mp3",
+        ))?)
+    }
+
+    /// Test handling of leading zeroes.
+    #[test]
+    fn test_visit_tag() -> Result<()> {
+        let mut intp = Interpreter { song: get_song()? };
+
+        let token = Token::new_type_from_string(
+            1,
+            1,
+            "STRING",
+            Some("tracknumber".to_string()),
+        )?;
+
+        assert_eq!(intp.visit_tag(&token)?, "5");
+
+        Ok(())
     }
 }

@@ -32,6 +32,7 @@ impl AudioFile for MP3 {
         self.tags
             .get("TSOA")
             .and_then(|frame| frame.content().text())
+            .map(|text| text.trim_matches(char::from(0)))
     }
 
     fn artist(&self) -> Option<&str> {
@@ -42,12 +43,18 @@ impl AudioFile for MP3 {
         None
     }
 
-    fn disc_number(&self) -> Option<u64> {
-        self.tags.disc().map(|u32| u32 as u64)
+    fn disc_number(&self) -> Option<&str> {
+        self.tags
+            .get("TPOS")
+            .and_then(|frame| frame.content().text())
+            .map(|text| text.trim_matches(char::from(0)))
     }
 
-    fn duration(&self) -> Option<u64> {
-        self.tags.duration().map(|u32| u32 as u64)
+    fn duration(&self) -> Option<&str> {
+        self.tags
+            .get("TLEN")
+            .and_then(|frame| frame.content().text())
+            .map(|text| text.trim_matches(char::from(0)))
     }
 
     fn genre(&self) -> Option<&str> {
@@ -66,31 +73,30 @@ impl AudioFile for MP3 {
         self.tags.title()
     }
 
-    fn total_disc_number(&self) -> Option<u64> {
-        self.tags.total_discs().map(|u32| u32 as u64)
+    fn total_disc_number(&self) -> Option<&str> {
+        None
     }
 
-    fn total_track_number(&self) -> Option<u64> {
-        self.tags.total_tracks().map(|u32| u32 as u64)
+    fn total_track_number(&self) -> Option<&str> {
+        None
     }
 
-    fn track_number(&self) -> Option<u64> {
+    fn track_number(&self) -> Option<&str> {
         self.tags
-            .track()
+            .get("TRCK")
+            .and_then(|frame| frame.content().text())
+            .map(|text| text.trim_matches(char::from(0)))
+    }
+
+    fn year(&self) -> Option<&str> {
+        self.tags
+            .get("TDRC")
+            .and_then(|frame| frame.content().text())
             .or_else(|| {
                 self.tags
-                    .get("TRCK")
+                    .get("TYER")
                     .and_then(|frame| frame.content().text())
                     .map(|text| text.trim_matches(char::from(0)))
-                    .and_then(|text| text.parse().ok())
             })
-            .map(|n| n as u64)
-    }
-
-    fn year(&self) -> Option<i64> {
-        self.tags
-            .year()
-            .or_else(|| self.tags.date_recorded().map(|ts| ts.year))
-            .map(|n| n as i64)
     }
 }
