@@ -37,6 +37,10 @@ impl OGG {
 }
 
 impl AudioFile for OGG {
+    fn extension(&self) -> &'static str {
+        "ogg"
+    }
+
     fn album(&self) -> Option<&str> {
         self.get("album")
     }

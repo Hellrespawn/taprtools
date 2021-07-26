@@ -20,6 +20,10 @@ impl MP3 {
 }
 
 impl AudioFile for MP3 {
+    fn extension(&self) -> &'static str {
+        "mp3"
+    }
+
     fn album(&self) -> Option<&str> {
         self.tags.album()
     }

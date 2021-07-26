@@ -1,5 +1,7 @@
 /// Common functions for reading audio file tags.
 pub trait AudioFile {
+    fn extension(&self) -> &'static str;
+
     fn album(&self) -> Option<&str>;
 
     fn album_artist(&self) -> Option<&str>;
