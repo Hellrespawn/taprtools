@@ -39,6 +39,14 @@ pub enum LexerError {
     /// Unable to convert string to [Token].
     #[error("Unable to convert \"{0}\" to Token!")]
     Tokenize(String),
+
+    #[error("")]
+    /// Wrapper for TokenError.
+    Lexer {
+        #[from]
+        /// PLACEHOLDER
+        source: TokenError,
+    },
 }
 
 #[derive(Error, Debug)]
@@ -86,17 +94,47 @@ pub enum DotError {
 }
 
 #[derive(Error, Debug)]
+pub enum FunctionError {
+    /// Error from the [function] module.
+    #[error("Wrong number of arguments ({found}) for function {name}, expected {expected}!")]
+    /// Wrong number of arguments for function
+    WrongArguments {
+        name: String,
+        expected: usize,
+        found: usize,
+    },
+
+    #[error("Unknown function {0}!")]
+    /// Wrong number of arguments for function
+    UnknownFunction(String),
+
+    #[error("")]
+    /// Wrapper for std::num::ParseIntError.
+    ParseInt {
+        #[from]
+        /// PLACEHOLDER
+        source: std::num::ParseIntError,
+    },
+
+    #[error("")]
+    /// Wrapper for std::char::ParseCharError.
+    ParseChar {
+        #[from]
+        /// PLACEHOLDER
+        source: std::char::ParseCharError,
+    },
+}
+
+#[derive(Error, Debug)]
 /// Error from the [parser] module.
 pub enum InterpreterError {
     /// Non-specific error.
     #[error("Error in Interpreter: {0}")]
     Generic(String),
 
+    /// Invalid [TokenType].
     #[error("Invalid TokenType in {0:?}: {1}!")]
     InvalidTokenType(TokenType, &'static str),
-
-    #[error("TokenType {0:?} requires value!")]
-    TokenWithoutValue(TokenType),
 
     #[error("")]
     /// Wrapper for crate::error::ParserError.
@@ -104,6 +142,14 @@ pub enum InterpreterError {
         #[from]
         /// PLACEHOLDER
         source: ParserError,
+    },
+
+    #[error("")]
+    /// Wrapper for crate::error::FunctionError.
+    Function {
+        #[from]
+        /// PLACEHOLDER
+        source: FunctionError,
     },
 
     #[error("")]

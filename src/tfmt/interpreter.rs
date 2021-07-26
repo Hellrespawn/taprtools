@@ -1,4 +1,5 @@
 use super::ast::*;
+use super::function::handle_function;
 use super::token::{Token, TokenType};
 use super::visitor::Visitor;
 use crate::error::InterpreterError;
@@ -6,21 +7,23 @@ use crate::file::audiofile::AudioFile;
 
 type Result<T> = std::result::Result<T, InterpreterError>;
 
+/// Interprets an AST based on tags from and [AudioFile].
 pub struct Interpreter {
     song: Box<dyn AudioFile>,
 }
 
 impl Interpreter {
-    pub fn interpret(
-        program: &Program,
-        song: Box<dyn AudioFile>,
-    ) -> Result<String> {
-        let mut intp = Self { song };
-
-        program.accept(&mut intp)
+    /// Constructor
+    pub fn new(song: Box<dyn AudioFile>) -> Self {
+        Interpreter { song }
     }
 
-    pub fn strip_leading_zeroes(number: &str) -> &str {
+    /// Public function for interpreter.
+    pub fn interpret(&mut self, program: &Program) -> Result<String> {
+        program.accept(self)
+    }
+
+    fn strip_leading_zeroes(number: &str) -> &str {
         let mut out = number;
 
         while out.starts_with('0') {
