@@ -5,6 +5,7 @@ use crate::tfmt::lexer::Lexer;
 use crate::tfmt::parser::Parser;
 use anyhow::Result;
 use log::{debug, info};
+use std::convert::TryInto;
 
 /// Main tfmttools entrypoint.
 pub fn main() -> Result<()> {
@@ -12,7 +13,7 @@ pub fn main() -> Result<()> {
 
     let temp_dir = std::env::temp_dir();
 
-    logging::setup_logger(args.verbosity, &temp_dir, "tfmttools")?;
+    logging::setup_logger(args.verbosity.try_into()?, &temp_dir, "tfmttools")?;
 
     info!("{:#?}", args);
 

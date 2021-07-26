@@ -14,7 +14,7 @@ impl OGG {
 
         let mut buffer = vec![0; size];
 
-        if let Err(_) = reader.take(size as u64).read(&mut buffer) {
+        if let Err(_) = reader.take(size.into()).read(&mut buffer) {
             return false
         }
 
@@ -66,7 +66,7 @@ impl OGG {
 
         // page_segments+26?
         // segment_table (containing packet lacing values)
-        reader.seek(SeekFrom::Current(page_segments as i64))?;
+        reader.seek(SeekFrom::Current(page_segments.into()))?;
 
         Ok(())
     }

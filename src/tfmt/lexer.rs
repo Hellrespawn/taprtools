@@ -1,3 +1,4 @@
+use std::convert::TryInto;
 use std::iter::Iterator;
 
 use log::{error, trace};
@@ -124,7 +125,7 @@ impl Lexer {
                     for terminator in &terminators {
                         if self.test_current_string(terminator) {
                             if discard_terminator {
-                                self.advance_times(terminator.len() as u64).expect("test_current_string(terminator) == true, so this should always succeed!");
+                                self.advance_times(terminator.len().try_into()?).expect("test_current_string(terminator) == true, so this should always succeed!");
                             }
                             break 'outer;
                         }
@@ -152,7 +153,7 @@ impl Lexer {
     /// Prepare [Lexer::crawl] for reading a string.
     fn handle_string(&mut self, multiline: bool) -> Result<String> {
         let quote_length = if multiline { 3 } else { 1 };
-        let quote = self.current_grapheme()?.repeat(quote_length as usize);
+        let quote = self.current_grapheme()?.repeat(quote_length.try_into()?);
 
         self.advance_times(quote_length).expect("Number of quotes is verified in previous function, this should never fail!");
 
@@ -196,7 +197,7 @@ impl Lexer {
                 Some(self.handle_string(multiline)?),
             )?))
         } else if current_grapheme == &single_line_comment {
-            self.advance_times(single_line_comment.len() as u64)
+            self.advance_times(single_line_comment.len().try_into()?)
                 .expect(err_str);
 
             Ok(Some(Token::new(
@@ -206,7 +207,7 @@ impl Lexer {
                 Some(self.crawl(vec!["\n"], true, true)?),
             )?))
         } else if self.test_current_string(multiline_comment_start) {
-            self.advance_times(multiline_comment_start.len() as u64)
+            self.advance_times(multiline_comment_start.len().try_into()?)
                 .expect(err_str);
 
             Ok(Some(Token::new(
@@ -231,7 +232,7 @@ impl Lexer {
                     None,
                 )
                 .expect("Uses string from TOKEN_TYPE_STRING_MAP, should always be safe.");
-                self.advance_times(string.len() as u64)?;
+                self.advance_times(string.len().try_into()?)?;
                 return Ok(Some(token));
             }
         }
