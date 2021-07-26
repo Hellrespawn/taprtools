@@ -15,9 +15,11 @@ static LOG_LEVELS: [log::LevelFilter; 6] = [
 ];
 
 /// Setup logger.
-pub fn setup_logger(verbosity: u64, path: &Path, filename: &str) -> Result<()> {
-    let verbosity = verbosity as usize;
-
+pub fn setup_logger(
+    verbosity: usize,
+    path: &Path,
+    filename: &str,
+) -> Result<()> {
     // verbosity is usize, so can never be negative.
     if verbosity > LOG_LEVELS.len() - 1 {
         bail!(
@@ -46,9 +48,8 @@ pub fn setup_logger(verbosity: u64, path: &Path, filename: &str) -> Result<()> {
         fern::Dispatch::new()
             .format(|out, message, record| {
                 out.finish(format_args!(
-                    "[{}][{}][{}] {}",
+                    "[{}][{}] {}",
                     // chrono::Local::now().format("%Y-%m-%d][%H:%M:%S"),
-                    chrono::Local::now().format("%H:%M:%S"),
                     record.level(),
                     record.target(),
                     message

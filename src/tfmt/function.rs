@@ -102,8 +102,29 @@ fn function_validate(string: &str) -> String {
 }
 
 fn function_year_from_date(string: &str) -> String {
-    //FIXME regex goes here. Or parse with chrono?
-    string.to_string()
+    lazy_static! {
+        static ref REGEXES: Vec<Regex> = vec![
+            Regex::new(r"^(?P<year>\d{4})$").unwrap(),
+            Regex::new(r"^(?P<year>\d{4})-\d{2}-\d{2}$").unwrap(),
+            Regex::new(r"^\d{2}-\d{2}-(?P<year>\d{4})$").unwrap(),
+        ];
+    }
+
+    // let REGEXES = vec![
+    //     Regex::new(r"^(?P<year>\d{4})$").unwrap(),
+    //     Regex::new(r"^(?P<year>\d{4})-\d{2}-\d{2}$").unwrap(),
+    //     Regex::new(r"^\d{2}-\d{2}-(?P<year>\d{4})$").unwrap(),
+    // ];
+
+    // re.captures returns None if there are not matches. We always have one
+    // group, so if re.captures returns Some(), c[1] should never panic.
+    REGEXES
+        .iter()
+        .map(|re| re.captures(string))
+        .find(|e| e.is_some())
+        .flatten()
+        .map(|c| c[1].to_string())
+        .unwrap_or_else(|| "".to_string())
 }
 
 fn function_andif(condition: &str, true_string: &str) -> String {
