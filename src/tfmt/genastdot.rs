@@ -190,16 +190,6 @@ impl Visitor<String> for GenAstDot {
     fn visit_block(&mut self, block: &ast::Block) -> String {
         let (mut string, block_node) = self.new_node("Block");
 
-        if let Some(drive) = &block.drive {
-            let drive_node = self.counter;
-            string += &drive.accept(self);
-            string += &self.connect_nodes_with_label(
-                drive_node,
-                block_node,
-                "drive letter",
-            );
-        }
-
         let (expressions_string, expressions_node) = self.hidden_node();
         string += &expressions_string;
         string += &self.node_connector(
@@ -214,13 +204,6 @@ impl Visitor<String> for GenAstDot {
             string += &expression.accept(self);
             string += &self.connect_nodes(expression_node, expressions_node)
         }
-
-        string
-    }
-
-    fn visit_driveletter(&mut self, driveletter: &ast::DriveLetter) -> String {
-        let (string, _) = self
-            .new_node(&format!("Drive: {}:\\", driveletter.token.get_value()));
 
         string
     }

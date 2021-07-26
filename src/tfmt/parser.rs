@@ -190,21 +190,16 @@ where
         self.depth += 1;
         self.trace("Block");
 
-        let drive = match self.consume(TokenType::Drive) {
-            Ok(token) => Some(ast::DriveLetter { token }),
-            Err(_) => None,
-        };
-
         let expressions: Vec<Expression> =
-            self.expressions(vec![TokenType::CurlyBraceRight])?;
+            self.expressions(&[TokenType::CurlyBraceRight])?;
 
         self.depth -= 1;
-        Ok(ast::Block { drive, expressions })
+        Ok(ast::Block { expressions })
     }
 
     fn expressions(
         &mut self,
-        terminators: Vec<TokenType>,
+        terminators: &[TokenType],
     ) -> Result<Vec<Expression>> {
         let mut expressions: Vec<Expression> = Vec::new();
 
@@ -396,7 +391,7 @@ where
                 self.consume(ttype)?;
 
                 let expressions: Vec<Expression> =
-                    self.expressions(vec![TokenType::ParenthesisRight])?;
+                    self.expressions(&[TokenType::ParenthesisRight])?;
 
                 self.consume(TokenType::ParenthesisRight)?;
 

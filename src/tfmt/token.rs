@@ -39,7 +39,6 @@ pub enum TokenType {
     SlashAsterisk,
 
     Comment,
-    Drive,
     ID,
     Integer,
     String,
@@ -82,7 +81,6 @@ lazy_static! {
         ttypes.insert(TokenType::SlashAsterisk, "/*");
 
         ttypes.insert(TokenType::Comment, "COMMENT");
-        ttypes.insert(TokenType::Drive, "DRIVE");
         ttypes.insert(TokenType::ID, "ID");
         ttypes.insert(TokenType::Integer, "INTEGER");
         ttypes.insert(TokenType::String, "STRING");
@@ -156,7 +154,6 @@ impl Token {
             ttype
                 if [
                     TokenType::Comment,
-                    TokenType::Drive,
                     TokenType::ID,
                     TokenType::Integer,
                     TokenType::String,

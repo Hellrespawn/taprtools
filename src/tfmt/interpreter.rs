@@ -47,26 +47,12 @@ impl Visitor<Result<String>> for Interpreter {
         Ok("".to_string())
     }
     fn visit_block(&mut self, block: &Block) -> Result<String> {
-        let mut string = if let Some(drive) = &block.drive {
-            drive.accept(self)?
-        } else {
-            "".to_string()
-        };
-
-        string += &block
+        block
             .expressions
             .iter()
             .map(|e| e.accept(self))
             .collect::<Result<Vec<String>>>()
-            .map(|e| e.join(""))?;
-
-        Ok(string)
-    }
-    fn visit_driveletter(
-        &mut self,
-        driveletter: &DriveLetter,
-    ) -> Result<String> {
-        Ok(driveletter.token.get_value().to_string())
+            .map(|e| e.join(""))
     }
 
     fn visit_ternaryop(

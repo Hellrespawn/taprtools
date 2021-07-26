@@ -31,7 +31,12 @@ fn validate(name: &str, amount: usize) -> Result<()> {
 }
 
 /// Wrapper function that delegates to TFMT functions.
-pub fn handle_function(name: &str, arguments: &[String]) -> Result<String> {
+pub fn handle_function<S: AsRef<str>>(
+    name: &str,
+    arguments: &[S],
+) -> Result<String> {
+    let arguments: Vec<&str> = arguments.iter().map(|a| a.as_ref()).collect();
+
     validate(name, arguments.len())?;
 
     let function_output = match name {
@@ -105,14 +110,14 @@ fn function_validate(string: &str) -> String {
 
 fn function_year_from_date(string: &str) -> String {
     lazy_static! {
-        static ref REGEXES: Vec<Regex> = vec![
+        static ref REGEXES: [Regex; 3] = [
             Regex::new(r"^(?P<year>\d{4})$").unwrap(),
             Regex::new(r"^(?P<year>\d{4})-\d{2}-\d{2}$").unwrap(),
             Regex::new(r"^\d{2}-\d{2}-(?P<year>\d{4})$").unwrap(),
         ];
     }
 
-    // let REGEXES = vec![
+    // let REGEXES = [
     //     Regex::new(r"^(?P<year>\d{4})$").unwrap(),
     //     Regex::new(r"^(?P<year>\d{4})-\d{2}-\d{2}$").unwrap(),
     //     Regex::new(r"^\d{2}-\d{2}-(?P<year>\d{4})$").unwrap(),
@@ -156,10 +161,7 @@ mod tests {
 
     #[test]
     fn test_wrong_arguments() -> Result<()> {
-        match handle_function(
-            "prepend",
-            &vec!["a".to_string(), "b".to_string()],
-        ) {
+        match handle_function("prepend", &["a", "b"]) {
             Ok(_) => bail!("prepend with 2 arguments did not raise an error!"),
             Err(FunctionError::WrongArguments { .. }) => (),
             Err(err) => bail!(
@@ -168,13 +170,13 @@ mod tests {
             ),
         }
 
-        match handle_function("year_from_date", &vec!["a".to_string(), "b".to_string()]) {
+        match handle_function("year_from_date", &["a", "b"]) {
             Ok(_) => bail!("year_from_date with 2 arguments did not raise an error!"),
             Err(FunctionError::WrongArguments{..}) => (),
             Err(err) => bail!("year_from_date with 2 arguments raised an unexpected error: {}!",err)
         }
 
-        match handle_function("fake", &[]) {
+        match handle_function("fake", &["a"]) {
             Ok(_) => bail!("Unknown function did not raise an error!"),
             Err(FunctionError::UnknownFunction(..)) => (),
             Err(err) => {

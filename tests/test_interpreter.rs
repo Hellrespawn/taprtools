@@ -5,7 +5,7 @@ use tfmttools::tfmt::parser::Parser;
 
 mod common;
 
-fn file_test(filename: &str, reference: Vec<&str>) -> Result<()> {
+fn file_test(filename: &str, reference: &[&str]) -> Result<()> {
     let input = common::get_script(filename)?;
 
     let program = Parser::<Lexer>::from_string(&input)?.parse()?;
@@ -21,12 +21,11 @@ fn file_test(filename: &str, reference: Vec<&str>) -> Result<()> {
     Ok(())
 }
 
-//FIXME Directory separator!
 #[test]
 fn test_simple_input() -> Result<()> {
     file_test(
         "simple_input.tfmt",
-        vec![
+        &[
             r"MASTER BOOT RECORD/Dune",
             r"MASTER BOOT RECORD/SET MIDI=SYNTH1 MAPG MODE1",
             r"Amon Amarth/Under Siege",
@@ -40,7 +39,7 @@ fn test_simple_input() -> Result<()> {
 fn test_typical_input() -> Result<()> {
     file_test(
         "typical_input.tfmt",
-        vec![
+        &[
             r"folder/MASTER BOOT RECORD/WAREZ/Dune",
             r"folder/MASTER BOOT RECORD/2016.03 - CEDIT AUTOEXEC.BAT/05 - SET MIDI=SYNTH1 MAPG MODE1",
             r"folder/Amon Amarth/2013 - Deceiver of the Gods/105 - Under Siege",

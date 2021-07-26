@@ -5,7 +5,7 @@ use tfmttools::tfmt::token::TokenType::*;
 
 mod common;
 
-fn file_test(filename: &str, reference: Option<Vec<Token>>) -> Result<()> {
+fn file_test(filename: &str, reference: Option<&[Token]>) -> Result<()> {
     let input = common::get_script(filename)?;
 
     if let Some(tokens) = reference {
@@ -16,7 +16,7 @@ fn file_test(filename: &str, reference: Option<Vec<Token>>) -> Result<()> {
     }
 }
 
-fn lexer_test(string: &str, reference: Vec<Token>) -> Result<()> {
+fn lexer_test(string: &str, reference: &[Token]) -> Result<()> {
     let tokens = run_lexer(string, true)?;
 
     assert_eq!(tokens, reference);
@@ -42,7 +42,7 @@ fn create_lexer(string: &str) -> Result<Lexer> {
 
 #[test]
 fn simple_input() -> Result<()> {
-    let reference = vec![
+    let reference = &[
         Token::new(1, 1, ID, Some("simple_input".to_string()))?,
         Token::new(1, 13, ParenthesisLeft, None)?,
         Token::new(1, 14, ParenthesisRight, None)?,
@@ -62,7 +62,7 @@ fn simple_input() -> Result<()> {
 
 #[test]
 fn typical_input() -> Result<()> {
-    let reference = vec![
+    let reference = &[
         Token::new(1, 1, ID, Some("typical_input".to_string()))?,
         Token::new(1, 14, ParenthesisLeft, None)?,
         Token::new(1, 15, ID, Some("folder".to_string()))?,

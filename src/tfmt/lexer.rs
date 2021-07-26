@@ -112,8 +112,7 @@ impl Lexer {
     /// * `terminate_on_eof` - stop crawl() on EOF, else return Error
     fn crawl(
         &mut self,
-        // FIXME change to slice?
-        terminators: Vec<&str>,
+        terminators: &[&str],
         discard_terminator: bool,
         terminate_on_eof: bool,
     ) -> Result<String> {
@@ -122,7 +121,7 @@ impl Lexer {
         'outer: loop {
             match self.current_grapheme() {
                 Ok(grapheme) => {
-                    for terminator in &terminators {
+                    for terminator in terminators {
                         if self.test_current_string(terminator) {
                             if discard_terminator {
                                 self.advance_times(terminator.len().try_into()?).expect("test_current_string(terminator) == true, so this should always succeed!");
@@ -157,7 +156,7 @@ impl Lexer {
 
         self.advance_times(quote_length).expect("Number of quotes is verified in previous function, this should never fail!");
 
-        let string = self.crawl(vec![&quote], true, false)?;
+        let string = self.crawl(&[quote.as_ref()], true, false)?;
 
         for grapheme in &token::FORBIDDEN_GRAPHEMES {
             if string.contains(grapheme) {
@@ -204,7 +203,7 @@ impl Lexer {
                 self.line_no,
                 self.col_no,
                 TokenType::Comment,
-                Some(self.crawl(vec!["\n"], true, true)?),
+                Some(self.crawl(&["\n"], true, true)?),
             )?))
         } else if self.test_current_string(multiline_comment_start) {
             self.advance_times(multiline_comment_start.len().try_into()?)
@@ -214,7 +213,7 @@ impl Lexer {
                 self.line_no,
                 self.col_no,
                 TokenType::Comment,
-                Some(self.crawl(vec![multiline_comment_end], true, false)?),
+                Some(self.crawl(&[multiline_comment_end], true, false)?),
             )?))
         } else {
             Ok(None)
@@ -244,56 +243,36 @@ impl Lexer {
     fn handle_misc_tokens(&mut self) -> Result<Token> {
         let (line_no_start, col_no_start) = (self.line_no, self.col_no);
 
-        let current_grapheme = self.current_grapheme()?;
+        // ID
+        let mut terminators: Vec<&str> = Vec::new();
+        for string in RESERVED_STRINGS.iter() {
+            terminators.push(*string);
+        }
+        terminators.push(" ");
+        terminators.push("\t");
+        terminators.push("\n");
+        terminators.push("\r");
 
-        if current_grapheme.chars().all(|c| c.is_alphabetic())
-            && self.test_current_string(&format!("{}:\\", current_grapheme))
+        let value = self.crawl(&terminators, false, true)?;
+
+        if value.starts_with(|c: char| c.is_alphabetic())
+            && value.chars().all(|c| c.is_alphanumeric() || c == '_')
         {
-            // Drive
-            let token = Token::new(
+            Ok(Token::new(
                 line_no_start,
                 col_no_start,
-                TokenType::Drive,
-                Some(
-                    self.current_string(3)
-                        .expect("Tested above, should not panic here."),
-                ),
-            )?;
-            self.advance_times(3)?;
-
-            Ok(token)
+                TokenType::ID,
+                Some(value),
+            )?)
+        } else if value.chars().all(|c| c.is_numeric()) {
+            Ok(Token::new(
+                line_no_start,
+                col_no_start,
+                TokenType::Integer,
+                Some(value),
+            )?)
         } else {
-            // ID
-            let mut terminators: Vec<&str> = Vec::new();
-            for string in RESERVED_STRINGS.iter() {
-                terminators.push(*string);
-            }
-            terminators.push(" ");
-            terminators.push("\t");
-            terminators.push("\n");
-            terminators.push("\r");
-
-            let value = self.crawl(terminators, false, true)?;
-
-            if value.starts_with(|c: char| c.is_alphabetic())
-                && value.chars().all(|c| c.is_alphanumeric() || c == '_')
-            {
-                Ok(Token::new(
-                    line_no_start,
-                    col_no_start,
-                    TokenType::ID,
-                    Some(value),
-                )?)
-            } else if value.chars().all(|c| c.is_numeric()) {
-                Ok(Token::new(
-                    line_no_start,
-                    col_no_start,
-                    TokenType::Integer,
-                    Some(value),
-                )?)
-            } else {
-                Err(LexerError::Tokenize(value))
-            }
+            Err(LexerError::Tokenize(value))
         }
     }
 
@@ -569,11 +548,6 @@ mod tests {
         }
 
         #[test]
-        fn test_drive() -> Result<()> {
-            misc_test("D:\\", TokenType::Drive, Some("D:\\"))
-        }
-
-        #[test]
         fn test_integer() -> Result<()> {
             misc_test("1", TokenType::Integer, Some("1"))
         }
@@ -583,9 +557,9 @@ mod tests {
         use super::*;
 
         fn crawler_test(
-            string: &String,
+            string: &str,
             reference: &str,
-            terminators: Vec<&str>,
+            terminators: &[&str],
             discard_terminator: bool,
             terminate_on_eof: bool,
             skip_graphemes: u64,
@@ -595,7 +569,7 @@ mod tests {
             lex.advance_times(skip_graphemes)?;
 
             let output =
-                lex.crawl(terminators, discard_terminator, terminate_on_eof)?;
+                lex.crawl(&terminators, discard_terminator, terminate_on_eof)?;
 
             let output = output.trim();
             let reference = reference.trim();
@@ -619,7 +593,7 @@ mod tests {
             crawler_test(
                 &string,
                 reference,
-                vec![terminator.as_ref()],
+                &[terminator.as_ref()],
                 true,
                 false,
                 1,
@@ -639,7 +613,7 @@ mod tests {
             crawler_test(
                 &String::from(SINGLE_LINE_COMMENT),
                 slice_ends(&SINGLE_LINE_COMMENT, 1, 0),
-                vec!["\n"],
+                &["\n"],
                 true,
                 true,
                 1,
@@ -649,7 +623,7 @@ mod tests {
             crawler_test(
                 &String::from(SINGLE_LINE_COMMENT),
                 slice_ends(&SINGLE_LINE_COMMENT, 1, 1),
-                vec!["\n"],
+                &["\n"],
                 true,
                 true,
                 1,
@@ -663,7 +637,7 @@ mod tests {
             crawler_test(
                 &String::from(MULTILINE_COMMENT),
                 slice_ends(&MULTILINE_COMMENT, 2, 2),
-                vec![TokenType::AsteriskSlash.grapheme()],
+                &[TokenType::AsteriskSlash.grapheme()],
                 true,
                 false,
                 2,

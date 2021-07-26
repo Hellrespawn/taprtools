@@ -10,7 +10,7 @@ Parameters
 Parameter
          ::= ID ( "=" ( Integer | String ) )?
 
-Block    ::= ( DriveLetter )? Expression*
+Block    ::= Expression*
 
 Expression
          ::= Ternary ( "?" Ternary ":" Ternary )*
@@ -50,7 +50,3 @@ Substitution
          ::= "$(" ID ")"
 
 Tag      ::= "<" ID ">"
-
-# TODO? Also make a string?
-DriveLetter
-         ::= [a-zA-Z] ":\\"

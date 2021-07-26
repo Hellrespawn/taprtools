@@ -35,7 +35,6 @@ fn simple_input() -> Result<()> {
         },
         description: None,
         block: ast::Block {
-            drive: None,
             expressions: vec![
                 Expression::Tag {
                     start_token: Token::new(
@@ -95,7 +94,6 @@ fn typical_input() -> Result<()> {
             Token::new(1, 37, TokenType::String, Some("This file is used to test tfmttools.".to_string(),))?,
         ),
         block: ast::Block {
-            drive: None,
             expressions: vec![
                 Expression::Substitution(
                     Token::new(3, 7, TokenType::ID, Some("folder".to_string(),))?,

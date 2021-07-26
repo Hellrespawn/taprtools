@@ -44,20 +44,9 @@ impl<T> Node<T> for Parameter {
         visitor.visit_parameter(self)
     }
 }
-#[derive(Debug, PartialEq)]
-pub struct DriveLetter {
-    pub token: Token,
-}
-
-impl<T> Node<T> for DriveLetter {
-    fn accept(&self, visitor: &mut dyn Visitor<T>) -> T {
-        visitor.visit_driveletter(&self)
-    }
-}
 
 #[derive(Debug, PartialEq)]
 pub struct Block {
-    pub drive: Option<DriveLetter>,
     pub expressions: Vec<Expression>,
 }
 
