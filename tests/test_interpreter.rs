@@ -28,7 +28,7 @@ fn test_simple_input() -> Result<()> {
         "simple_input.tfmt",
         vec![
             r"MASTER BOOT RECORD/Dune",
-            r"MASTER BOOT RECORD/SET MIDI=SYNTH:1 MAP:G MODE:1",
+            r"MASTER BOOT RECORD/SET MIDI=SYNTH1 MAPG MODE1",
             r"Amon Amarth/Under Siege",
             r"Damjan Mravunac/Welcome To Heaven",
             r"Nightwish/While Your Lips Are Still Red",
@@ -42,7 +42,7 @@ fn test_typical_input() -> Result<()> {
         "typical_input.tfmt",
         vec![
             r"folder/MASTER BOOT RECORD/WAREZ/Dune",
-            r"folder/MASTER BOOT RECORD/2016.03 - C:\>EDIT AUTOEXEC.BAT/05 - SET MIDI=SYNTH:1 MAP:G MODE:1",
+            r"folder/MASTER BOOT RECORD/2016.03 - CEDIT AUTOEXEC.BAT/05 - SET MIDI=SYNTH1 MAPG MODE1",
             r"folder/Amon Amarth/2013 - Deceiver of the Gods/105 - Under Siege",
             r"folder/The Talos Principle/2015 - The Talos Principle OST/01 - Damjan Mravunac - Welcome To Heaven",
             r"folder/Nightwish/While Your Lips Are Still Red",

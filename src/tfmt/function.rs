@@ -1,5 +1,7 @@
 use super::token::FORBIDDEN_GRAPHEMES;
 use crate::error::FunctionError;
+use lazy_static::lazy_static;
+use regex::Regex;
 use std::convert::TryFrom;
 
 type Result<T> = std::result::Result<T, FunctionError>;
@@ -144,5 +146,41 @@ fn function_if(
         true_string.to_string()
     } else {
         false_string.to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anyhow::{bail, Result};
+
+    #[test]
+    fn test_wrong_arguments() -> Result<()> {
+        match handle_function(
+            "prepend",
+            &vec!["a".to_string(), "b".to_string()],
+        ) {
+            Ok(_) => bail!("prepend with 2 arguments did not raise an error!"),
+            Err(FunctionError::WrongArguments { .. }) => (),
+            Err(err) => bail!(
+                "prepend with 2 arguments raised an unexpected error: {}!",
+                err
+            ),
+        }
+
+        match handle_function("year_from_date", &vec!["a".to_string(), "b".to_string()]) {
+            Ok(_) => bail!("year_from_date with 2 arguments did not raise an error!"),
+            Err(FunctionError::WrongArguments{..}) => (),
+            Err(err) => bail!("year_from_date with 2 arguments raised an unexpected error: {}!",err)
+        }
+
+        match handle_function("fake", &[]) {
+            Ok(_) => bail!("Unknown function did not raise an error!"),
+            Err(FunctionError::UnknownFunction(..)) => (),
+            Err(err) => {
+                bail!("Unknown function raised an unexpected error: {}!", err)
+            }
+        }
+        Ok(())
     }
 }

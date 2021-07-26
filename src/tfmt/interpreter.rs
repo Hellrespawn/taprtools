@@ -119,7 +119,7 @@ impl Visitor<Result<String>> for Interpreter {
                     l
                 }
             }
-            // FIXME number parsing can fail!
+
             TokenType::Plus => {
                 (l.parse::<i64>()? + r.parse::<i64>()?).to_string()
             }
@@ -201,7 +201,7 @@ impl Visitor<Result<String>> for Interpreter {
     fn visit_tag(&mut self, token: &Token) -> Result<String> {
         let tag_name = token.get_value();
 
-        let tag = match tag_name {
+        let mut tag = match tag_name {
             // FIXME complete this.
             "album" => self.song.album(),
             "albumartist" | "album_artist" => self.song.album_artist(),
@@ -220,23 +220,25 @@ impl Visitor<Result<String>> for Interpreter {
             "year" | "date" => self.song.year(),
             _ => None,
         }
-        .unwrap_or_else(|| "")
+        .unwrap_or("")
         .to_string();
 
         // TODO? Use map or something?
-        // FIXME Filter here?
+        // FIXME Add strict mode?
         for grapheme in FORBIDDEN_GRAPHEMES {
-            if tag.contains(grapheme) {
-                return Err(InterpreterError::TagForbidden(
-                    grapheme.to_string(),
-                ));
-            }
+            tag = tag.replace(grapheme, "");
+            // if tag.contains(grapheme) {
+            //     return Err(InterpreterError::TagForbidden(
+            //         grapheme.to_string(),
+            //     ));
+            // }
         }
 
         for grapheme in DIRECTORY_SEPARATORS {
-            if tag.contains(grapheme) {
-                return Err(InterpreterError::TagDirSep(grapheme.to_string()));
-            }
+            tag = tag.replace(grapheme, "");
+            // if tag.contains(grapheme) {
+            //     return Err(InterpreterError::TagDirSep(grapheme.to_string()));
+            // }
         }
 
         Ok(tag)

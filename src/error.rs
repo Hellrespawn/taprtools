@@ -41,11 +41,15 @@ pub enum LexerError {
     Tokenize(String),
 
     #[error("")]
-    /// Wrapper for TokenError.
-    Lexer {
+    Token {
         #[from]
-        /// PLACEHOLDER
         source: TokenError,
+    },
+
+    #[error("")]
+    TryFromInt {
+        #[from]
+        source: std::num::TryFromIntError,
     },
 }
 
