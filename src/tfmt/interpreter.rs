@@ -171,7 +171,14 @@ impl Visitor<Result<String>> for Interpreter {
         start_token: &Token,
         arguments: &[Expression],
     ) -> Result<String> {
-        Ok("".to_string())
+        let name = start_token.get_value();
+
+        let arguments: Vec<String> = arguments
+            .iter()
+            .map(|a| a.accept(self))
+            .collect::<Result<Vec<String>>>()?;
+
+        Ok(handle_function(name, &arguments)?)
     }
 
     fn visit_integer(&mut self, integer: &Token) -> Result<String> {
