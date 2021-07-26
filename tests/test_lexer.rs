@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{bail, Result};
 use tfmttools::tfmt::lexer::Lexer;
 use tfmttools::tfmt::token::Token;
 use tfmttools::tfmt::token::TokenType::*;
@@ -200,7 +200,7 @@ fn typical_input() -> Result<()> {
 #[test]
 fn empty_text() -> Result<()> {
     match Lexer::new("") {
-        Ok(_) => Err(anyhow!("Lexer should fail with empty text!")),
+        Ok(_) => bail!("Lexer should fail with empty text!"),
         Err(_) => Ok(()),
     }
 }

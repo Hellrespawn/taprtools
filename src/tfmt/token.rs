@@ -126,10 +126,11 @@ lazy_static! {
     };
 }
 
-// FIXME Filter dir separator based on platform. Currently manually removed.
 /// Forbidden graphemes that are part of TFMT.
-pub static FORBIDDEN_GRAPHEMES: [&str; 9] =
-    ["\\", "<", ">", ":", "\"", "|", "?", "*", "~"];
+pub static FORBIDDEN_GRAPHEMES: [&str; 8] =
+    ["<", ">", ":", "\"", "|", "?", "*", "~"];
+
+pub static DIRECTORY_SEPARATORS: [&str; 2] = ["/", "\\"];
 
 /// Ignored [TokenType]s
 pub static IGNORED_TOKEN_TYPES: [TokenType; 1] = [TokenType::Comment];

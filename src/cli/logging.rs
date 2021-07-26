@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use anyhow::{anyhow, Result};
+use anyhow::{bail, Result};
 use log::log;
 use log::LevelFilter;
 
@@ -20,11 +20,11 @@ pub fn setup_logger(verbosity: u64, path: &Path, filename: &str) -> Result<()> {
 
     // verbosity is usize, so can never be negative.
     if verbosity > LOG_LEVELS.len() - 1 {
-        return Err(anyhow!(
+        bail!(
             "Verbosity must be between 0 and {}, not {}!",
             LOG_LEVELS.len() - 1,
             verbosity
-        ));
+        )
     }
 
     if verbosity == 0 {

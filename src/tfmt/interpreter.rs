@@ -1,6 +1,8 @@
 use super::ast::*;
 use super::function::handle_function;
-use super::token::{Token, TokenType};
+use super::token::{
+    Token, TokenType, DIRECTORY_SEPARATORS, FORBIDDEN_GRAPHEMES,
+};
 use super::visitor::Visitor;
 use crate::error::InterpreterError;
 use crate::file::audiofile::AudioFile;
@@ -199,7 +201,7 @@ impl Visitor<Result<String>> for Interpreter {
     fn visit_tag(&mut self, token: &Token) -> Result<String> {
         let tag_name = token.get_value();
 
-        let opt = match tag_name {
+        let tag = match tag_name {
             // FIXME complete this.
             "album" => self.song.album(),
             "albumartist" | "album_artist" => self.song.album_artist(),
@@ -218,9 +220,26 @@ impl Visitor<Result<String>> for Interpreter {
             "year" | "date" => self.song.year(),
             _ => None,
         }
-        .map(String::from);
+        .unwrap_or_else(|| "")
+        .to_string();
 
-        Ok(opt.unwrap_or_else(|| "".to_string()))
+        // TODO? Use map or something?
+        // FIXME Filter here?
+        for grapheme in FORBIDDEN_GRAPHEMES {
+            if tag.contains(grapheme) {
+                return Err(InterpreterError::TagForbidden(
+                    grapheme.to_string(),
+                ));
+            }
+        }
+
+        for grapheme in DIRECTORY_SEPARATORS {
+            if tag.contains(grapheme) {
+                return Err(InterpreterError::TagDirSep(grapheme.to_string()));
+            }
+        }
+
+        Ok(tag)
     }
 }
 

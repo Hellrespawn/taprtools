@@ -159,4 +159,12 @@ pub enum InterpreterError {
         /// PLACEHOLDER
         source: std::num::ParseIntError,
     },
+
+    /// Forbidden grapheme in ID.
+    #[error("Encountered forbidden grapheme {0} in tag!")]
+    TagForbidden(String),
+
+    /// Directory separator in ID.
+    #[error("Encountered directory separator {0} in tag!")]
+    TagDirSep(String),
 }

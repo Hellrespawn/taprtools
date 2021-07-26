@@ -21,6 +21,7 @@ fn file_test(filename: &str, reference: Vec<&str>) -> Result<()> {
     Ok(())
 }
 
+//FIXME Directory separator!
 #[test]
 fn test_simple_input() -> Result<()> {
     file_test(

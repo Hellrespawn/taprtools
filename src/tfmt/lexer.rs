@@ -344,13 +344,13 @@ impl Iterator for Lexer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anyhow::{anyhow, Result};
+    use anyhow::{bail, Result};
 
     static DOUBLE_QUOTED_STRING: &str = "\"This is a double-quoted string\"";
     static SINGLE_QUOTED_STRING: &str = "'This is a single-quoted string'";
     static MULTILINE_STRING: &str = "'''This is a \n multiline string'''";
     static STRING_WITH_FORBIDDEN_GRAPHEMES: &str =
-        "\"This \\ is / a string ~ with * forbidden graphemes.\"";
+        "\"This | is ? a string ~ with * forbidden graphemes.\"";
     static UNTERMINATED_STRING: &str = "\"This is an unterminated string";
     static UNTERMINATED_MULTILINE_STRING: &str =
         "'''This is an unterminated \n multiline string'";
@@ -386,7 +386,7 @@ mod tests {
                     Ok(())
                 }
                 None => {
-                    Err(anyhow!("reserved: unable to parse {} as Token", input))
+                    bail!("reserved: unable to parse {} as Token", input)
                 }
             }
         }
@@ -435,7 +435,7 @@ mod tests {
                     Ok(())
                 }
                 None => {
-                    Err(anyhow!("bounded: unable to parse {} as Token", input))
+                    bail!("bounded: unable to parse {} as Token", input)
                 }
             }
         }
@@ -460,12 +460,12 @@ mod tests {
         #[test]
         fn forbidden_graphemes() -> Result<()> {
             match bounded_test(STRING_WITH_FORBIDDEN_GRAPHEMES, TokenType::String, "") {
-                Ok(tokens) => Err(anyhow!("Lexer did not error on forbidden characters, returned {:?}", tokens)),
+                Ok(tokens) => bail!("Lexer did not error on forbidden characters, returned {:?}", tokens),
                 Err(err) => {
                     if err.to_string().contains("forbidden grapheme") {
                         Ok(())
                     } else {
-                        Err(anyhow!("Unrelated error {:?}!", err))
+                        bail!("Unrelated error {:?}!", err)
                     }
                 }
             }
@@ -480,7 +480,7 @@ mod tests {
                         .to_string()
                         .contains("reached EOF before terminator")
                     {
-                        return  Err(anyhow!("unterminated string {} did not return expected error!", string));
+                        bail!("unterminated string {} did not return expected error!", string);
                     }
                 }
             }
@@ -512,7 +512,7 @@ mod tests {
                 bounded_test(UNTERMINATED_COMMENT, TokenType::Comment, "")
             {
                 if !err.to_string().contains("reached EOF before terminator") {
-                    return  Err(anyhow!("unterminated_comment {} did not return expected error!", UNTERMINATED_COMMENT));
+                    bail!("unterminated_comment {} did not return expected error!", UNTERMINATED_COMMENT);
                 }
             }
 
@@ -553,13 +553,13 @@ mod tests {
                     Ok(())
                 }
                 Err(LexerError::Tokenize(_)) => {
-                    Err(anyhow!("misc: unable to parse {} as Token", input))
+                    bail!("misc: unable to parse {} as Token", input)
                 }
-                Err(err) => Err(anyhow!(
+                Err(err) => bail!(
                     "misc: unexpected error with input {}: {}",
                     input,
                     err
-                )),
+                ),
             }
         }
         #[test]
