@@ -1,6 +1,6 @@
 use crate::cli::{argparse, logging};
 use crate::tfmt::ast;
-use crate::tfmt::genastdot::visualize_ast;
+use crate::tfmt::genastdot::GenAstDot;
 use crate::tfmt::lexer::Lexer;
 use crate::tfmt::parser::Parser;
 use anyhow::Result;
@@ -21,7 +21,7 @@ pub fn main() -> Result<()> {
 
     debug!("{:#?}", root);
 
-    visualize_ast(root, &temp_dir, "genastdot", true)?;
+    GenAstDot::visualize_ast(root, &temp_dir, "genastdot", true)?;
 
     Ok(())
 }

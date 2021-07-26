@@ -16,56 +16,55 @@ pub struct GenAstDot {
     counter: u64,
 }
 
-/// Construct a GraphViz dot-file from a [ast::Program] and render it as a png.
-pub fn visualize_ast(
-    root: ast::Program,
-    directory: &Path,
-    name: &str,
-    remove_dot_file: bool,
-) -> Result<()> {
-    let mut g: GenAstDot = Default::default();
-
-    let mut dot = "digraph astgraph {\n  \
-        edge [arrowsize=.5];\n  \
-        rankdir=\"TB\";\n  \
-        newrank=true;\n  \
-        nodesep=0.75;\n  \
-        ranksep=0.75;\n  "
-        .to_owned();
-
-    dot.push_str(&root.accept(&mut g));
-
-    dot.push('}');
-
-    let mut path = PathBuf::from(directory);
-    path.push(format!("{}.dot", name));
-
-    fs::create_dir_all(directory)?;
-
-    let mut file = fs::File::create(&path)?;
-    file.write_all(dot.as_bytes())?;
-
-    let spawn_result = Command::new("dot")
-        .current_dir(directory)
-        .arg("-Tpng")
-        .args(&["-o", &format!("{}.png", name)])
-        .arg(format!("{}.dot", name))
-        .spawn();
-
-    if let Ok(mut child) = spawn_result {
-        child.wait()?
-    } else {
-        return Err(DotError::CantRun.into());
-    };
-
-    if remove_dot_file {
-        fs::remove_file(path)?;
-    }
-
-    Ok(())
-}
-
 impl GenAstDot {
+    /// Construct a GraphViz dot-file from a [ast::Program] and render it as a png.
+    pub fn visualize_ast(
+        root: ast::Program,
+        directory: &Path,
+        name: &str,
+        remove_dot_file: bool,
+    ) -> Result<()> {
+        let mut g: Self = Default::default();
+
+        let mut dot = "digraph astgraph {\n  \
+            edge [arrowsize=.5];\n  \
+            rankdir=\"TB\";\n  \
+            newrank=true;\n  \
+            nodesep=0.75;\n  \
+            ranksep=0.75;\n  "
+            .to_owned();
+
+        dot.push_str(&root.accept(&mut g));
+
+        dot.push('}');
+
+        let mut path = PathBuf::from(directory);
+        path.push(format!("{}.dot", name));
+
+        fs::create_dir_all(directory)?;
+
+        let mut file = fs::File::create(&path)?;
+        file.write_all(dot.as_bytes())?;
+
+        let spawn_result = Command::new("dot")
+            .current_dir(directory)
+            .arg("-Tpng")
+            .args(&["-o", &format!("{}.png", name)])
+            .arg(format!("{}.dot", name))
+            .spawn();
+
+        if let Ok(mut child) = spawn_result {
+            child.wait()?
+        } else {
+            return Err(DotError::CantRun.into());
+        };
+
+        if remove_dot_file {
+            fs::remove_file(path)?;
+        }
+
+        Ok(())
+    }
     fn increment(&mut self) -> u64 {
         self.counter += 1;
         self.counter - 1
@@ -247,34 +246,6 @@ impl Visitor<String> for GenAstDot {
         string
     }
 
-    fn visit_expression(&mut self, expression: &Expression) -> String {
-        match expression {
-            Expression::TernaryOp {
-                condition,
-                true_expr,
-                false_expr,
-            } => self.visit_ternaryop(condition, true_expr, false_expr),
-            Expression::BinaryOp { left, token, right } => {
-                self.visit_binaryop(left, token, right)
-            }
-            Expression::UnaryOp { token, operand } => {
-                self.visit_unaryop(token, operand)
-            }
-            Expression::Group { expressions } => self.visit_group(expressions),
-            Expression::Function {
-                start_token,
-                arguments,
-                ..
-            } => self.visit_function(start_token, arguments),
-            Expression::StringNode(string) => self.visit_string(string),
-            Expression::IntegerNode(integer) => self.visit_integer(integer),
-            Expression::Substitution(subst) => self.visit_substitution(subst),
-            Expression::Tag { token, .. } => self.visit_tag(token),
-        }
-    }
-}
-
-impl GenAstDot {
     fn visit_ternaryop(
         &mut self,
         condition: &Expression,

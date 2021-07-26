@@ -28,17 +28,11 @@ impl Args {
 #[derive(Debug, PartialEq)]
 pub enum SubArgs {
     /// Undo `amount` actions.
-    Undo {
-        amount: u64,
-    },
+    Undo { amount: u64 },
     /// Redo `amount` actions.
-    Redo {
-        amount: u64,
-    },
+    Redo { amount: u64 },
     /// Inspect script `name`.
-    Inspect {
-        name: String,
-    },
+    Inspect { name: String },
     /// Rename files.
     Rename {
         name: String,

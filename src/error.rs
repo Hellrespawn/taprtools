@@ -76,3 +76,33 @@ pub enum DotError {
     #[error("Unable to run dot! Is GraphViz installed and is it in PATH?")]
     CantRun,
 }
+
+#[derive(Error, Debug)]
+/// Error from the [parser] module.
+pub enum InterpreterError {
+    /// Non-specific error.
+    #[error("Error in Interpreter: {0}")]
+    Generic(String),
+
+    #[error("Invalid TokenType in {0:?}: {1}!")]
+    InvalidTokenType(TokenType, &'static str),
+
+    #[error("TokenType {0:?} requires value!")]
+    TokenWithoutValue(TokenType),
+
+    #[error("")]
+    /// Wrapper for crate::error::ParserError.
+    Parser {
+        #[from]
+        /// PLACEHOLDER
+        source: ParserError,
+    },
+
+    #[error("")]
+    /// Wrapper for std::num::ParseIntError.
+    ParseInt {
+        #[from]
+        /// PLACEHOLDER
+        source: std::num::ParseIntError,
+    },
+}
