@@ -1,5 +1,3 @@
-use std::u64;
-
 use clap::{load_yaml, App, ArgMatches};
 use std::ffi::OsString;
 
@@ -38,7 +36,6 @@ pub enum SubArgs {
         name: String,
         arguments: Option<Vec<String>>,
         recursive: bool,
-        allow_case_difference: bool,
     },
 }
 
@@ -75,8 +72,6 @@ impl SubArgs {
                 arguments: submatches
                     .values_of("arguments")
                     .map(|i| i.map(String::from).collect()),
-                allow_case_difference: submatches
-                    .is_present("allow-case-difference"),
                 recursive: submatches.is_present("recursive"),
             }),
             _ => None,
@@ -131,7 +126,6 @@ mod test {
                     "arguments".to_string(),
                 ]),
                 recursive: false,
-                allow_case_difference: false,
             }),
         };
 

@@ -6,12 +6,9 @@
 
 /// CLI modules.
 pub mod cli;
-
 /// Crate errors.
 pub mod error;
-
 /// File handling modules.
 pub mod file;
-
 /// TagFormat-related modules.
 pub mod tfmt;

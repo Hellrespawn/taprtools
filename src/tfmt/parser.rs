@@ -1,10 +1,8 @@
-use log::trace;
-
 use super::ast::{self, Expression};
 use super::lexer::{Lexer, LexerResult};
 use super::token::{Token, TokenType};
 use crate::error::ParserError;
-
+use log::trace;
 use std::str::FromStr;
 
 type Result<T> = std::result::Result<T, ParserError>;
@@ -97,15 +95,15 @@ where
         Ok(self.previous_token.clone())
     }
 
-    fn trace(&mut self, log_string: &str) {
-        let mut string: String = String::new();
-        for i in 0..self.depth {
-            string.push_str(&(i % 10).to_string());
-        }
-        string.push(' ');
-        string.push_str(log_string);
+    fn d(&mut self) -> String {
+        (0..self.depth).map(|i| (i % 10).to_string()).collect()
 
-        trace!("{}", string)
+        // let mut f_string: String = String::new();
+        // for i in 0..self.depth {
+        //     f_string.push_str(&(i % 10).to_string());
+        // }
+
+        // f_string
     }
 
     // Grammar functions
@@ -115,7 +113,7 @@ where
 
         let name = self.consume(TokenType::ID)?;
 
-        self.trace(&format!("Program: \"{}\"", name.get_value_unchecked()));
+        trace!("{} Program: \"{}\"", self.d(), name.get_value_unchecked());
 
         self.consume(TokenType::ParenthesisLeft)?;
 
@@ -143,7 +141,8 @@ where
     fn parameters(&mut self) -> Result<ast::Parameters> {
         // ( Parameter ( "," Parameter )* )?
         self.depth += 1;
-        self.trace("Parameters");
+
+        trace!("{} Parameters", self.d());
 
         let mut parameters = Vec::new();
 
@@ -165,10 +164,11 @@ where
         // ID ( "=" ( Integer | String ) )?
         self.depth += 1;
         let identifier = self.consume(TokenType::ID)?;
-        self.trace(&format!(
-            "Parameter: \"{}\"",
+        trace!(
+            "{} Parameter: \"{}\"",
+            self.d(),
             identifier.get_value_unchecked()
-        ));
+        );
 
         let default = match self.consume(TokenType::Equals) {
             Ok(_) => {
@@ -196,7 +196,7 @@ where
     fn block(&mut self) -> Result<ast::Block> {
         // ( DriveLetter )? Expression*
         self.depth += 1;
-        self.trace("Block");
+        trace!("{} Block", self.d());
 
         let expressions: Vec<Expression> =
             self.expressions(&[TokenType::CurlyBraceRight])?;
@@ -212,13 +212,14 @@ where
         let mut expressions: Vec<Expression> = Vec::new();
 
         while !terminators.contains(&self.current_token.ttype) {
-            self.trace(&format!(
-                "Gathering expressions until {:?}",
+            trace!(
+                "{} Gathering expressions until {:?}",
+                self.d(),
                 terminators
                     .iter()
                     .map(|tt| tt.as_str())
                     .collect::<Vec<&str>>()
-            ));
+            );
 
             if self.depth > 48 {
                 return Err(ParserError::MaxIteration(48));
@@ -232,7 +233,7 @@ where
     fn expression(&mut self) -> Result<Expression> {
         // Ternary ( "?" Ternary ":" Ternary )*
         self.depth += 1;
-        self.trace("Expression");
+        trace!("{} Expression", self.d());
         let mut expression = self.ternary()?;
 
         while self.current_token.ttype == TokenType::QuestionMark {
@@ -255,7 +256,7 @@ where
     fn ternary(&mut self) -> Result<Expression> {
         // Disjunct ( ( "||" | "|" ) Disjunct )*
         self.depth += 1;
-        self.trace("Ternary");
+        trace!("{} Ternary", self.d());
 
         let mut ternary = self.disjunct()?;
 
@@ -281,7 +282,7 @@ where
     fn disjunct(&mut self) -> Result<Expression> {
         // Conjunct ( ( "&&" | "&" ) Conjunct )*
         self.depth += 1;
-        self.trace("Disjunct");
+        trace!("{} Disjunct", self.d());
 
         let mut disjunct = self.conjunct()?;
 
@@ -307,7 +308,7 @@ where
     fn conjunct(&mut self) -> Result<Expression> {
         // Term ( ( "+" | "-" ) Term )*
         self.depth += 1;
-        self.trace("Conjunct");
+        trace!("{} Conjunct", self.d());
         let mut conjunct = self.term()?;
 
         loop {
@@ -332,7 +333,7 @@ where
     fn term(&mut self) -> Result<Expression> {
         // Factor ( ( "*" | "/" | "%" ) Factor )*
         self.depth += 1;
-        self.trace("Term");
+        trace!("{} Term", self.d());
 
         let mut term = self.factor()?;
 
@@ -359,7 +360,7 @@ where
     fn factor(&mut self) -> Result<Expression> {
         // Exponent ( ( "**" | "^" ) Exponent )*
         self.depth += 1;
-        self.trace("Factor");
+        trace!("{} Factor", self.d());
 
         let mut factor = self.exponent()?;
 
@@ -385,7 +386,7 @@ where
     fn exponent(&mut self) -> Result<Expression> {
         // "+" Exponent | "-" Exponent | "(" Expression+ ")" | Statement
         self.depth += 1;
-        self.trace("Exponent");
+        trace!("{} Exponent", self.d());
 
         let ttype = self.current_token.ttype;
 
@@ -422,7 +423,7 @@ where
     fn statement(&mut self) -> Result<Expression> {
         // Comment | Function | Integer | String | Substitution | Tag
         self.depth += 1;
-        self.trace("Statement");
+        trace!("{} Statement", self.d());
 
         let ttype = self.current_token.ttype;
 
@@ -452,7 +453,7 @@ where
 
     fn function(&mut self) -> Result<Expression> {
         self.depth += 1;
-        self.trace("Function");
+        trace!("{} Function", self.d());
 
         let identifier = self.consume(TokenType::ID)?;
 
@@ -480,7 +481,7 @@ where
 
     fn tag(&mut self) -> Result<Expression> {
         self.depth += 1;
-        self.trace("Tag");
+        trace!("{} Tag", self.d());
 
         let start_token = self.consume(TokenType::AngleBracketLeft)?;
 

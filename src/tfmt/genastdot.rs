@@ -2,13 +2,11 @@ use super::ast::{self, Expression, Node};
 use super::visitor::Visitor;
 use crate::error::DotError;
 use crate::tfmt::token::Token;
-
+use anyhow::Result;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-
-use anyhow::Result;
 
 #[derive(Default)]
 /// A [Visitor] used to construct a GraphViz dot-file.

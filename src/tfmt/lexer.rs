@@ -1,14 +1,12 @@
-use std::convert::{TryFrom, TryInto};
-use std::iter::Iterator;
-use std::path::Path;
-use std::str::FromStr;
-
-use log::{error, trace};
-use normalize_line_endings::normalized;
-use unicode_segmentation::UnicodeSegmentation;
-
 use super::token::{self, Token, TokenType};
 use crate::error::LexerError;
+use log::{error, trace};
+use normalize_line_endings::normalized;
+use std::convert::{TryFrom, TryInto};
+use std::iter::Iterator;
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
+use unicode_segmentation::UnicodeSegmentation;
 
 type Result<T> = std::result::Result<T, LexerError>;
 pub type LexerResult = std::result::Result<Token, LexerError>;
@@ -66,6 +64,14 @@ impl TryFrom<&Path> for Lexer {
                 )))
             }
         })
+    }
+}
+
+impl TryFrom<&PathBuf> for Lexer {
+    type Error = LexerError;
+
+    fn try_from(path: &PathBuf) -> Result<Self> {
+        Lexer::try_from(path.as_path())
     }
 }
 

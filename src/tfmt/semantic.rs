@@ -2,9 +2,7 @@ use super::ast::{self, Node};
 use super::token::Token;
 use super::visitor::Visitor;
 use crate::error::SemanticError;
-
 use log::info;
-
 use std::collections::HashMap;
 
 /// Holds symbols for [Interpreter].

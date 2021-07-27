@@ -120,10 +120,6 @@ subcommands:
                 short: r
                 help: Recursively scan folders.
 
-            - allow-case-difference:
-                long: allow-case-difference
-                help: What it says
-
             - name:
                 help: Name of script to inspect.
                 index: 1

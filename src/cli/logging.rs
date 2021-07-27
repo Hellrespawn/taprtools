@@ -1,9 +1,8 @@
-use std::fs;
-use std::path::{Path, PathBuf};
-
 use anyhow::{bail, Result};
 use log::log;
 use log::LevelFilter;
+use std::fs;
+use std::path::PathBuf;
 
 static LOG_LEVELS: [log::LevelFilter; 6] = [
     LevelFilter::Off,
@@ -15,58 +14,50 @@ static LOG_LEVELS: [log::LevelFilter; 6] = [
 ];
 
 /// Setup logger.
-pub fn setup_logger(
-    verbosity: usize,
-    path: &Path,
-    filename: &str,
-) -> Result<()> {
-    // verbosity is usize, so can never be negative.
-    if verbosity > LOG_LEVELS.len() - 1 {
-        bail!(
+pub fn setup_logger(verbosity: usize, filename: &str) -> Result<()> {
+    let level = match LOG_LEVELS.get(verbosity) {
+        Some(LevelFilter::Off) => return Ok(()),
+        Some(lf) => lf,
+        None => bail!(
             "Verbosity must be between 0 and {}, not {}!",
             LOG_LEVELS.len() - 1,
             verbosity
+        ),
+    };
+
+    let mut path: PathBuf = std::env::temp_dir();
+    path.push("tfmttools");
+
+    fs::create_dir_all(&path)?;
+
+    path.push(format!("{}.log", filename));
+
+    fern::Dispatch::new()
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "[{}][{}:{}] {}",
+                // chrono::Local::now().format("%Y-%m-%d][%H:%M:%S"),
+                record.level(),
+                record.target(),
+                record.line().unwrap_or(0),
+                message
+            ))
+        })
+        .level(*level)
+        //.chain(std::io::stderr())
+        .chain(
+            std::fs::OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open(&path)?,
         )
-    }
+        .apply()?;
 
-    if verbosity == 0 {
-        Ok(())
-    } else {
-        let level = LOG_LEVELS[verbosity];
+    log!(
+        log::max_level().to_level().unwrap_or(log::Level::Error),
+        "Log started."
+    );
 
-        fs::create_dir_all(&path)?;
-
-        let mut file = PathBuf::from(&path);
-        file.push(format!("{}.log", filename));
-
-        // let log_file = std::fs::OpenOptions::new()
-        //     .write(true)
-        //     .create(true)
-        //     .truncate(true)
-        //     .open(&path)?;
-
-        simple_logging::log_to_file(file, level)?;
-
-        // fern::Dispatch::new()
-        //     .format(|out, message, record| {
-        //         out.finish(format_args!(
-        //             "[{}][{}] {}",
-        //             // chrono::Local::now().format("%Y-%m-%d][%H:%M:%S"),
-        //             record.level(),
-        //             record.target(),
-        //             message
-        //         ))
-        //     })
-        //     .level(level)
-        //     //.chain(std::io::stderr())
-        //     .chain(log_file)
-        //     .apply()?;
-
-        log!(
-            log::max_level().to_level().unwrap_or(log::Level::Error),
-            "Log started."
-        );
-
-        Ok(())
-    }
+    Ok(())
 }

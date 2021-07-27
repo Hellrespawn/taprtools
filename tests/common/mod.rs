@@ -8,12 +8,8 @@ use tfmttools::file::ogg::OGG;
 
 #[allow(dead_code)]
 pub fn init_logger() {
-    tfmttools::cli::logging::setup_logger(
-        5,
-        &std::env::temp_dir(),
-        "tfmttools-test",
-    )
-    .expect("Error in setup_logger");
+    tfmttools::cli::logging::setup_logger(5, "tfmttools-test")
+        .expect("Error in setup_logger");
 }
 
 #[allow(dead_code)]
