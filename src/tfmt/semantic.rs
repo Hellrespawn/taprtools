@@ -63,12 +63,12 @@ impl SemanticAnalyzer {
         }
         let output = output
             .into_iter()
+            // We tested for None, unwrap should be safe.
             .map(|(k, v)| (k.to_string(), v.unwrap()))
             .collect();
 
         info!("Symbol Table: {:?}", output);
 
-        // We tested for None, unwrap should be safe.
         Ok(output)
     }
 }

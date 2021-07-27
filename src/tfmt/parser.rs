@@ -3,6 +3,8 @@ use super::lexer::{Lexer, LexerResult};
 use super::token::{Token, TokenType};
 use crate::error::ParserError;
 use log::trace;
+use std::convert::TryFrom;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 type Result<T> = std::result::Result<T, ParserError>;
@@ -22,6 +24,21 @@ impl FromStr for Parser<Lexer> {
     type Err = ParserError;
     fn from_str(string: &str) -> Result<Parser<Lexer>> {
         Ok(Parser::from_iterator(Lexer::from_str(string)?))
+    }
+}
+
+impl TryFrom<&Path> for Parser<Lexer> {
+    type Error = ParserError;
+    fn try_from(path: &Path) -> Result<Self> {
+        Ok(Parser::from_iterator(Lexer::try_from(path)?))
+    }
+}
+
+impl TryFrom<&PathBuf> for Parser<Lexer> {
+    type Error = ParserError;
+
+    fn try_from(path: &PathBuf) -> Result<Self> {
+        Parser::try_from(path.as_path())
     }
 }
 

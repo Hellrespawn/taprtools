@@ -1,6 +1,6 @@
 use super::argparse::{Args, Subcommand};
 use crate::cli::{argparse, logging};
-use anyhow::Result;
+use anyhow::{bail, Result};
 use log::info;
 use std::convert::TryInto;
 
@@ -11,6 +11,7 @@ pub fn main() -> Result<()> {
     logging::setup_logger(args.verbosity.try_into()?, "tfmttools")?;
     info!("Parsed arguments:\n{:#?}", &args);
 
+    // TODO Pretty-print errors
     TFMTTools { args }.main()
 }
 
@@ -37,15 +38,15 @@ impl TFMTTools {
     }
 
     fn undo(&self, amount: u64) -> Result<()> {
-        Ok(())
+        bail!("Undo({}) is unimplemented!", amount)
     }
 
     fn redo(&self, amount: u64) -> Result<()> {
-        Ok(())
+        bail!("Redo({}) is unimplemented!", amount)
     }
 
     fn inspect(&self, name: &str) -> Result<()> {
-        Ok(())
+        super::inspector::Inspector::inspect(name)
     }
 
     fn rename(
@@ -54,6 +55,11 @@ impl TFMTTools {
         arguments: Option<&Vec<String>>,
         recursive: bool,
     ) -> Result<()> {
-        Ok(())
+        bail!(
+            "Rename({}, {:?}, {}) is unimplemented!",
+            name,
+            arguments,
+            recursive
+        )
     }
 }

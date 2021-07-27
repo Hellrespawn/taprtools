@@ -124,6 +124,7 @@ impl TokenType {
         &RESERVED_STRINGS
     }
 
+    // TODO? impl TryFrom<&str> for Token and From<Token> for &str?
     /// Get [TokenType] from string.
     pub fn from_string(string: &str) -> Result<TokenType> {
         TokenType::string_map()
