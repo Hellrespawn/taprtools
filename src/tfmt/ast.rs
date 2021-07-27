@@ -82,7 +82,7 @@ pub enum Expression {
     },
     StringNode(Token),
     IntegerNode(Token),
-    Substitution(Token),
+    Symbol(Token),
     Tag {
         start_token: Token,
         token: Token,

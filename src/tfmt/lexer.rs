@@ -4,7 +4,7 @@ use std::iter::Iterator;
 use log::{error, trace};
 use unicode_segmentation::UnicodeSegmentation;
 
-use super::token::{self, Token, TokenType, RESERVED_STRINGS};
+use super::token::{self, Token, TokenType};
 use crate::error::LexerError;
 
 type Result<T> = std::result::Result<T, LexerError>;
@@ -245,9 +245,11 @@ impl Lexer {
 
         // ID
         let mut terminators: Vec<&str> = Vec::new();
-        for string in RESERVED_STRINGS.iter() {
-            terminators.push(*string);
-        }
+
+        token::RESERVED_STRINGS
+            .iter()
+            .for_each(|s| terminators.push(*s));
+
         terminators.push(" ");
         terminators.push("\t");
         terminators.push("\n");

@@ -316,9 +316,9 @@ impl Visitor<String> for GenAstDot {
         string
     }
 
-    fn visit_substitution(&mut self, substitution: &Token) -> String {
+    fn visit_symbol(&mut self, symbol: &Token) -> String {
         let (string, _) =
-            self.new_node(&format!("Sub:\n{}", substitution.get_value()));
+            self.new_node(&format!("Sym:\n{}", symbol.get_value()));
 
         string
     }

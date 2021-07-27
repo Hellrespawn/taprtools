@@ -95,7 +95,7 @@ fn typical_input() -> Result<()> {
         ),
         block: ast::Block {
             expressions: vec![
-                Expression::Substitution(
+                Expression::Symbol(
                     Token::new(3, 7, TokenType::ID, Some("folder".to_string(),))?,
                 ),
                 Expression::StringNode(

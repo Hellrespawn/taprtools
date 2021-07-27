@@ -17,6 +17,13 @@ impl MP3 {
             tags: Tag::read_from_path(path)?,
         }))
     }
+
+    fn get_raw(&self, name: &str) -> Option<&str> {
+        self.tags
+            .get(name)
+            .and_then(|frame| frame.content().text())
+            .map(|text| text.trim_matches(char::from(0)))
+    }
 }
 
 impl AudioFile for MP3 {
@@ -33,10 +40,7 @@ impl AudioFile for MP3 {
     }
 
     fn albumsort(&self) -> Option<&str> {
-        self.tags
-            .get("TSOA")
-            .and_then(|frame| frame.content().text())
-            .map(|text| text.trim_matches(char::from(0)))
+        self.get_raw("TSOA")
     }
 
     fn artist(&self) -> Option<&str> {
@@ -48,17 +52,11 @@ impl AudioFile for MP3 {
     }
 
     fn disc_number(&self) -> Option<&str> {
-        self.tags
-            .get("TPOS")
-            .and_then(|frame| frame.content().text())
-            .map(|text| text.trim_matches(char::from(0)))
+        self.get_raw("TPOS")
     }
 
     fn duration(&self) -> Option<&str> {
-        self.tags
-            .get("TLEN")
-            .and_then(|frame| frame.content().text())
-            .map(|text| text.trim_matches(char::from(0)))
+        self.get_raw("TLEN")
     }
 
     fn genre(&self) -> Option<&str> {
@@ -86,21 +84,10 @@ impl AudioFile for MP3 {
     }
 
     fn track_number(&self) -> Option<&str> {
-        self.tags
-            .get("TRCK")
-            .and_then(|frame| frame.content().text())
-            .map(|text| text.trim_matches(char::from(0)))
+        self.get_raw("TRCK")
     }
 
     fn year(&self) -> Option<&str> {
-        self.tags
-            .get("TDRC")
-            .and_then(|frame| frame.content().text())
-            .or_else(|| {
-                self.tags
-                    .get("TYER")
-                    .and_then(|frame| frame.content().text())
-                    .map(|text| text.trim_matches(char::from(0)))
-            })
+        self.get_raw("TDRC").or_else(|| self.get_raw("TYER"))
     }
 }

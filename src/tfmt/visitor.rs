@@ -4,9 +4,13 @@ use super::token::Token;
 /// [Visitor] visits [Node]s and returns `T`.
 pub trait Visitor<T> {
     fn visit_program(&mut self, program: &Program) -> T;
+
     fn visit_parameters(&mut self, parameters: &Parameters) -> T;
+
     fn visit_parameter(&mut self, parameter: &Parameter) -> T;
+
     fn visit_block(&mut self, block: &Block) -> T;
+
     fn visit_expression(&mut self, expression: &Expression) -> T {
         match expression {
             Expression::TernaryOp {
@@ -28,7 +32,7 @@ pub trait Visitor<T> {
             } => self.visit_function(start_token, arguments),
             Expression::StringNode(string) => self.visit_string(string),
             Expression::IntegerNode(integer) => self.visit_integer(integer),
-            Expression::Substitution(subst) => self.visit_substitution(subst),
+            Expression::Symbol(subst) => self.visit_symbol(subst),
             Expression::Tag { token, .. } => self.visit_tag(token),
         }
     }
@@ -61,7 +65,7 @@ pub trait Visitor<T> {
 
     fn visit_string(&mut self, string: &Token) -> T;
 
-    fn visit_substitution(&mut self, substitution: &Token) -> T;
+    fn visit_symbol(&mut self, symbol: &Token) -> T;
 
     fn visit_tag(&mut self, token: &Token) -> T;
 }

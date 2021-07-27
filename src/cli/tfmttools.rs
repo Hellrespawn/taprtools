@@ -29,6 +29,7 @@ pub fn main() -> Result<()> {
 
 fn lexer_test(filename: &str) -> Result<Lexer> {
     let mut path = std::path::PathBuf::from(file!());
+
     for _ in 1..=3 {
         path.pop();
     }

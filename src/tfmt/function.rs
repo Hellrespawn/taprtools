@@ -101,9 +101,9 @@ fn function_split(
 fn function_validate(string: &str) -> String {
     let mut out = String::from(string);
 
-    for grapheme in FORBIDDEN_GRAPHEMES {
-        out = out.replace(grapheme, "");
-    }
+    FORBIDDEN_GRAPHEMES
+        .iter()
+        .for_each(|g| out = out.replace(g, ""));
 
     out
 }

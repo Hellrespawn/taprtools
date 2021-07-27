@@ -1,5 +1,6 @@
 use super::ast::*;
 use super::function::handle_function;
+use super::semantic::SymbolTable;
 use super::token::{
     Token, TokenType, DIRECTORY_SEPARATORS, FORBIDDEN_GRAPHEMES,
 };
@@ -12,12 +13,13 @@ type Result<T> = std::result::Result<T, InterpreterError>;
 /// Interprets an AST based on tags from and [AudioFile].
 pub struct Interpreter {
     song: Box<dyn AudioFile>,
+    symbol_table: SymbolTable,
 }
 
 impl Interpreter {
     /// Constructor
-    pub fn new(song: Box<dyn AudioFile>) -> Self {
-        Interpreter { song }
+    pub fn new(song: Box<dyn AudioFile>, symbol_table: SymbolTable) -> Self {
+        Interpreter { song, symbol_table }
     }
 
     /// Public function for interpreter.
@@ -180,8 +182,10 @@ impl Visitor<Result<String>> for Interpreter {
         Ok(string.get_value().to_string())
     }
 
-    fn visit_substitution(&mut self, substitution: &Token) -> Result<String> {
-        Ok(substitution.get_value().to_string())
+    fn visit_symbol(&mut self, symbol: &Token) -> Result<String> {
+        let name = symbol.get_value();
+        // This is checked by SemanticAnalyzer, should be safe.
+        Ok(self.symbol_table.get(name).unwrap().to_string())
     }
 
     fn visit_tag(&mut self, token: &Token) -> Result<String> {
@@ -209,23 +213,14 @@ impl Visitor<Result<String>> for Interpreter {
         .unwrap_or("")
         .to_string();
 
-        // TODO? Use map or something?
-        // FIXME Add strict mode?
-        for grapheme in FORBIDDEN_GRAPHEMES {
-            tag = tag.replace(grapheme, "");
-            // if tag.contains(grapheme) {
-            //     return Err(InterpreterError::TagForbidden(
-            //         grapheme.to_string(),
-            //     ));
-            // }
-        }
-
-        for grapheme in DIRECTORY_SEPARATORS {
-            tag = tag.replace(grapheme, "");
-            // if tag.contains(grapheme) {
-            //     return Err(InterpreterError::TagDirSep(grapheme.to_string()));
-            // }
-        }
+        // TODO? Add strict mode, which allows/denies/errors on forbidden
+        // characters/directory separators.
+        FORBIDDEN_GRAPHEMES
+            .iter()
+            .for_each(|g| tag = tag.replace(g, ""));
+        DIRECTORY_SEPARATORS
+            .iter()
+            .for_each(|g| tag = tag.replace(g, ""));
 
         Ok(tag)
     }
@@ -248,7 +243,10 @@ mod tests {
     /// Test handling of leading zeroes.
     #[test]
     fn test_visit_tag() -> Result<()> {
-        let mut intp = Interpreter { song: get_song()? };
+        let mut intp = Interpreter {
+            song: get_song()?,
+            symbol_table: SymbolTable::new(),
+        };
 
         let token = Token::new_type_from_string(
             1,

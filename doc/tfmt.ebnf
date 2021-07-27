@@ -46,7 +46,7 @@ String   ::= SingleQuote PrintableChars* SingleQuote
            | TripleSingleQuote ( PrintableChars | "\n" )* TripleSingleQuote
            | TripleDoubleQuote ( PrintableChars | "\n" )* TripleDoubleQuote
 
-Substitution
+Symbol
          ::= "$(" ID ")"
 
 Tag      ::= "<" ID ">"

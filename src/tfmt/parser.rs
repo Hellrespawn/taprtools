@@ -422,7 +422,7 @@ where
                 if self.current_token.ttype == TokenType::ParenthesisLeft {
                     self.consume(TokenType::ParenthesisLeft)?;
                     let substitution =
-                        Expression::Substitution(self.consume(TokenType::ID)?);
+                        Expression::Symbol(self.consume(TokenType::ID)?);
                     self.consume(TokenType::ParenthesisRight)?;
                     substitution
                 } else {
