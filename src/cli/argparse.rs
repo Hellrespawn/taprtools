@@ -1,15 +1,16 @@
+use anyhow::{bail, Result};
 use clap::{load_yaml, App, ArgMatches};
 use std::ffi::OsString;
 
 /// Contains the collected and parsed command line arguments.
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Args {
     /// Verbosity
     pub verbosity: u64,
     /// Whether or not to actually rename files.
     pub dry_run: bool,
     /// Arguments specific to chosen subcommand.
-    pub sub_args: Option<SubArgs>,
+    pub subcommand: Subcommand,
 }
 
 impl Args {
@@ -24,7 +25,8 @@ impl Args {
 /// Contains the collected and parsed command line arguments specific to the
 /// chosen subcommand.
 #[derive(Debug, PartialEq)]
-pub enum SubArgs {
+// TODO? Add a default subcommand?
+pub enum Subcommand {
     /// Undo `amount` actions.
     Undo { amount: u64 },
     /// Redo `amount` actions.
@@ -39,30 +41,30 @@ pub enum SubArgs {
     },
 }
 
-impl SubArgs {
-    fn from_subcommand(name: &str, submatches: &ArgMatches) -> Option<Self> {
+impl Subcommand {
+    fn from_subcommand(name: &str, submatches: &ArgMatches) -> Result<Self> {
         match name {
-            "undo" => Some(SubArgs::Undo {
+            "undo" => Ok(Subcommand::Undo {
                 amount: submatches
                     .value_of("amount")
                     .unwrap()
                     .parse::<u64>()
                     .expect("Invalid amount!"),
             }),
-            "redo" => Some(SubArgs::Redo {
+            "redo" => Ok(Subcommand::Redo {
                 amount: submatches
                     .value_of("amount")
                     .unwrap()
                     .parse::<u64>()
                     .expect("Invalid amount!"),
             }),
-            "inspect" => Some(SubArgs::Inspect {
+            "inspect" => Ok(Subcommand::Inspect {
                 name: submatches
                     .value_of("name")
                     .expect("Name wasn't specified!")
                     .to_string(),
             }),
-            "rename" => Some(SubArgs::Rename {
+            "rename" => Ok(Subcommand::Rename {
                 name: submatches
                     .value_of("name")
                     .expect("Name wasn't specified!")
@@ -74,18 +76,18 @@ impl SubArgs {
                     .map(|i| i.map(String::from).collect()),
                 recursive: submatches.is_present("recursive"),
             }),
-            _ => None,
+            other => bail!("Unknown subcommand name: {}", other),
         }
     }
 }
 
 /// Wrapper function for [`_parse_args`] using command line arguments..
-pub fn parse_args() -> Args {
+pub fn parse_args() -> Result<Args> {
     _parse_args(std::env::args_os())
 }
 
 /// Parse arguments.
-fn _parse_args<I, T>(iterator: I) -> Args
+fn _parse_args<I, T>(iterator: I) -> Result<Args>
 where
     I: IntoIterator<Item = T>,
     T: Into<OsString> + Clone,
@@ -93,17 +95,20 @@ where
     let yaml = load_yaml!("tfmttools.yml");
     let matches = App::from_yaml(yaml).get_matches_from(iterator);
 
-    let mut args: Args = Default::default();
+    let (name, submatches) = matches.subcommand();
+    let submatches = submatches.unwrap();
+
+    let mut args = Args {
+        verbosity: 0,
+        dry_run: false,
+        // SubcommandRequired is enabled in tfmttools.yml
+        subcommand: Subcommand::from_subcommand(name, submatches)?,
+    };
+
     args.accumulate_ArgMatches(&matches);
+    args.accumulate_ArgMatches(&submatches);
 
-    if let Some(name) = matches.subcommand_name() {
-        let submatches = matches.subcommand_matches(name).unwrap();
-
-        args.accumulate_ArgMatches(&submatches);
-        args.sub_args = SubArgs::from_subcommand(name, submatches);
-    }
-
-    args
+    Ok(args)
 }
 
 #[cfg(test)]
@@ -111,14 +116,14 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_argparser() {
+    fn test_argparser() -> Result<()> {
         // Don't forget program name!
         let cli_args =
             "argparse.exe -vv rename -vv Sync -- these are arguments";
         let test_args = Args {
             verbosity: 4,
             dry_run: false,
-            sub_args: Some(SubArgs::Rename {
+            subcommand: Subcommand::Rename {
                 name: "Sync".to_string(),
                 arguments: Some(vec![
                     "these".to_string(),
@@ -126,9 +131,11 @@ mod test {
                     "arguments".to_string(),
                 ]),
                 recursive: false,
-            }),
+            },
         };
 
-        assert_eq!(_parse_args(cli_args.split_whitespace()), test_args)
+        assert_eq!(_parse_args(cli_args.split_whitespace())?, test_args);
+
+        Ok(())
     }
 }
