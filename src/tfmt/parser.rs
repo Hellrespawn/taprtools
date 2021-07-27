@@ -5,7 +5,6 @@ use super::lexer::{Lexer, LexerResult};
 use super::token::{Token, TokenType};
 use crate::error::ParserError;
 
-use std::convert::TryFrom;
 use std::str::FromStr;
 
 type Result<T> = std::result::Result<T, ParserError>;
@@ -27,8 +26,6 @@ impl FromStr for Parser<Lexer> {
         Ok(Parser::from_iterator(Lexer::from_str(string)?))
     }
 }
-
-// TODO impl TryFrom
 
 impl<I> Parser<I>
 where

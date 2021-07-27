@@ -70,8 +70,6 @@ impl TryFrom<&Path> for Lexer {
 }
 
 impl Lexer {
-    // FIXME create from_path
-
     // pub fn reset(&mut self) {
     //     self.index = 0;
     //     self.line_no = 1;
