@@ -6,21 +6,14 @@ use tfmttools::file::audiofile::AudioFile;
 use tfmttools::file::mp3::MP3;
 use tfmttools::file::ogg::OGG;
 
-#[allow(unused_must_use, dead_code)]
+#[allow(dead_code)]
 pub fn init_logger() {
-    fern::Dispatch::new()
-        .format(|out, message, record| {
-            out.finish(format_args!(
-                "[{}][{}] {}",
-                // chrono::Local::now().format("%Y-%m-%d][%H:%M:%S"),
-                record.level(),
-                record.target(),
-                message
-            ))
-        })
-        .level(log::LevelFilter::Trace)
-        .chain(std::io::stderr())
-        .apply();
+    tfmttools::cli::logging::setup_logger(
+        5,
+        &std::env::temp_dir(),
+        "tfmttools-test",
+    )
+    .expect("Error in setup_logger");
 }
 
 #[allow(dead_code)]

@@ -137,8 +137,10 @@ impl GenAstDot {
 
 impl Visitor<String> for GenAstDot {
     fn visit_program(&mut self, program: &ast::Program) -> String {
-        let (mut string, program_node) =
-            self.new_node(&format!("Program\n{}", program.name.get_value()));
+        let (mut string, program_node) = self.new_node(&format!(
+            "Program\n{}",
+            program.name.get_value_unchecked()
+        ));
 
         string += "subgraph header {\nrankdir=\"RL\";\n";
 
@@ -174,11 +176,11 @@ impl Visitor<String> for GenAstDot {
 
     fn visit_parameter(&mut self, parameter: &ast::Parameter) -> String {
         let (mut string, parameter_node) =
-            self.new_node(parameter.token.get_value());
+            self.new_node(parameter.token.get_value_unchecked());
 
         if let Some(default) = parameter.default.as_ref() {
             let (default_string, default_node) =
-                self.new_node(default.get_value());
+                self.new_node(default.get_value_unchecked());
 
             string += &default_string;
             string += &self.connect_nodes(default_node, parameter_node);
@@ -244,7 +246,7 @@ impl Visitor<String> for GenAstDot {
         right: &Expression,
     ) -> String {
         let (mut string, binaryop_node) =
-            self.new_node(&format!("BinOp:\n{}", token.ttype.grapheme()));
+            self.new_node(&format!("BinOp:\n{}", token.ttype.as_str()));
 
         let left_node = self.counter;
         string += &left.accept(self);
@@ -259,7 +261,7 @@ impl Visitor<String> for GenAstDot {
 
     fn visit_unaryop(&mut self, token: &Token, operand: &Expression) -> String {
         let (mut string, unaryop_node) =
-            self.new_node(&format!("UnOp:\n{}", token.ttype.grapheme()));
+            self.new_node(&format!("UnOp:\n{}", token.ttype.as_str()));
 
         let operand_node = self.counter;
         string += &operand.accept(self);
@@ -285,8 +287,10 @@ impl Visitor<String> for GenAstDot {
         start_token: &Token,
         arguments: &[Expression],
     ) -> String {
-        let (mut string, function_node) = self
-            .new_node(&format!("Function:\n${}(...)", start_token.get_value()));
+        let (mut string, function_node) = self.new_node(&format!(
+            "Function:\n${}(...)",
+            start_token.get_value_unchecked()
+        ));
 
         for (i, expression) in arguments.iter().enumerate() {
             let expression_node = self.counter;
@@ -303,29 +307,30 @@ impl Visitor<String> for GenAstDot {
 
     fn visit_integer(&mut self, integer: &Token) -> String {
         let (string, _) =
-            self.new_node(&format!("Int:\n{}", integer.get_value()));
+            self.new_node(&format!("Int:\n{}", integer.get_value_unchecked()));
 
         string
     }
 
     fn visit_string(&mut self, string: &Token) -> String {
-        // TODO trim string
-        let (string, _) =
-            self.new_node(&format!("String:\n{}", string.get_value()));
+        let (string, _) = self.new_node(&format!(
+            "String:\n{}",
+            string.get_value_unchecked().trim()
+        ));
 
         string
     }
 
     fn visit_symbol(&mut self, symbol: &Token) -> String {
         let (string, _) =
-            self.new_node(&format!("Sym:\n{}", symbol.get_value()));
+            self.new_node(&format!("Sym:\n{}", symbol.get_value_unchecked()));
 
         string
     }
 
     fn visit_tag(&mut self, token: &Token) -> String {
         let (string, _) =
-            self.new_node(&format!("Tag:\n<{}>", token.get_value()));
+            self.new_node(&format!("Tag:\n<{}>", token.get_value_unchecked()));
 
         string
     }

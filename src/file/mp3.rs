@@ -26,6 +26,7 @@ impl MP3 {
     }
 }
 
+// TODO Implement less common tags for MP3
 impl AudioFile for MP3 {
     fn extension(&self) -> &'static str {
         "mp3"

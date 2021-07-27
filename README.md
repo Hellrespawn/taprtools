@@ -15,6 +15,3 @@ Operators in order of precedence, from lowest to highest:
 | `+ a`<br>`- a`<br>`(expressions...)` |                                               |
 
 ## To-do
-
-* TODO Learn about generic errors in parser
-* TODO Learn about generics and Self

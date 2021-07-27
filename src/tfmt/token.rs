@@ -5,6 +5,13 @@ use lazy_static::lazy_static;
 
 type Result<T> = std::result::Result<T, TokenError>;
 
+/// Forbidden graphemes that are part of TFMT.
+pub static FORBIDDEN_GRAPHEMES: [&str; 8] =
+    ["<", ">", ":", "\"", "|", "?", "*", "~"];
+
+/// Directory separators.
+pub static DIRECTORY_SEPARATORS: [&str; 2] = ["/", "\\"];
+
 /// Describes [Token] type.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum TokenType {
@@ -47,91 +54,93 @@ pub enum TokenType {
     Uninitialized,
 }
 
-lazy_static! {
-    static ref TOKEN_TYPE_STRING_MAP: BiMap<TokenType, &'static str> = {
-        let mut ttypes = BiMap::new();
-        ttypes.insert(TokenType::Ampersand, "&");
-        ttypes.insert(TokenType::AngleBracketLeft, "<");
-        ttypes.insert(TokenType::AngleBracketRight, ">");
-        ttypes.insert(TokenType::Caret, "^");
-        ttypes.insert(TokenType::Comma, ",");
-        ttypes.insert(TokenType::CurlyBraceLeft, "{");
-        ttypes.insert(TokenType::CurlyBraceRight, "}");
-        ttypes.insert(TokenType::Colon, ":");
-        ttypes.insert(TokenType::Dollar, "$");
-        ttypes.insert(TokenType::Equals, "=");
-        ttypes.insert(TokenType::Hash, "#");
-        ttypes.insert(TokenType::Hyphen, "-");
-        ttypes.insert(TokenType::Asterisk, "*");
-        ttypes.insert(TokenType::ParenthesisLeft, "(");
-        ttypes.insert(TokenType::ParenthesisRight, ")");
-        ttypes.insert(TokenType::Percent, "%");
-        ttypes.insert(TokenType::Plus, "+");
-        ttypes.insert(TokenType::QuestionMark, "?");
-        ttypes.insert(TokenType::QuoteDouble, "\"");
-        ttypes.insert(TokenType::QuoteSingle, "'");
-        ttypes.insert(TokenType::SlashBack, "\\");
-        ttypes.insert(TokenType::SlashForward, "/");
-        ttypes.insert(TokenType::VerticalBar, "|");
-
-        ttypes.insert(TokenType::AsteriskSlash, "*/");
-        ttypes.insert(TokenType::DoubleAmpersand, "&&");
-        ttypes.insert(TokenType::DoubleAsterisk, "**");
-        ttypes.insert(TokenType::DoubleVerticalBar, "||");
-        ttypes.insert(TokenType::SlashAsterisk, "/*");
-
-        ttypes.insert(TokenType::Comment, "COMMENT");
-        ttypes.insert(TokenType::ID, "ID");
-        ttypes.insert(TokenType::Integer, "INTEGER");
-        ttypes.insert(TokenType::String, "STRING");
-
-        ttypes.insert(TokenType::EOF, "EOF");
-        ttypes.insert(TokenType::Uninitialized, "UNINITIALIZED");
-
-        ttypes
-    };
-}
-
 impl TokenType {
+    /// Ignored [TokenType]s
+    pub const IGNORED: [TokenType; 1] = [TokenType::Comment];
+
+    fn string_map() -> &'static BiMap<TokenType, &'static str> {
+        lazy_static! {
+            static ref STRING_MAP: BiMap<TokenType, &'static str> = {
+                let mut ttypes = BiMap::new();
+                ttypes.insert(TokenType::Ampersand, "&");
+                ttypes.insert(TokenType::AngleBracketLeft, "<");
+                ttypes.insert(TokenType::AngleBracketRight, ">");
+                ttypes.insert(TokenType::Caret, "^");
+                ttypes.insert(TokenType::Comma, ",");
+                ttypes.insert(TokenType::CurlyBraceLeft, "{");
+                ttypes.insert(TokenType::CurlyBraceRight, "}");
+                ttypes.insert(TokenType::Colon, ":");
+                ttypes.insert(TokenType::Dollar, "$");
+                ttypes.insert(TokenType::Equals, "=");
+                ttypes.insert(TokenType::Hash, "#");
+                ttypes.insert(TokenType::Hyphen, "-");
+                ttypes.insert(TokenType::Asterisk, "*");
+                ttypes.insert(TokenType::ParenthesisLeft, "(");
+                ttypes.insert(TokenType::ParenthesisRight, ")");
+                ttypes.insert(TokenType::Percent, "%");
+                ttypes.insert(TokenType::Plus, "+");
+                ttypes.insert(TokenType::QuestionMark, "?");
+                ttypes.insert(TokenType::QuoteDouble, "\"");
+                ttypes.insert(TokenType::QuoteSingle, "'");
+                ttypes.insert(TokenType::SlashBack, "\\");
+                ttypes.insert(TokenType::SlashForward, "/");
+                ttypes.insert(TokenType::VerticalBar, "|");
+
+                ttypes.insert(TokenType::AsteriskSlash, "*/");
+                ttypes.insert(TokenType::DoubleAmpersand, "&&");
+                ttypes.insert(TokenType::DoubleAsterisk, "**");
+                ttypes.insert(TokenType::DoubleVerticalBar, "||");
+                ttypes.insert(TokenType::SlashAsterisk, "/*");
+
+                ttypes.insert(TokenType::Comment, "COMMENT");
+                ttypes.insert(TokenType::ID, "ID");
+                ttypes.insert(TokenType::Integer, "INTEGER");
+                ttypes.insert(TokenType::String, "STRING");
+
+                ttypes.insert(TokenType::EOF, "EOF");
+                ttypes.insert(TokenType::Uninitialized, "UNINITIALIZED");
+
+                ttypes
+            };
+        }
+        &STRING_MAP
+    }
+
+    pub fn reserved_strings() -> &'static [&'static str] {
+        lazy_static! {
+            /// Reserved strings.
+            static ref RESERVED_STRINGS: Vec<&'static str> = {
+                let mut reserved = Vec::new();
+                for (_, string) in TokenType::string_map().iter() {
+                    if !string.chars().all(|c| c.is_alphabetic()) {
+                        reserved.push(*string)
+                    }
+                }
+                reserved.sort_by_key(|a| a.len());
+                reserved.reverse();
+                reserved
+            };
+        }
+        &RESERVED_STRINGS
+    }
+
     /// Get [TokenType] from string.
     pub fn from_string(string: &str) -> Result<TokenType> {
-        TOKEN_TYPE_STRING_MAP
+        TokenType::string_map()
             .get_by_right(string)
             .ok_or_else(|| TokenError::InvalidType(string.to_string()))
             .map(|tt| *tt)
     }
 
     /// Get string representation of self.[TokenType].
-    pub fn grapheme(&self) -> &str {
-        TOKEN_TYPE_STRING_MAP
+    pub fn as_str(&self) -> &str {
+        TokenType::string_map()
             .get_by_left(self)
-            .expect("fmt: All TokenTypes should be in TOKEN_TYPE_STRING_MAP")
+            // All TokenTypes should be in TokenType::string_map, so unwrap
+            // should always be safe.
+            .unwrap()
     }
 }
-
-lazy_static! {
-    /// Reserved strings.
-    pub static ref RESERVED_STRINGS: Vec<&'static str> = {
-        let mut reserved = Vec::new();
-        for (_, string) in TOKEN_TYPE_STRING_MAP.iter() {
-            if !string.chars().all(|c| c.is_alphabetic()) {
-                reserved.push(*string)
-            }
-        }
-        reserved.sort_by_key(|a| a.len());
-        reserved.reverse();
-        reserved
-    };
-}
-
-/// Forbidden graphemes that are part of TFMT.
-pub static FORBIDDEN_GRAPHEMES: [&str; 8] =
-    ["<", ">", ":", "\"", "|", "?", "*", "~"];
-
-pub static DIRECTORY_SEPARATORS: [&str; 2] = ["/", "\\"];
-
-/// Ignored [TokenType]s
-pub static IGNORED_TOKEN_TYPES: [TokenType; 1] = [TokenType::Comment];
 
 /// [Token] is a lexical unit with an optional value.
 #[derive(Clone, Debug, PartialEq)]
@@ -189,9 +198,10 @@ impl Token {
         Self::new(line_no, col_no, TokenType::from_string(&ttype_str)?, value)
     }
 
-    pub fn get_value(&self) -> &str {
-        self.value
-            .as_ref()
-            .expect("Token values should be checked at creation.")
+    pub fn get_value_unchecked(&self) -> &str {
+        self.value.as_ref().expect(
+            "Token values are checked at creation! Are you \
+            trying to get the value from a token that doesn't have one?",
+        )
     }
 }

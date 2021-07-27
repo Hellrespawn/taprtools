@@ -1,21 +1,25 @@
 use anyhow::Result;
 
 use tfmttools::tfmt::ast::{self, Expression};
-use tfmttools::tfmt::lexer::Lexer;
+use tfmttools::tfmt::lexer::{Lexer, LexerResult};
 use tfmttools::tfmt::parser::Parser;
 use tfmttools::tfmt::token::{Token, TokenType};
+
+use std::str::FromStr;
 
 mod common;
 
 fn file_test(filename: &str, reference: Option<ast::Program>) -> Result<()> {
     let input = common::get_script(filename)?;
 
-    let mut parser = Parser::<Lexer>::from_string(&input)?;
+    let tokens: Vec<LexerResult> = Lexer::from_str(&input)?.collect();
 
-    let root = parser.parse()?;
+    let mut parser = Parser::from_iterator(tokens.into_iter());
+
+    let program = parser.parse()?;
 
     if let Some(reference) = reference {
-        assert_eq!(root, reference)
+        assert_eq!(program, reference)
     }
 
     Ok(())

@@ -1,11 +1,11 @@
 /* W3C EBNF Notation: */
 
-Program  ::= ID "(" Parameters ")" ( String )? "{" Block "}"
+Program  ::= ID "(" Parameters? ")" String? "{" Block "}"
 
 ID       ::= [a-zA-Z][a-zA-Z0-9_]*
 
 Parameters
-         ::= ( Parameter ( "," Parameter )* )?
+         ::= Parameter ( "," Parameter )*
 
 Parameter
          ::= ID ( "=" ( Integer | String ) )?

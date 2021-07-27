@@ -1,12 +1,14 @@
 use log::trace;
 
 use super::ast::{self, Expression};
-use super::lexer::Lexer;
-use super::token::{Token, TokenType, IGNORED_TOKEN_TYPES};
-use crate::error::{LexerError, ParserError};
+use super::lexer::{Lexer, LexerResult};
+use super::token::{Token, TokenType};
+use crate::error::ParserError;
+
+use std::convert::TryFrom;
+use std::str::FromStr;
 
 type Result<T> = std::result::Result<T, ParserError>;
-type LexerResult = std::result::Result<Token, LexerError>;
 
 /// Reads a stream of [Token]s and build an Abstract Syntax Tree.
 pub struct Parser<I>
@@ -19,6 +21,15 @@ where
     previous_token: Token,
 }
 
+impl FromStr for Parser<Lexer> {
+    type Err = ParserError;
+    fn from_str(string: &str) -> Result<Parser<Lexer>> {
+        Ok(Parser::from_iterator(Lexer::from_str(string)?))
+    }
+}
+
+// TODO impl TryFrom
+
 impl<I> Parser<I>
 where
     I: Iterator<Item = LexerResult>,
@@ -28,17 +39,12 @@ where
         Parser {
             iterator,
             depth: 0,
-            //Dummy tokens
+            // TokenType::Uninitialized doesn't take a value, so should never fail.
             current_token: Token::new(0, 0, TokenType::Uninitialized, None)
-                .expect("Correctly using value None"),
+                .unwrap(),
             previous_token: Token::new(0, 0, TokenType::Uninitialized, None)
-                .expect("Correctly using value None"),
+                .unwrap(),
         }
-    }
-
-    /// Create parser from string.
-    pub fn from_string(string: &str) -> Result<Parser<Lexer>> {
-        Ok(Parser::from_iterator(Lexer::new(string)?))
     }
 
     /// Wrapper function for starting [Parser].
@@ -53,16 +59,17 @@ where
         // Allows replacing without deinit, even without Clone/Copy
         let prev = std::mem::replace(
             &mut self.current_token,
-            self.iterator
-                .next()
-                .expect("Parser exhausted tokens without encountering EOF!")?,
+            match self.iterator.next() {
+                Some(a) => a?,
+                None => return Err(ParserError::ExpectedEOF),
+            },
         );
 
         if !ignore {
             self.previous_token = prev
         }
 
-        if IGNORED_TOKEN_TYPES.contains(&self.current_token.ttype) {
+        if TokenType::IGNORED.contains(&self.current_token.ttype) {
             self._advance(true)?;
         }
 
@@ -95,7 +102,7 @@ where
 
     fn trace(&mut self, log_string: &str) {
         let mut string: String = String::new();
-        for i in 1..=self.depth {
+        for i in 0..self.depth {
             string.push_str(&(i % 10).to_string());
         }
         string.push(' ');
@@ -108,9 +115,10 @@ where
     fn program(&mut self) -> Result<ast::Program> {
         // ID "(" Parameters ")" ( String )? "{" Block "}"
         self.depth += 1;
-        self.trace("Program");
 
         let name = self.consume(TokenType::ID)?;
+
+        self.trace(&format!("Program: \"{}\"", name.get_value_unchecked()));
 
         self.consume(TokenType::ParenthesisLeft)?;
 
@@ -118,7 +126,7 @@ where
 
         self.consume(TokenType::ParenthesisRight)?;
 
-        // FIXME Replicate consume(...).Ok() in other places!
+        // Optional, so ok to return Err.
         let description = self.consume(TokenType::String).ok();
 
         self.consume(TokenType::CurlyBraceLeft)?;
@@ -159,8 +167,11 @@ where
     fn parameter(&mut self) -> Result<ast::Parameter> {
         // ID ( "=" ( Integer | String ) )?
         self.depth += 1;
-        self.trace("Parameter");
         let identifier = self.consume(TokenType::ID)?;
+        self.trace(&format!(
+            "Parameter: \"{}\"",
+            identifier.get_value_unchecked()
+        ));
 
         let default = match self.consume(TokenType::Equals) {
             Ok(_) => {
@@ -207,6 +218,9 @@ where
             self.trace(&format!(
                 "Gathering expressions until {:?}",
                 terminators
+                    .iter()
+                    .map(|tt| tt.as_str())
+                    .collect::<Vec<&str>>()
             ));
 
             if self.depth > 48 {

@@ -1,9 +1,11 @@
 use anyhow::Result;
 use maplit::hashmap;
 use tfmttools::tfmt::interpreter::Interpreter;
-use tfmttools::tfmt::lexer::Lexer;
+use tfmttools::tfmt::lexer::{Lexer, LexerResult};
 use tfmttools::tfmt::parser::Parser;
 use tfmttools::tfmt::semantic::SymbolTable;
+
+use std::str::FromStr;
 
 mod common;
 
@@ -14,7 +16,11 @@ fn file_test(
 ) -> Result<()> {
     let input = common::get_script(filename)?;
 
-    let program = Parser::<Lexer>::from_string(&input)?.parse()?;
+    let tokens: Vec<LexerResult> = Lexer::from_str(&input)?.collect();
+
+    let mut parser = Parser::from_iterator(tokens.into_iter());
+
+    let program = parser.parse()?;
 
     let songs = common::get_songs()?;
 
@@ -51,6 +57,7 @@ fn test_simple_input() -> Result<()> {
 
 #[test]
 fn test_typical_input() -> Result<()> {
+    common::init_logger();
     file_test(
         "typical_input.tfmt",
         &[

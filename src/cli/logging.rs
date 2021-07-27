@@ -36,29 +36,31 @@ pub fn setup_logger(
 
         fs::create_dir_all(&path)?;
 
-        let mut path = PathBuf::from(&path);
-        path.push(format!("{}.log", filename));
+        let mut file = PathBuf::from(&path);
+        file.push(format!("{}.log", filename));
 
-        let log_file = std::fs::OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .open(&path)?;
+        // let log_file = std::fs::OpenOptions::new()
+        //     .write(true)
+        //     .create(true)
+        //     .truncate(true)
+        //     .open(&path)?;
 
-        fern::Dispatch::new()
-            .format(|out, message, record| {
-                out.finish(format_args!(
-                    "[{}][{}] {}",
-                    // chrono::Local::now().format("%Y-%m-%d][%H:%M:%S"),
-                    record.level(),
-                    record.target(),
-                    message
-                ))
-            })
-            .level(level)
-            //.chain(std::io::stderr())
-            .chain(log_file)
-            .apply()?;
+        simple_logging::log_to_file(file, level)?;
+
+        // fern::Dispatch::new()
+        //     .format(|out, message, record| {
+        //         out.finish(format_args!(
+        //             "[{}][{}] {}",
+        //             // chrono::Local::now().format("%Y-%m-%d][%H:%M:%S"),
+        //             record.level(),
+        //             record.target(),
+        //             message
+        //         ))
+        //     })
+        //     .level(level)
+        //     //.chain(std::io::stderr())
+        //     .chain(log_file)
+        //     .apply()?;
 
         log!(
             log::max_level().to_level().unwrap_or(log::Level::Error),

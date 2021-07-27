@@ -3,6 +3,8 @@ use tfmttools::tfmt::lexer::Lexer;
 use tfmttools::tfmt::token::Token;
 use tfmttools::tfmt::token::TokenType::*;
 
+use std::str::FromStr;
+
 mod common;
 
 fn file_test(filename: &str, reference: Option<&[Token]>) -> Result<()> {
@@ -37,7 +39,7 @@ fn run_lexer(string: &str, pop_eof: bool) -> Result<Vec<Token>> {
 }
 
 fn create_lexer(string: &str) -> Result<Lexer> {
-    Ok(Lexer::new(string)?)
+    Ok(Lexer::from_str(string)?)
 }
 
 #[test]
@@ -199,7 +201,7 @@ fn typical_input() -> Result<()> {
 
 #[test]
 fn empty_text() -> Result<()> {
-    match Lexer::new("") {
+    match Lexer::from_str("") {
         Ok(_) => bail!("Lexer should fail with empty text!"),
         Err(_) => Ok(()),
     }

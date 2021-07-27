@@ -164,7 +164,7 @@ impl Visitor<Result<String>> for Interpreter {
         start_token: &Token,
         arguments: &[Expression],
     ) -> Result<String> {
-        let name = start_token.get_value();
+        let name = start_token.get_value_unchecked();
 
         let arguments: Vec<String> = arguments
             .iter()
@@ -175,24 +175,24 @@ impl Visitor<Result<String>> for Interpreter {
     }
 
     fn visit_integer(&mut self, integer: &Token) -> Result<String> {
-        Ok(integer.get_value().to_string())
+        Ok(integer.get_value_unchecked().to_string())
     }
 
     fn visit_string(&mut self, string: &Token) -> Result<String> {
-        Ok(string.get_value().to_string())
+        Ok(string.get_value_unchecked().to_string())
     }
 
     fn visit_symbol(&mut self, symbol: &Token) -> Result<String> {
-        let name = symbol.get_value();
+        let name = symbol.get_value_unchecked();
         // This is checked by SemanticAnalyzer, should be safe.
         Ok(self.symbol_table.get(name).unwrap().to_string())
     }
 
     fn visit_tag(&mut self, token: &Token) -> Result<String> {
-        let tag_name = token.get_value();
+        let tag_name = token.get_value_unchecked();
 
         let mut tag = match tag_name {
-            // FIXME complete this.
+            // TODO Add less common tags from AudioFile
             "album" => self.song.album(),
             "albumartist" | "album_artist" => self.song.album_artist(),
             "albumsort" | "album_sort" => self.song.albumsort(),

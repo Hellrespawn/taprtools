@@ -3,6 +3,8 @@ use super::token::Token;
 use super::visitor::Visitor;
 use crate::error::SemanticError;
 
+use log::info;
+
 use std::collections::HashMap;
 
 /// Holds symbols for [Interpreter].
@@ -61,18 +63,21 @@ impl SemanticAnalyzer {
                 ));
             }
         }
-
-        // We tested for None, unwrap should be safe.
-        Ok(output
+        let output = output
             .into_iter()
             .map(|(k, v)| (k.to_string(), v.unwrap()))
-            .collect())
+            .collect();
+
+        info!("Symbol Table: {:?}", output);
+
+        // We tested for None, unwrap should be safe.
+        Ok(output)
     }
 }
 
 impl Visitor<()> for SemanticAnalyzer {
     fn visit_program(&mut self, program: &ast::Program) {
-        self.name = program.name.get_value().to_string();
+        self.name = program.name.get_value_unchecked().to_string();
 
         program.parameters.accept(self);
         program.block.accept(self);
@@ -83,12 +88,12 @@ impl Visitor<()> for SemanticAnalyzer {
     }
 
     fn visit_parameter(&mut self, parameter: &ast::Parameter) {
-        let key = parameter.token.get_value();
+        let key = parameter.token.get_value_unchecked();
 
         let default = parameter
             .default
             .as_ref()
-            .map(|t| t.get_value().to_string());
+            .map(|t| t.get_value_unchecked().to_string());
 
         self.symbols.push(key.to_string());
         self.symbol_count.insert(key.to_string(), 0);
@@ -141,7 +146,7 @@ impl Visitor<()> for SemanticAnalyzer {
     fn visit_string(&mut self, _string: &Token) {}
 
     fn visit_symbol(&mut self, symbol: &Token) {
-        let key = symbol.get_value().to_string();
+        let key = symbol.get_value_unchecked().to_string();
 
         self.symbol_count.entry(key).and_modify(|c| *c += 1);
     }
@@ -154,21 +159,16 @@ mod tests {
     use super::*;
     use crate::tfmt::ast;
     use crate::tfmt::parser::Parser;
-
-    use crate::tfmt::lexer::Lexer;
-
     use anyhow::Result;
-
     use maplit::hashmap;
+    use std::str::FromStr;
 
     fn get_script(path: &str) -> Result<ast::Program> {
-        Ok(
-            Parser::<Lexer>::from_string(&std::fs::read_to_string(format!(
-                "testdata/script/{}",
-                path
-            ))?)?
-            .parse()?,
-        )
+        Ok(Parser::from_str(&std::fs::read_to_string(format!(
+            "testdata/script/{}",
+            path
+        ))?)?
+        .parse()?)
     }
 
     fn script_test(name: &str, reference: &SymbolTable) -> Result<()> {

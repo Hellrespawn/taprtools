@@ -3,9 +3,12 @@ use crate::tfmt::ast;
 use crate::tfmt::genastdot::GenAstDot;
 use crate::tfmt::lexer::Lexer;
 use crate::tfmt::parser::Parser;
+
 use anyhow::Result;
 use log::{debug, info};
+
 use std::convert::TryInto;
+use std::str::FromStr;
 
 /// Main tfmttools entrypoint.
 pub fn main() -> Result<()> {
@@ -30,7 +33,7 @@ pub fn main() -> Result<()> {
 fn lexer_test(filename: &str) -> Result<Lexer> {
     let mut path = std::path::PathBuf::from(file!());
 
-    for _ in 1..=3 {
+    for _ in 0..3 {
         path.pop();
     }
     path.push("tests");
@@ -41,7 +44,7 @@ fn lexer_test(filename: &str) -> Result<Lexer> {
     let input = std::fs::read_to_string(path)
         .unwrap_or_else(|_| format!("{} doesn't exist!", filename));
 
-    Ok(Lexer::new(&input)?)
+    Ok(Lexer::from_str(&input)?)
 }
 
 fn parser_test(lex: Lexer) -> Result<ast::Program> {
