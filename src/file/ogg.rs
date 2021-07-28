@@ -2,17 +2,20 @@ use super::audiofile::AudioFile;
 use anyhow::Result;
 use lewton::inside_ogg::OggStreamReader;
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
 
 /// Representation of an Ogg-file.
+#[derive(Debug)]
 pub struct OGG {
     pub path: PathBuf,
     tags: HashMap<String, String>,
 }
 
-impl OGG {
-    /// Attempt to read [OGG] from `path`.
-    pub fn read_from_path(path: &Path) -> Result<Box<Self>> {
+impl TryFrom<&Path> for OGG {
+    type Error = anyhow::Error;
+
+    fn try_from(path: &Path) -> Result<Self> {
         let stream_reader = OggStreamReader::new(std::fs::File::open(&path)?)?;
 
         let tags = stream_reader
@@ -24,12 +27,22 @@ impl OGG {
             // FIXME Multiple tags with same value are allowed by Ogg/Vorbis
             .collect();
 
-        Ok(Box::new(OGG {
+        Ok(OGG {
             path: PathBuf::from(&path),
             tags,
-        }))
+        })
     }
+}
 
+impl TryFrom<&PathBuf> for OGG {
+    type Error = anyhow::Error;
+
+    fn try_from(path: &PathBuf) -> Result<Self> {
+        OGG::try_from(path.as_path())
+    }
+}
+
+impl OGG {
     /// Helper function for getting tags.
     pub fn get(&self, key: &str) -> Option<&str> {
         self.tags.get(key).map(String::as_str)

@@ -1,5 +1,5 @@
 /// Common functions for reading audio file tags.
-pub trait AudioFile {
+pub trait AudioFile: std::fmt::Debug {
     fn extension(&self) -> &'static str;
 
     fn album(&self) -> Option<&str>;
@@ -39,33 +39,13 @@ pub trait AudioFile {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::file::mp3::MP3;
-    use crate::file::ogg::OGG;
+    use crate::cli::rename::get_audiofiles;
     use anyhow::{bail, Result};
-    use std::ffi::OsStr;
+    use std::path::PathBuf;
 
     #[test]
     fn test_songs() -> Result<()> {
-        let mut files: Vec<Box<dyn AudioFile>> = Vec::new();
-
-        for entry in std::fs::read_dir("testdata/music")? {
-            if let Ok(entry) = entry {
-                if let Some(extension) =
-                    entry.path().extension().and_then(OsStr::to_str)
-                {
-                    match extension {
-                        "mp3" => {
-                            files.push(MP3::read_from_path(&entry.path())?)
-                        }
-                        "ogg" => {
-                            files.push(OGG::read_from_path(&entry.path())?)
-                        }
-                        _ => (),
-                    }
-                }
-            }
-        }
+        let files = get_audiofiles(&PathBuf::from("testdata/music"), 1)?;
 
         assert_eq!(files.len(), 5);
 

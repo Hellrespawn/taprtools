@@ -1,6 +1,7 @@
 use anyhow::{bail, Result};
 use clap::{load_yaml, App, ArgMatches};
 use std::ffi::OsString;
+use std::path::PathBuf;
 
 /// Contains the collected and parsed command line arguments.
 #[derive(Debug, PartialEq)]
@@ -37,8 +38,9 @@ pub enum Subcommand {
     Undo(u64),
     /// Rename files.
     Rename {
-        name: String,
-        arguments: Option<Vec<String>>,
+        script_name: String,
+        arguments: Vec<String>,
+        input_folder: PathBuf,
         recursive: bool,
     },
 }
@@ -68,15 +70,19 @@ impl Subcommand {
                     .expect("Invalid amount!"),
             )),
             "rename" => Ok(Subcommand::Rename {
-                name: submatches
-                    .value_of("name")
+                script_name: submatches
+                    .value_of("script-name")
                     .expect("Name wasn't specified!")
                     .to_string(),
                 // Option::map maps Option<T> to Option<U>
                 // Iterator::map items in iterator
                 arguments: submatches
-                    .values_of("arguments")
-                    .map(|i| i.map(String::from).collect()),
+                    .values_of("arguments").unwrap_or_default().map(String::from)
+                    .collect(),
+                input_folder: submatches
+                    .value_of("input-folder")
+                    .map(PathBuf::from)
+                    .unwrap_or(std::env::current_dir()?),
                 recursive: submatches.is_present("recursive"),
             }),
             other => bail!("Unknown subcommand name: {}", other),
@@ -127,12 +133,13 @@ mod test {
             verbosity: 4,
             dry_run: false,
             subcommand: Subcommand::Rename {
-                name: "Sync".to_string(),
-                arguments: Some(vec![
+                script_name: "Sync".to_string(),
+                arguments: vec![
                     "these".to_string(),
                     "are".to_string(),
                     "arguments".to_string(),
-                ]),
+                ],
+                input_folder: std::env::current_dir()?,
                 recursive: false,
             },
         };

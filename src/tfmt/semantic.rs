@@ -20,8 +20,8 @@ pub struct SemanticAnalyzer {
 impl SemanticAnalyzer {
     /// Public function for SemanticAnalyzer
     pub fn analyze(
-        program: ast::Program,
-        arguments: Vec<String>,
+        program: &ast::Program,
+        arguments: &[String],
     ) -> Result<SymbolTable, SemanticError> {
         let mut sa: SemanticAnalyzer = Default::default();
 
@@ -50,7 +50,7 @@ impl SemanticAnalyzer {
         }
 
         for (symbol, argument) in sa.symbols.iter().zip(arguments) {
-            output.insert(symbol, Some(argument));
+            output.insert(symbol, Some(argument.clone()));
         }
 
         for (key, val) in &output {
@@ -172,7 +172,7 @@ mod tests {
     fn script_test(name: &str, reference: &SymbolTable) -> Result<()> {
         let program = get_script(name)?;
 
-        let symbol_table = SemanticAnalyzer::analyze(program, Vec::new())?;
+        let symbol_table = SemanticAnalyzer::analyze(&program, &[])?;
 
         assert_eq!(&symbol_table, reference);
 

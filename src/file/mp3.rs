@@ -1,23 +1,36 @@
 use super::audiofile::AudioFile;
-use anyhow::Result;
+use anyhow::{self, Result};
 use id3::Tag;
+use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
 
 /// Representation of an MP3-file.
+#[derive(Debug)]
 pub struct MP3 {
     pub path: PathBuf,
     tags: Tag,
 }
 
-impl MP3 {
-    /// Attempt to read [MP3] from `path`.
-    pub fn read_from_path(path: &Path) -> Result<Box<Self>> {
-        Ok(Box::new(Self {
+impl TryFrom<&Path> for MP3 {
+    type Error = anyhow::Error;
+
+    fn try_from(path: &Path) -> Result<Self> {
+        Ok(Self {
             path: PathBuf::from(path),
             tags: Tag::read_from_path(path)?,
-        }))
+        })
     }
+}
 
+impl TryFrom<&PathBuf> for MP3 {
+    type Error = anyhow::Error;
+
+    fn try_from(path: &PathBuf) -> Result<Self> {
+        MP3::try_from(path.as_path())
+    }
+}
+
+impl MP3 {
     fn get_raw(&self, name: &str) -> Option<&str> {
         self.tags
             .get(name)

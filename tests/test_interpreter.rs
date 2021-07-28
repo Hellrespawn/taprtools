@@ -1,10 +1,12 @@
 use anyhow::Result;
 use maplit::hashmap;
+use tfmttools::cli::rename::get_audiofiles;
 use tfmttools::tfmt::interpreter::Interpreter;
 use tfmttools::tfmt::lexer::{Lexer, LexerResult};
 use tfmttools::tfmt::parser::Parser;
 use tfmttools::tfmt::semantic::SymbolTable;
 
+use std::path::PathBuf;
 use std::str::FromStr;
 
 mod common;
@@ -14,6 +16,13 @@ fn file_test(
     reference: &[&str],
     symbol_table: Option<SymbolTable>,
 ) -> Result<()> {
+
+    let symbol_table = if let Some(symbol_table) = symbol_table {
+        symbol_table
+    } else {
+        SymbolTable::new()
+    };
+
     let input = common::get_script(filename)?;
 
     let tokens: Vec<LexerResult> = Lexer::from_str(&input)?.collect();
@@ -22,15 +31,12 @@ fn file_test(
 
     let program = parser.parse()?;
 
-    let songs = common::get_songs()?;
+    let songs = get_audiofiles(&PathBuf::from("testdata/music"), 1)?;
 
     for song in songs {
         let output = Interpreter::new(
             song,
-            symbol_table
-                .as_ref()
-                .map(|st| st.clone())
-                .unwrap_or_else(|| SymbolTable::new()),
+            &symbol_table
         )
         .interpret(&program)?;
 

@@ -1,11 +1,17 @@
 use super::argparse::{Args, Subcommand};
 use super::config;
 use super::inspector::{Inspector, Mode};
-use crate::cli::{argparse, logging};
-use anyhow::{anyhow, bail, Result};
+use super::{argparse, logging};
+use crate::tfmt::parser::Parser;
+use crate::tfmt::semantic::SemanticAnalyzer;
+use crate::tfmt::interpreter::Interpreter;
+use crate::error::InterpreterError;
+use super::rename::get_audiofiles;
+use anyhow::{bail, Result};
 use log::info;
 use std::convert::TryInto;
-use std::path::PathBuf;
+use std::convert::TryFrom;
+use std::path::{Path, PathBuf};
 
 /// Main tfmttools entrypoint.
 pub fn main() -> Result<()> {
@@ -34,10 +40,16 @@ impl TFMTTools {
             Subcommand::Redo(amount) => self.redo(*amount),
             Subcommand::Undo(amount) => self.undo(*amount),
             Subcommand::Rename {
-                name,
+                script_name,
                 arguments,
+                input_folder,
                 recursive,
-            } => self.rename(name, arguments.as_ref(), *recursive),
+            } => self.rename(
+                script_name,
+                arguments,
+                input_folder,
+                *recursive,
+            ),
         }
     }
 
@@ -58,8 +70,7 @@ impl TFMTTools {
 
     fn inspect(&self, name: &str) -> Result<()> {
         Inspector::inspect(
-            &config::get_script(name)
-                .ok_or_else(|| anyhow!("Can't find script {}", name))?,
+            &config::get_script(name)?,
             Mode::Dot,
         )
     }
@@ -74,15 +85,25 @@ impl TFMTTools {
 
     fn rename(
         &self,
-        name: &str,
-        arguments: Option<&Vec<String>>,
+        script_name: &str,
+        arguments: &[String],
+        input_folder: &Path,
         recursive: bool,
     ) -> Result<()> {
-        bail!(
-            "Rename({}, {:?}, {}) is unimplemented!",
-            name,
-            arguments,
-            recursive
-        )
+        let path = config::get_script(script_name)?;
+
+        let program = Parser::try_from(&path)?.parse()?;
+
+        // TODO Get recursion depth from somewhere.
+        let depth = if recursive { 4 } else { 1 };
+        let songs = get_audiofiles(input_folder, depth)?;
+
+        let symbol_table = SemanticAnalyzer::analyze(&program, arguments)?;
+
+        let paths: std::result::Result<Vec<String>, InterpreterError> = songs.into_iter().map(|s| Interpreter::new(s, &symbol_table).interpret(&program)).collect();
+
+        println!("Paths:\n{:#?}", paths?);
+
+        Ok(())
     }
 }

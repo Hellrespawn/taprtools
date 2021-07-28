@@ -11,14 +11,14 @@ use crate::file::audiofile::AudioFile;
 type Result<T> = std::result::Result<T, InterpreterError>;
 
 /// Interprets an AST based on tags from and [AudioFile].
-pub struct Interpreter {
+pub struct Interpreter<'a> {
     song: Box<dyn AudioFile>,
-    symbol_table: SymbolTable,
+    symbol_table: &'a SymbolTable,
 }
 
-impl Interpreter {
+impl<'a> Interpreter<'a> {
     /// Constructor
-    pub fn new(song: Box<dyn AudioFile>, symbol_table: SymbolTable) -> Self {
+    pub fn new(song: Box<dyn AudioFile>, symbol_table: &'a SymbolTable) -> Self {
         Interpreter { song, symbol_table }
     }
 
@@ -38,7 +38,7 @@ impl Interpreter {
     }
 }
 
-impl Visitor<Result<String>> for Interpreter {
+impl<'a> Visitor<Result<String>> for Interpreter<'a> {
     fn visit_program(&mut self, program: &Program) -> Result<String> {
         program.block.accept(self)
     }
@@ -235,12 +235,13 @@ mod tests {
     use crate::file::mp3::MP3;
     use crate::tfmt::token::Token;
     use anyhow::Result;
+    use std::convert::TryFrom;
     use std::path::PathBuf;
 
     fn get_song() -> Result<Box<dyn AudioFile>> {
-        Ok(MP3::read_from_path(&PathBuf::from(
+        Ok(Box::new(MP3::try_from(&PathBuf::from(
             "testdata/music/Under Siege - Amon Amarth.mp3",
-        ))?)
+        ))?))
     }
 
     /// Test handling of leading zeroes.
@@ -248,7 +249,7 @@ mod tests {
     fn test_visit_tag() -> Result<()> {
         let mut intp = Interpreter {
             song: get_song()?,
-            symbol_table: SymbolTable::new(),
+            symbol_table: &SymbolTable::new(),
         };
 
         let token = Token::new_type_from_string(

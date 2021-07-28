@@ -17,29 +17,29 @@ args:
         help: Simulate file actions only.
 
 subcommands:
-    - clear-history:
-        about: Clears undo/redo history.
-        args:
-            - verbose:
-                short: v
-                multiple: true
-                help: Sets the level of verbosity.
+    # - clear-history:
+    #     about: Clears undo/redo history.
+    #     args:
+    #         - verbose:
+    #             short: v
+    #             multiple: true
+    #             help: Sets the level of verbosity.
 
-            - dry-run:
-                long: dry-run
-                help: Simulate file actions only.
+    #         - dry-run:
+    #             long: dry-run
+    #             help: Simulate file actions only.
 
-    - default-config:
-        about: Print default config.toml.
-        args:
-            - verbose:
-                short: v
-                multiple: true
-                help: Sets the level of verbosity.
+    # - default-config:
+    #     about: Print default config.toml.
+    #     args:
+    #         - verbose:
+    #             short: v
+    #             multiple: true
+    #             help: Sets the level of verbosity.
 
-            - dry-run:
-                long: dry-run
-                help: Simulate file actions only.
+    #         - dry-run:
+    #             long: dry-run
+    #             help: Simulate file actions only.
 
     - list-scripts:
         about: List scripts.
@@ -116,11 +116,7 @@ subcommands:
                 long: dry-run
                 help: Simulate file actions only.
 
-            - recursive:
-                short: r
-                help: Recursively scan folders.
-
-            - name:
+            - script-name:
                 help: Name of script to inspect.
                 index: 1
                 required: true
@@ -129,3 +125,12 @@ subcommands:
                 help: Arguments for script
                 last: true
                 multiple: true
+
+            - input-folder:
+                short: i
+                long: input-folder
+                help: Optional input folder.
+
+            - recursive:
+                short: r
+                help: Recursively scan folders.
