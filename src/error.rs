@@ -162,6 +162,12 @@ pub enum InterpreterError {
     },
 
     #[error("")]
+    Semantic {
+        #[from]
+        source: SemanticError,
+    },
+
+    #[error("")]
     Function {
         #[from]
         source: FunctionError,

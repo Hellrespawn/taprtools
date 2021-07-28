@@ -21,7 +21,7 @@ impl SemanticAnalyzer {
     /// Public function for SemanticAnalyzer
     pub fn analyze(
         program: &ast::Program,
-        arguments: &[String],
+        arguments: &[&str],
     ) -> Result<SymbolTable, SemanticError> {
         let mut sa: SemanticAnalyzer = Default::default();
 
@@ -50,7 +50,7 @@ impl SemanticAnalyzer {
         }
 
         for (symbol, argument) in sa.symbols.iter().zip(arguments) {
-            output.insert(symbol, Some(argument.clone()));
+            output.insert(symbol, Some(argument.to_string()));
         }
 
         for (key, val) in &output {

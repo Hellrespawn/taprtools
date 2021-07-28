@@ -2,10 +2,10 @@ use crate::file::audiofile::AudioFile;
 use crate::file::mp3::MP3;
 use crate::file::ogg::OGG;
 use anyhow::Result;
+use log::{debug, info};
+use std::borrow::Cow;
 use std::convert::TryFrom;
 use std::path::Path;
-use log::{info, debug};
-
 
 pub fn get_audiofiles(
     dir: &Path,
@@ -13,15 +13,19 @@ pub fn get_audiofiles(
 ) -> Result<Vec<Box<dyn AudioFile>>> {
     let audiofiles = _get_audiofiles(dir, depth)?;
     info!("Read {} files", audiofiles.len());
-    debug!("{:#?}", audiofiles);
+    debug!(
+        "[\n\"{}\"\n]",
+        audiofiles
+            .iter()
+            .map(|a| a.path().to_string_lossy())
+            .collect::<Vec<Cow<str>>>()
+            .join("\",\n\"")
+    );
 
     Ok(audiofiles)
 }
 
-fn _get_audiofiles(
-    dir: &Path,
-    depth: u64,
-) -> Result<Vec<Box<dyn AudioFile>>> {
+fn _get_audiofiles(dir: &Path, depth: u64) -> Result<Vec<Box<dyn AudioFile>>> {
     let mut audiofiles = Vec::new();
 
     if depth == 0 {

@@ -14,7 +14,7 @@ path = "src/bin/main.rs"
 anyhow = "1.0"
 bimap = "0.6.1"
 clap = {version = "2", features = ["yaml"]}
-config = {version = "0.11.0", features = ["toml"]}
+# config = {version = "0.11.0", features = ["toml"]}
 dirs = "3.0.2"
 fern = "0.6.0"
 id3 = "0.6.4"

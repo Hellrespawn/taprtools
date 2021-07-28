@@ -1,16 +1,12 @@
 use super::argparse::{Args, Subcommand};
-use super::config;
 use super::inspector::{Inspector, Mode};
-use super::{argparse, logging};
-use crate::tfmt::parser::Parser;
-use crate::tfmt::semantic::SemanticAnalyzer;
-use crate::tfmt::interpreter::Interpreter;
-use crate::error::InterpreterError;
 use super::rename::get_audiofiles;
+use super::{argparse, config, logging};
+use crate::tfmt::interpreter::Interpreter;
+use crate::tfmt::parser::Parser;
 use anyhow::{bail, Result};
 use log::info;
-use std::convert::TryInto;
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 use std::path::{Path, PathBuf};
 
 /// Main tfmttools entrypoint.
@@ -36,9 +32,12 @@ impl TFMTTools {
     fn handle_command(&self, subcommand: &Subcommand) -> Result<()> {
         match subcommand {
             Subcommand::ListScripts => self.list_scripts(),
-            Subcommand::Inspect(name) => self.inspect(name),
             Subcommand::Redo(amount) => self.redo(*amount),
             Subcommand::Undo(amount) => self.undo(*amount),
+            Subcommand::Inspect {
+                script_name,
+                render_ast,
+            } => self.inspect(script_name, *render_ast),
             Subcommand::Rename {
                 script_name,
                 arguments,
@@ -46,7 +45,10 @@ impl TFMTTools {
                 recursive,
             } => self.rename(
                 script_name,
-                arguments,
+                &arguments
+                    .iter()
+                    .map(std::ops::Deref::deref)
+                    .collect::<Vec<&str>>(),
                 input_folder,
                 *recursive,
             ),
@@ -68,13 +70,6 @@ impl TFMTTools {
         Ok(())
     }
 
-    fn inspect(&self, name: &str) -> Result<()> {
-        Inspector::inspect(
-            &config::get_script(name)?,
-            Mode::Dot,
-        )
-    }
-
     fn redo(&self, amount: u64) -> Result<()> {
         bail!("Redo({}) is unimplemented!", amount)
     }
@@ -83,10 +78,17 @@ impl TFMTTools {
         bail!("Undo({}) is unimplemented!", amount)
     }
 
+    fn inspect(&self, name: &str, render_ast: bool) -> Result<()> {
+        Inspector::inspect(
+            &config::get_script(name)?,
+            if render_ast { Mode::Dot } else { Mode::Long },
+        )
+    }
+
     fn rename(
         &self,
         script_name: &str,
-        arguments: &[String],
+        arguments: &[&str],
         input_folder: &Path,
         recursive: bool,
     ) -> Result<()> {
@@ -98,11 +100,11 @@ impl TFMTTools {
         let depth = if recursive { 4 } else { 1 };
         let songs = get_audiofiles(input_folder, depth)?;
 
-        let symbol_table = SemanticAnalyzer::analyze(&program, arguments)?;
+        let mut intp = Interpreter::new(&program, arguments, &songs)?;
 
-        let paths: std::result::Result<Vec<String>, InterpreterError> = songs.into_iter().map(|s| Interpreter::new(s, &symbol_table).interpret(&program)).collect();
+        let paths = intp.interpret()?;
 
-        println!("Paths:\n{:#?}", paths?);
+        println!("Paths:\n{:#?}", paths);
 
         Ok(())
     }

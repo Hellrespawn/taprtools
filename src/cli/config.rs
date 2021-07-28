@@ -1,8 +1,8 @@
+use anyhow::{anyhow, Result};
+use log::debug;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use anyhow::{anyhow, Result};
-use log::debug;
 
 pub fn get_log_dir() -> PathBuf {
     let mut path = std::env::temp_dir();
@@ -31,9 +31,18 @@ fn get_config_dirs() -> &'static [PathBuf] {
 
         let cwd = std::env::current_dir().ok();
 
-        let testdir = Some(PathBuf::from("testdata"));
+        // testdata is added only when run from Cargo.
+        let dirs = match std::env::var("CARGO_HOME") {
+            Ok(_) => vec![Some(PathBuf::from("testdata")), cwd, home, config],
+            Err(_) => vec![cwd, home, config],
+        }
+        .into_iter()
+        .flatten()
+        .filter(|p| p.is_dir())
+        .collect();
 
-        vec![testdir, cwd, home, config].into_iter().flatten().collect()
+        debug!("Valid config dirs:\n{:#?}", dirs);
+        dirs
     });
 
     &DIRS
@@ -52,7 +61,10 @@ fn search_dir_for_script(dir: &Path) -> HashMap<String, PathBuf> {
                         if extension == "tfmt" {
                             scripts.insert(
                                 // FIXME Handle this unwrap
-                                path.file_stem().unwrap().to_string_lossy().to_string(),
+                                path.file_stem()
+                                    .unwrap()
+                                    .to_string_lossy()
+                                    .to_string(),
                                 path,
                             );
                         }
@@ -89,5 +101,8 @@ pub fn get_all_scripts() -> HashMap<String, PathBuf> {
 }
 
 pub fn get_script(name: &str) -> Result<PathBuf> {
-    get_all_scripts().get(name).map(PathBuf::from).ok_or_else(|| anyhow!("Unable to read script {}!", name))
+    get_all_scripts()
+        .get(name)
+        .map(PathBuf::from)
+        .ok_or_else(|| anyhow!("Unable to read script {}!", name))
 }

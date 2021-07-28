@@ -30,12 +30,15 @@ impl Args {
 pub enum Subcommand {
     /// List scripts.
     ListScripts,
-    /// Inspect script `name`.
-    Inspect(String),
     /// Redo `amount` actions.
     Redo(u64),
     /// Undo `amount` actions.
     Undo(u64),
+    /// Inspect script `name`.
+    Inspect {
+        script_name: String,
+        render_ast: bool,
+    },
     /// Rename files.
     Rename {
         script_name: String,
@@ -49,12 +52,6 @@ impl Subcommand {
     fn from_subcommand(name: &str, submatches: &ArgMatches) -> Result<Self> {
         match name {
             "list-scripts" => Ok(Subcommand::ListScripts),
-            "inspect" => Ok(Subcommand::Inspect(
-                submatches
-                    .value_of("name")
-                    .expect("Name wasn't specified!")
-                    .to_string(),
-            )),
             "redo" => Ok(Subcommand::Redo(
                 submatches
                     .value_of("amount")
@@ -69,6 +66,13 @@ impl Subcommand {
                     .parse::<u64>()
                     .expect("Invalid amount!"),
             )),
+            "inspect" => Ok(Subcommand::Inspect {
+                script_name: submatches
+                    .value_of("name")
+                    .expect("Name wasn't specified!")
+                    .to_string(),
+                render_ast: submatches.is_present("render-ast"),
+            }),
             "rename" => Ok(Subcommand::Rename {
                 script_name: submatches
                     .value_of("script-name")
@@ -77,7 +81,9 @@ impl Subcommand {
                 // Option::map maps Option<T> to Option<U>
                 // Iterator::map items in iterator
                 arguments: submatches
-                    .values_of("arguments").unwrap_or_default().map(String::from)
+                    .values_of("arguments")
+                    .unwrap_or_default()
+                    .map(String::from)
                     .collect(),
                 input_folder: submatches
                     .value_of("input-folder")

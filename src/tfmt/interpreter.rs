@@ -1,30 +1,56 @@
 use super::ast::*;
 use super::function::handle_function;
-use super::semantic::SymbolTable;
+use super::semantic::{SemanticAnalyzer, SymbolTable};
 use super::token::{
     Token, TokenType, DIRECTORY_SEPARATORS, FORBIDDEN_GRAPHEMES,
 };
 use super::visitor::Visitor;
 use crate::error::InterpreterError;
 use crate::file::audiofile::AudioFile;
+use log::trace;
 
 type Result<T> = std::result::Result<T, InterpreterError>;
 
 /// Interprets an AST based on tags from and [AudioFile].
 pub struct Interpreter<'a> {
-    song: Box<dyn AudioFile>,
-    symbol_table: &'a SymbolTable,
+    songs: &'a [Box<dyn AudioFile>],
+    program: &'a Program,
+    symbol_table: SymbolTable,
+    index: usize,
 }
 
 impl<'a> Interpreter<'a> {
     /// Constructor
-    pub fn new(song: Box<dyn AudioFile>, symbol_table: &'a SymbolTable) -> Self {
-        Interpreter { song, symbol_table }
+    pub fn new(
+        program: &'a Program,
+        arguments: &'a [&str],
+        songs: &'a [Box<dyn AudioFile>],
+    ) -> Result<Self> {
+        let symbol_table = SemanticAnalyzer::analyze(program, arguments)?;
+
+        Ok(Interpreter {
+            songs,
+            program,
+            symbol_table,
+            index: 0,
+        })
     }
 
     /// Public function for interpreter.
-    pub fn interpret(&mut self, program: &Program) -> Result<String> {
-        program.accept(self)
+    pub fn interpret(&mut self) -> Result<Vec<String>> {
+        let mut paths = Vec::new();
+
+        for i in 0..self.songs.len() {
+            self.index = i;
+
+            trace!("In:  \"{}\"", self.songs[i].path().to_string_lossy());
+            let path = self.program.accept(self)?;
+            trace!("Out: \"{}\"", path);
+
+            paths.push(path);
+        }
+
+        Ok(paths)
     }
 
     fn strip_leading_zeroes(number: &str) -> &str {
@@ -196,21 +222,23 @@ impl<'a> Visitor<Result<String>> for Interpreter<'a> {
 
         let mut tag = match tag_name {
             // TODO Add less common tags from AudioFile
-            "album" => self.song.album(),
-            "albumartist" | "album_artist" => self.song.album_artist(),
-            "albumsort" | "album_sort" => self.song.albumsort(),
-            "artist" => self.song.artist(),
-            "duration" | "length" => self.song.duration(),
+            "album" => self.songs[self.index].album(),
+            "albumartist" | "album_artist" => {
+                self.songs[self.index].album_artist()
+            }
+            "albumsort" | "album_sort" => self.songs[self.index].albumsort(),
+            "artist" => self.songs[self.index].artist(),
+            "duration" | "length" => self.songs[self.index].duration(),
             "disc" | "disk" | "discnumber" | "disknumber" | "disc_number"
-            | "disk_number" => {
-                self.song.disc_number().map(Self::strip_leading_zeroes)
-            }
-            "genre" => self.song.genre(),
-            "title" | "name" => self.song.title(),
-            "track" | "tracknumber" | "track_number" => {
-                self.song.track_number().map(Self::strip_leading_zeroes)
-            }
-            "year" | "date" => self.song.year(),
+            | "disk_number" => self.songs[self.index]
+                .disc_number()
+                .map(Self::strip_leading_zeroes),
+            "genre" => self.songs[self.index].genre(),
+            "title" | "name" => self.songs[self.index].title(),
+            "track" | "tracknumber" | "track_number" => self.songs[self.index]
+                .track_number()
+                .map(Self::strip_leading_zeroes),
+            "year" | "date" => self.songs[self.index].year(),
             _ => None,
         }
         .unwrap_or("")
@@ -226,41 +254,5 @@ impl<'a> Visitor<Result<String>> for Interpreter<'a> {
             .for_each(|g| tag = tag.replace(g, ""));
 
         Ok(tag)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::file::mp3::MP3;
-    use crate::tfmt::token::Token;
-    use anyhow::Result;
-    use std::convert::TryFrom;
-    use std::path::PathBuf;
-
-    fn get_song() -> Result<Box<dyn AudioFile>> {
-        Ok(Box::new(MP3::try_from(&PathBuf::from(
-            "testdata/music/Under Siege - Amon Amarth.mp3",
-        ))?))
-    }
-
-    /// Test handling of leading zeroes.
-    #[test]
-    fn test_visit_tag() -> Result<()> {
-        let mut intp = Interpreter {
-            song: get_song()?,
-            symbol_table: &SymbolTable::new(),
-        };
-
-        let token = Token::new_type_from_string(
-            1,
-            1,
-            "STRING",
-            Some("tracknumber".to_string()),
-        )?;
-
-        assert_eq!(intp.visit_tag(&token)?, "5");
-
-        Ok(())
     }
 }

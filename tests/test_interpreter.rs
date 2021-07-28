@@ -1,10 +1,8 @@
 use anyhow::Result;
-use maplit::hashmap;
 use tfmttools::cli::rename::get_audiofiles;
 use tfmttools::tfmt::interpreter::Interpreter;
 use tfmttools::tfmt::lexer::{Lexer, LexerResult};
 use tfmttools::tfmt::parser::Parser;
-use tfmttools::tfmt::semantic::SymbolTable;
 
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -14,15 +12,8 @@ mod common;
 fn file_test(
     filename: &str,
     reference: &[&str],
-    symbol_table: Option<SymbolTable>,
+    arguments: &[&str],
 ) -> Result<()> {
-
-    let symbol_table = if let Some(symbol_table) = symbol_table {
-        symbol_table
-    } else {
-        SymbolTable::new()
-    };
-
     let input = common::get_script(filename)?;
 
     let tokens: Vec<LexerResult> = Lexer::from_str(&input)?.collect();
@@ -33,13 +24,9 @@ fn file_test(
 
     let songs = get_audiofiles(&PathBuf::from("testdata/music"), 1)?;
 
-    for song in songs {
-        let output = Interpreter::new(
-            song,
-            &symbol_table
-        )
-        .interpret(&program)?;
+    let mut intp = Interpreter::new(&program, arguments, &songs)?;
 
+    for output in intp.interpret()? {
         assert!(reference.contains(&output.as_str()))
     }
 
@@ -57,7 +44,7 @@ fn test_simple_input() -> Result<()> {
             r"Damjan Mravunac/Welcome To Heaven",
             r"Nightwish/While Your Lips Are Still Red",
         ],
-        None,
+        &[],
     )
 }
 
@@ -73,8 +60,6 @@ fn test_typical_input() -> Result<()> {
             r"destination/The Talos Principle/2015 - The Talos Principle OST/01 - Damjan Mravunac - Welcome To Heaven",
             r"destination/Nightwish/While Your Lips Are Still Red",
         ],
-        Some(hashmap! {
-            "folder".to_string() => "destination".to_string()
-        }),
+        &["destination"],
     )
 }

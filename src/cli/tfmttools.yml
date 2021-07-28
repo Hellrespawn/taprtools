@@ -95,6 +95,7 @@ subcommands:
                 multiple: true
                 help: Sets the level of verbosity.
 
+            # TODO? Remove dry-run from actions that don't do anything?
             - dry-run:
                 long: dry-run
                 help: Simulate file actions only.
@@ -103,6 +104,12 @@ subcommands:
                 help: Name of script to inspect.
                 index: 1
                 required: true
+
+            - render-ast:
+                # UPSTREAM Add this alias when clap 3 is out.
+                # visible_alias: dot
+                long: render-ast
+                help: Render AST using GraphViz.
 
     - rename:
         about: Rename files according to tags.

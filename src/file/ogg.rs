@@ -51,6 +51,10 @@ impl OGG {
 
 // TODO Implement less common tags for OGG
 impl AudioFile for OGG {
+    fn path(&self) -> &Path {
+        self.path.as_path()
+    }
+
     fn extension(&self) -> &'static str {
         "ogg"
     }

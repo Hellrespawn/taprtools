@@ -37,7 +37,7 @@ pub fn setup_logger(verbosity: usize, filename: &str) -> Result<()> {
                 "[{}][{}:{}] {}",
                 // chrono::Local::now().format("%Y-%m-%d][%H:%M:%S"),
                 record.level(),
-                record.target(),
+                &record.target().replace("tfmttools::", "::"),
                 record.line().unwrap_or(0),
                 message
             ))
