@@ -1,6 +1,6 @@
 use super::argparse::{Args, Subcommand};
 use super::inspector::{Inspector, Mode};
-use super::rename::get_audiofiles;
+use super::rename::{get_audiofiles, Rename};
 use super::{argparse, config, logging};
 use crate::tfmt::interpreter::Interpreter;
 use crate::tfmt::parser::Parser;
@@ -8,6 +8,7 @@ use anyhow::{bail, Result};
 use log::info;
 use std::convert::{TryFrom, TryInto};
 use std::path::{Path, PathBuf};
+use undo::Record;
 
 /// Main tfmttools entrypoint.
 pub fn main() -> Result<()> {
@@ -102,9 +103,24 @@ impl TFMTTools {
 
         let mut intp = Interpreter::new(&program, arguments, &songs)?;
 
-        let paths = intp.interpret()?;
+        let paths: Vec<PathBuf> =
+            intp.interpret()?.iter().map(PathBuf::from).collect();
 
         println!("Paths:\n{:#?}", paths);
+
+        let mut record = Record::new();
+
+        let mut processed = Vec::new();
+
+        for (mut song, path) in songs.into_iter().zip(paths) {
+            let rename = Rename::new(&path);
+            record.apply(&mut song, rename)?;
+            processed.push(song);
+        }
+
+        for mut song in processed {
+            record.undo(&mut song).unwrap()?
+        }
 
         Ok(())
     }

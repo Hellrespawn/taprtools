@@ -3,6 +3,8 @@ use std::path::Path;
 pub trait AudioFile: std::fmt::Debug {
     fn path(&self) -> &Path;
 
+    fn set_path(&mut self, path: &Path);
+
     fn extension(&self) -> &'static str;
 
     fn album(&self) -> Option<&str>;

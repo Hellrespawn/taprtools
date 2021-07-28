@@ -55,6 +55,10 @@ impl AudioFile for OGG {
         self.path.as_path()
     }
 
+    fn set_path(&mut self, path: &Path) {
+        self.path = PathBuf::from(path)
+    }
+
     fn extension(&self) -> &'static str {
         "ogg"
     }
