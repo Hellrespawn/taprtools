@@ -27,6 +27,7 @@ pub struct Lexer {
 
 impl FromStr for Lexer {
     type Err = LexerError;
+
     fn from_str(text: &str) -> Result<Self> {
         let normalized_text: String = normalized(text.trim().chars()).collect();
 

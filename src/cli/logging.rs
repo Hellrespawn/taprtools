@@ -1,7 +1,6 @@
 use super::config;
 use anyhow::{bail, Result};
-use log::log;
-use log::LevelFilter;
+use log::{log, LevelFilter};
 use std::fs;
 use std::path::PathBuf;
 

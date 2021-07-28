@@ -1,6 +1,5 @@
 use crate::cli::config;
-use crate::tfmt::ast::Program;
-use crate::tfmt::ast::{self, Node};
+use crate::tfmt::ast::{self, Node, Program};
 use crate::tfmt::genastdot::GenAstDot;
 use crate::tfmt::parser::Parser;
 use crate::tfmt::token::Token;
@@ -75,6 +74,7 @@ impl<'a> Inspector<'a> {
         }
         Ok(())
     }
+
     fn fmt_dot(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.fmt_long(f)?;
 

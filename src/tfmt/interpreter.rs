@@ -42,12 +42,15 @@ impl Visitor<Result<String>> for Interpreter {
     fn visit_program(&mut self, program: &Program) -> Result<String> {
         program.block.accept(self)
     }
+
     fn visit_parameters(&mut self, _: &Parameters) -> Result<String> {
         Ok("".to_string())
     }
+
     fn visit_parameter(&mut self, _: &Parameter) -> Result<String> {
         Ok("".to_string())
     }
+
     fn visit_block(&mut self, block: &Block) -> Result<String> {
         block
             .expressions

@@ -71,6 +71,7 @@ impl GenAstDot {
 
         Ok(())
     }
+
     fn increment(&mut self) -> u64 {
         self.counter += 1;
         self.counter - 1

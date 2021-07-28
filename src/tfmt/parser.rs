@@ -22,6 +22,7 @@ where
 
 impl FromStr for Parser<Lexer> {
     type Err = ParserError;
+
     fn from_str(string: &str) -> Result<Parser<Lexer>> {
         Ok(Parser::from_iterator(Lexer::from_str(string)?))
     }
@@ -29,6 +30,7 @@ impl FromStr for Parser<Lexer> {
 
 impl TryFrom<&Path> for Parser<Lexer> {
     type Error = ParserError;
+
     fn try_from(path: &Path) -> Result<Self> {
         Ok(Parser::from_iterator(Lexer::try_from(path)?))
     }
