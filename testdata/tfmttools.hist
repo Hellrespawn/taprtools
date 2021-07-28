@@ -1,0 +1,43 @@
+{
+  "entries": [
+    {
+      "action": {
+        "new_path": "destination/MASTER BOOT RECORD/WAREZ/Dune",
+        "old_path": "C:\\Users\\Stef\\Projects\\rust\\tfmttools_rust\\testdata\\music\\Dune - MASTER BOOT RECORD.mp3"
+      },
+      "timestamp": "2021-07-28T21:15:40.851652900Z"
+    },
+    {
+      "action": {
+        "new_path": "destination/MASTER BOOT RECORD/2016.03 - CEDIT AUTOEXEC.BAT/05 - SET MIDI=SYNTH1 MAPG MODE1",
+        "old_path": "C:\\Users\\Stef\\Projects\\rust\\tfmttools_rust\\testdata\\music\\SET MIDI=SYNTH1 MAPG MODE1 - MASTER BOOT RECORD.mp3"
+      },
+      "timestamp": "2021-07-28T21:15:40.851697600Z"
+    },
+    {
+      "action": {
+        "new_path": "destination/Amon Amarth/2013 - Deceiver of the Gods/105 - Under Siege",
+        "old_path": "C:\\Users\\Stef\\Projects\\rust\\tfmttools_rust\\testdata\\music\\Under Siege - Amon Amarth.mp3"
+      },
+      "timestamp": "2021-07-28T21:15:40.851716900Z"
+    },
+    {
+      "action": {
+        "new_path": "destination/The Talos Principle/2015 - The Talos Principle OST/01 - Damjan Mravunac - Welcome To Heaven",
+        "old_path": "C:\\Users\\Stef\\Projects\\rust\\tfmttools_rust\\testdata\\music\\Welcome To Heaven - Damjan Mravunac.ogg"
+      },
+      "timestamp": "2021-07-28T21:15:40.851736700Z"
+    },
+    {
+      "action": {
+        "new_path": "destination/Nightwish/While Your Lips Are Still Red",
+        "old_path": "C:\\Users\\Stef\\Projects\\rust\\tfmttools_rust\\testdata\\music\\While Your Lips Are Still Red - Nightwish.mp3"
+      },
+      "timestamp": "2021-07-28T21:15:40.851754700Z"
+    }
+  ],
+  "current": 5,
+  "limit": 18446744073709551615,
+  "saved": 0,
+  "slot": {}
+}

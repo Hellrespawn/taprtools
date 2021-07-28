@@ -1,6 +1,6 @@
 use super::argparse::{Args, Subcommand};
 use super::inspector::{Inspector, Mode};
-use super::rename::{get_audiofiles, Rename};
+use super::rename::get_audiofiles;
 use super::{argparse, config, logging};
 use crate::tfmt::interpreter::Interpreter;
 use crate::tfmt::parser::Parser;
@@ -8,7 +8,7 @@ use anyhow::{bail, Result};
 use log::info;
 use std::convert::{TryFrom, TryInto};
 use std::path::{Path, PathBuf};
-use undo::Record;
+use super::history::History;
 
 /// Main tfmttools entrypoint.
 pub fn main() -> Result<()> {
@@ -57,8 +57,7 @@ impl TFMTTools {
     }
 
     fn list_scripts(&self) -> Result<()> {
-        let iter = &config::get_all_scripts();
-        let paths: Vec<&PathBuf> = iter.values().collect();
+        let paths = &config::get_all_scripts();
 
         if paths.is_empty() {
             println!("Couldn't find any scripts.")
@@ -76,7 +75,11 @@ impl TFMTTools {
     }
 
     fn undo(&self, amount: u64) -> Result<()> {
-        bail!("Undo({}) is unimplemented!", amount)
+        let history = History::load_history()?;
+
+        //history.record.undo();
+
+        Ok(())
     }
 
     fn inspect(&self, name: &str, render_ast: bool) -> Result<()> {
@@ -108,19 +111,14 @@ impl TFMTTools {
 
         println!("Paths:\n{:#?}", paths);
 
-        let mut record = Record::new();
+        let mut history = History::load_history().unwrap_or_default();
 
-        let mut processed = Vec::new();
+        // for (path, song) in paths.iter().zip(&songs) {
+        //     let rename = Rename::new(path);
+        //     history.record.apply(&mut PathBuf::from(song.path()), rename)?;
+        // }
 
-        for (mut song, path) in songs.into_iter().zip(paths) {
-            let rename = Rename::new(&path);
-            record.apply(&mut song, rename)?;
-            processed.push(song);
-        }
-
-        for mut song in processed {
-            record.undo(&mut song).unwrap()?
-        }
+        history.save_history()?;
 
         Ok(())
     }

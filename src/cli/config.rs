@@ -1,7 +1,6 @@
 use anyhow::{anyhow, Result};
 use log::debug;
 use once_cell::sync::Lazy;
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 pub fn get_log_dir() -> PathBuf {
@@ -9,7 +8,7 @@ pub fn get_log_dir() -> PathBuf {
     path.push("tfmttools");
     path
 }
-fn get_config_dirs() -> &'static [PathBuf] {
+pub fn get_config_dirs() -> &'static [PathBuf] {
     static DIRS: Lazy<Vec<PathBuf>> = Lazy::new(|| {
         let config = match dirs::config_dir() {
             Some(dir) => {
@@ -33,8 +32,8 @@ fn get_config_dirs() -> &'static [PathBuf] {
 
         // testdata is added only when run from Cargo.
         let dirs = match std::env::var("CARGO_HOME") {
-            Ok(_) => vec![Some(PathBuf::from("testdata")), cwd, home, config],
-            Err(_) => vec![cwd, home, config],
+            Ok(_) => vec![Some(PathBuf::from("testdata")), home, config, cwd],
+            Err(_) => vec![home, config, cwd],
         }
         .into_iter()
         .flatten()
@@ -48,51 +47,69 @@ fn get_config_dirs() -> &'static [PathBuf] {
     &DIRS
 }
 
-fn search_dir_for_script(dir: &Path) -> HashMap<String, PathBuf> {
-    let mut scripts = HashMap::new();
+fn search_dir_for_extension(dir: &Path, extension: &str) -> Vec<PathBuf> {
+    let mut paths = Vec::new();
 
     if let Ok(iter) = std::fs::read_dir(dir) {
         for entry in iter.flatten() {
             let path = entry.path();
             if let Ok(file_type) = entry.file_type() {
                 if file_type.is_file() {
-                    if let Some(extension) = path.extension() {
+                    if let Some(found_ext) = path.extension() {
                         // TODO? Mime type or something?
-                        if extension == "tfmt" {
-                            scripts.insert(
-                                // FIXME Handle this unwrap
-                                path.file_stem()
-                                    .unwrap()
-                                    .to_string_lossy()
-                                    .to_string(),
-                                path,
-                            );
+                        if found_ext == extension {
+                            paths.push(path);
                         }
                     }
                     // TODO? Do we want recursion?
                     // } else if file_type.is_dir() {
-                    //     scripts.extend(search_dir_for_script(&path))
+                    //     paths.extend(search_dir_for_extension(&path))
                 }
             }
         }
     }
 
-    scripts
+    paths
 }
 
-pub fn get_all_scripts() -> HashMap<String, PathBuf> {
-    let mut scripts = HashMap::new();
+pub fn search_dir_for_filename(dir: &Path, filename: &str) -> Vec<PathBuf> {
+    let mut paths = Vec::new();
+
+    if let Ok(iter) = std::fs::read_dir(dir) {
+        for entry in iter.flatten() {
+            let path = entry.path();
+            if let Ok(file_type) = entry.file_type() {
+                if file_type.is_file() {
+                    if let Some(found_fn) = path.file_name() {
+                        // TODO? Mime type or something?
+                        if found_fn == filename {
+                            paths.push(path);
+                        }
+                    }
+                    // TODO? Do we want recursion?
+                    // } else if file_type.is_dir() {
+                    //     paths.extend(search_dir_for_filename(&path))
+                }
+            }
+        }
+    }
+
+    paths
+}
+
+pub fn get_all_scripts() -> Vec<PathBuf> {
+    let mut scripts = Vec::new();
 
     for dir in get_config_dirs() {
         let mut dir = PathBuf::from(dir);
-        scripts.extend(search_dir_for_script(&dir));
+        scripts.extend(search_dir_for_extension(&dir, "tfmt"));
 
         dir.push("script");
-        scripts.extend(search_dir_for_script(&dir));
+        scripts.extend(search_dir_for_extension(&dir, "tfmt"));
         dir.pop();
 
         dir.push("scripts");
-        scripts.extend(search_dir_for_script(&dir));
+        scripts.extend(search_dir_for_extension(&dir, "tfmt"));
     }
 
     debug!("Found scripts:\n{:#?}", scripts);
@@ -101,8 +118,11 @@ pub fn get_all_scripts() -> HashMap<String, PathBuf> {
 }
 
 pub fn get_script(name: &str) -> Result<PathBuf> {
-    get_all_scripts()
-        .get(name)
-        .map(PathBuf::from)
-        .ok_or_else(|| anyhow!("Unable to read script {}!", name))
+    let name = format!("{}.tfmt", name);
+    let scripts = get_all_scripts();
+    // These were selected through path.is_file(), unwrap should be safe.
+    scripts
+        .into_iter()
+        .find(|p| p.file_name().unwrap() == name.as_str())
+        .ok_or_else(|| anyhow!("Unable to find script {}", name))
 }

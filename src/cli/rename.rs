@@ -1,78 +1,86 @@
 use crate::file::audiofile::AudioFile;
 use crate::file::mp3::MP3;
 use crate::file::ogg::OGG;
-use anyhow::{anyhow, Result};
-use log::{debug, info, trace};
+use anyhow::Result;
+use log::{debug, info};
 use std::borrow::Cow;
 use std::convert::TryFrom;
-use std::path::{Path, PathBuf};
-use undo::Action;
+use std::path::Path;
 
-pub struct Rename {
-    new_path: PathBuf,
-    old_path: PathBuf,
-}
+// #[derive(Serialize, Deserialize)]
+// pub struct Rename {
+//     new_path: PathBuf,
+//     old_path: PathBuf,
+// }
 
-impl Rename {
-    pub fn new(path: &Path) -> Rename {
-        Rename {
-            new_path: PathBuf::from(path),
-            old_path: PathBuf::from(path),
-        }
-    }
-}
+// impl Rename {
+//     pub fn new(path: &Path) -> Rename {
+//         Rename {
+//             new_path: PathBuf::from(path),
+//             old_path: PathBuf::from(path),
+//         }
+//     }
+// }
 
-impl Action for Rename {
-    type Error = anyhow::Error;
-    type Output = ();
-    type Target = Box<dyn AudioFile>;
+// impl Action for Rename {
+//     type Error = anyhow::Error;
+//     type Output = ();
+//     type Target = PathBuf;
 
-    //TODO? Delete empty folders?
+//     //TODO? Delete empty folders?
 
-    fn apply(&mut self, audiofile: &mut Self::Target) -> undo::Result<Rename> {
-        let old_path = PathBuf::from(audiofile.path());
-        trace!(
-            "Creating directory: \"{}\"",
-            self.new_path
-                .parent()
-                .ok_or_else(|| anyhow!(
-                    "AudioFile doesn't have a parent directory!"
-                ))?
-                .to_string_lossy()
-        );
-        //std::fs::create_dir_all(self.new_path.parent().ok_or(anyhow!("AudioFile doesn't have a parent directory!"))?)?;
-        trace!(
-            "Renaming:\n\"{}\"\n\"{}\"",
-            audiofile.path().to_string_lossy(),
-            &self.new_path.to_string_lossy()
-        );
-        //std::fs::rename(audiofile.path(), &self.new_path)?;
-        self.old_path = old_path;
-        audiofile.set_path(&self.new_path);
-        Ok(())
-    }
+//     fn apply(&mut self, path: &mut Self::Target) -> undo::Result<Rename> {
+//         let old_path = PathBuf::from(&path);
 
-    fn undo(&mut self, audiofile: &mut Self::Target) -> undo::Result<Rename> {
-        trace!(
-            "Creating directory: \"{}\"",
-            self.new_path
-                .parent()
-                .ok_or_else(|| anyhow!(
-                    "AudioFile doesn't have a parent directory!"
-                ))?
-                .to_string_lossy()
-        );
-        //std::fs::create_dir_all(self.old_path.parent().ok_or(anyhow!("AudioFile doesn't have a parent directory!"))?)?;
-        trace!(
-            "Undoing:\n\"{}\"\n\"{}\"",
-            audiofile.path().to_string_lossy(),
-            &self.old_path.to_string_lossy()
-        );
-        //std::fs::rename(audiofile.path(), &self.old_path)?;
-        audiofile.set_path(&self.old_path);
-        Ok(())
-    }
-}
+//         trace!(
+//             "Creating directory: \"{}\"",
+//             self.new_path
+//                 .parent()
+//                 .ok_or_else(|| anyhow!(
+//                     "AudioFile doesn't have a parent directory!"
+//                 ))?
+//                 .to_string_lossy()
+//         );
+//         // std::fs::create_dir_all(self.new_path.parent().ok_or_else(|| {
+//         //     anyhow!("AudioFile doesn't have a parent directory!")
+//         // })?)?;
+
+//         trace!(
+//             "Renaming:\n\"{}\"\n\"{}\"",
+//             path.to_string_lossy(),
+//             &self.new_path.to_string_lossy()
+//         );
+//         // std::fs::rename(path, &self.new_path)?;
+//         self.old_path = old_path;
+//         Ok(())
+//     }
+
+//     fn undo(&mut self, path: &mut Self::Target) -> undo::Result<Rename> {
+//         let new_path = PathBuf::from(&path);
+
+//         trace!(
+//             "Creating directory: \"{}\"",
+//             self.old_path
+//                 .parent()
+//                 .ok_or_else(|| anyhow!(
+//                     "AudioFile doesn't have a parent directory!"
+//                 ))?
+//                 .to_string_lossy()
+//         );
+//         // std::fs::create_dir_all(self.old_path.parent().ok_or_else(|| {
+//         //     anyhow!("AudioFile doesn't have a parent directory!")
+//         // })?)?;
+
+//         trace!(
+//             "Undoing:\n\"{}\"\n\"{}\"",
+//             path.to_string_lossy(),
+//             &self.old_path.to_string_lossy()
+//         );
+//         // std::fs::rename(path, &self.old_path)?;
+//         self.new_path = new_path;
+//         Ok(())
+//     }
+// }
 
 pub fn get_audiofiles(
     dir: &Path,
