@@ -3,6 +3,7 @@ use super::visitor::Visitor;
 use crate::error::DotError;
 use crate::tfmt::token::Token;
 use anyhow::Result;
+use log::{info, trace};
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -17,7 +18,7 @@ pub struct GenAstDot {
 impl GenAstDot {
     /// Construct a GraphViz dot-file from a [ast::Program] and render it as a png.
     pub fn visualize_ast(
-        root: ast::Program,
+        program: &ast::Program,
         directory: &Path,
         name: &str,
         remove_dot_file: bool,
@@ -32,9 +33,11 @@ impl GenAstDot {
             ranksep=0.75;\n  "
             .to_owned();
 
-        dot.push_str(&root.accept(&mut g));
+        dot.push_str(&program.accept(&mut g));
 
         dot.push('}');
+
+        trace!("Generated .dot-file:\n{}", dot);
 
         let mut path = PathBuf::from(directory);
         path.push(format!("{}.dot", name));
@@ -58,8 +61,13 @@ impl GenAstDot {
         };
 
         if remove_dot_file {
-            fs::remove_file(path)?;
+            fs::remove_file(&path)?;
         }
+
+        info!(
+            "Rendered Abstract Syntax Tree to {}",
+            &path.with_extension("png").to_string_lossy()
+        );
 
         Ok(())
     }

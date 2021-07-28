@@ -1,8 +1,11 @@
 use super::argparse::{Args, Subcommand};
+use super::config;
+use super::inspector::{Inspector, Mode};
 use crate::cli::{argparse, logging};
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 use log::info;
 use std::convert::TryInto;
+use std::path::PathBuf;
 
 /// Main tfmttools entrypoint.
 pub fn main() -> Result<()> {
@@ -26,9 +29,10 @@ impl TFMTTools {
 
     fn handle_command(&self, subcommand: &Subcommand) -> Result<()> {
         match subcommand {
-            Subcommand::Undo { amount } => self.undo(*amount),
-            Subcommand::Redo { amount } => self.redo(*amount),
-            Subcommand::Inspect { name } => self.inspect(name),
+            Subcommand::ListScripts => self.list_scripts(),
+            Subcommand::Inspect(name) => self.inspect(name),
+            Subcommand::Redo(amount) => self.redo(*amount),
+            Subcommand::Undo(amount) => self.undo(*amount),
             Subcommand::Rename {
                 name,
                 arguments,
@@ -37,16 +41,35 @@ impl TFMTTools {
         }
     }
 
-    fn undo(&self, amount: u64) -> Result<()> {
-        bail!("Undo({}) is unimplemented!", amount)
+    fn list_scripts(&self) -> Result<()> {
+        let iter = &config::get_all_scripts();
+        let paths: Vec<&PathBuf> = iter.values().collect();
+
+        if paths.is_empty() {
+            println!("Couldn't find any scripts.")
+        } else {
+            for path in paths {
+                Inspector::inspect(path, Mode::Short)?
+            }
+        }
+
+        Ok(())
+    }
+
+    fn inspect(&self, name: &str) -> Result<()> {
+        Inspector::inspect(
+            &config::get_script(name)
+                .ok_or_else(|| anyhow!("Can't find script {}", name))?,
+            Mode::Dot,
+        )
     }
 
     fn redo(&self, amount: u64) -> Result<()> {
         bail!("Redo({}) is unimplemented!", amount)
     }
 
-    fn inspect(&self, name: &str) -> Result<()> {
-        super::inspector::Inspector::inspect(name)
+    fn undo(&self, amount: u64) -> Result<()> {
+        bail!("Undo({}) is unimplemented!", amount)
     }
 
     fn rename(

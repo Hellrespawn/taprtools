@@ -1,66 +1,138 @@
 use crate::cli::config;
+use crate::tfmt::ast::Program;
 use crate::tfmt::ast::{self, Node};
+use crate::tfmt::genastdot::GenAstDot;
+use crate::tfmt::parser::Parser;
 use crate::tfmt::token::Token;
 use crate::tfmt::visitor::Visitor;
-use anyhow::bail;
+use log::info;
+use std::convert::TryFrom;
+use std::fmt::{self, Display};
+use std::path::{Path, PathBuf};
 
 type Result = anyhow::Result<()>;
 
 /// Walks AST and checks for symbols.
+
+pub enum Mode {
+    Short,
+    Long,
+    Dot,
+}
+
 pub struct Inspector<'a> {
-    path: &'a str,
+    name: String,
+    path: PathBuf,
+    description: String,
+    parameters: Vec<(String, Option<String>)>,
+    program: &'a Program,
+    mode: Mode,
 }
 
 impl<'a> Inspector<'a> {
     /// Public function for Inspector
-    pub fn inspect(name: &str) -> Result {
-        let (path, program) = config::read_script(name)?;
+    pub fn inspect(path: &Path, mode: Mode) -> Result {
+        let program = Parser::try_from(path)?.parse()?;
 
-        program.accept(&mut Inspector {
-            path: match &path.canonicalize()?.to_str() {
-                Some(s) => s,
-                None => bail!(
-                    "Unable to convert path {:?} to valid unicode!",
-                    &path
-                ),
-            },
-        });
+        let mut inspector = Inspector {
+            name: String::new(),
+            path: path.canonicalize()?,
+            description: String::new(),
+            parameters: Vec::new(),
+            program: &program,
+            mode,
+        };
+
+        inspector.program.accept(&mut inspector);
+        info!("Inspected script \"{}\"", inspector.name);
+
+        println!("{}", inspector);
+
+        Ok(())
+    }
+
+    fn fmt_short(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.name)?;
+
+        if !self.description.is_empty() {
+            write!(f, ": \"{}\"", self.description)?;
+        }
+
+        Ok(())
+    }
+
+    fn fmt_long(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.fmt_short(f)?;
+        write!(f, "\n\npath: {}\n", self.path.to_string_lossy())?;
+        if !self.parameters.is_empty() {
+            write!(f, "\nparameters:")?;
+            for param in &self.parameters {
+                write!(f, "\n\t{}", param.0)?;
+                if let Some(default) = &param.1 {
+                    write!(f, ": \"{}\"", default)?
+                }
+            }
+        }
+        Ok(())
+    }
+    fn fmt_dot(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.fmt_long(f)?;
+
+        let mut path = config::get_log_dir();
+
+        let dot =
+            GenAstDot::visualize_ast(self.program, &path, &self.name, true);
+
+        path.push(&format!("{}.png", self.name));
+
+        match dot {
+            Ok(()) => write!(
+                f,
+                "\n\nRendered Abstract Syntax Tree to {}",
+                path.to_string_lossy()
+            ),
+            Err(err) => write!(f, "\n\n{}", err),
+        }?;
 
         Ok(())
     }
 }
 
+impl<'a> Display for Inspector<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.mode {
+            Mode::Short => self.fmt_short(f),
+            Mode::Long => self.fmt_long(f),
+            Mode::Dot => self.fmt_dot(f),
+        }
+    }
+}
+
 impl<'a> Visitor<()> for Inspector<'a> {
     fn visit_program(&mut self, program: &ast::Program) {
-        print!("{}", program.name.get_value_unchecked());
+        self.name = program.name.get_value_unchecked().to_string();
 
         if let Some(description) = &program.description {
-            print!(": \"{}\"", description.get_value_unchecked());
+            self.description = description.get_value_unchecked().to_string()
         }
-        println!();
-
-        println!("\npath: {}\n", self.path);
 
         program.parameters.accept(self);
         program.block.accept(self);
     }
 
     fn visit_parameters(&mut self, parameters: &ast::Parameters) {
-        if !parameters.parameters.is_empty() {
-            println!("parameters:");
-        }
-
         parameters.parameters.iter().for_each(|e| e.accept(self));
     }
 
     fn visit_parameter(&mut self, parameter: &ast::Parameter) {
-        print!("\t{}", parameter.token.get_value_unchecked());
+        let name = parameter.token.get_value_unchecked().to_string();
 
-        if let Some(default) = &parameter.default {
-            print!(" = \"{}\"", default.get_value_unchecked());
-        }
+        let default = parameter
+            .default
+            .as_ref()
+            .map(|d| d.get_value_unchecked().to_string());
 
-        println!();
+        self.parameters.push((name, default));
     }
 
     fn visit_block(&mut self, block: &ast::Block) {

@@ -220,7 +220,7 @@ impl Lexer {
         // advance_times amount is always based on current_grapheme length,
         // so unwrap should never fail.
 
-        if quotes.contains(&current_grapheme) {
+        if quotes.contains(current_grapheme) {
             let multiline = self
                 .test_current_string(&format!("{0}{0}{0}", current_grapheme));
 

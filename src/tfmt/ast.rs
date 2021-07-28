@@ -91,6 +91,6 @@ pub enum Expression {
 
 impl<T> Node<T> for Expression {
     fn accept(&self, visitor: &mut dyn Visitor<T>) -> T {
-        visitor.visit_expression(&self)
+        visitor.visit_expression(self)
     }
 }

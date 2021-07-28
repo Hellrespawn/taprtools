@@ -3,7 +3,6 @@
 //!
 //! The TagFormat scripting language lets you write scripts to dynamically
 //! rename your music files based on their tags.
-
 /// CLI modules.
 pub mod cli;
 /// Crate errors.

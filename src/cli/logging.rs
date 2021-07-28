@@ -1,3 +1,4 @@
+use super::config;
 use anyhow::{bail, Result};
 use log::log;
 use log::LevelFilter;
@@ -25,8 +26,7 @@ pub fn setup_logger(verbosity: usize, filename: &str) -> Result<()> {
         ),
     };
 
-    let mut path: PathBuf = std::env::temp_dir();
-    path.push("tfmttools");
+    let mut path: PathBuf = config::get_log_dir();
 
     fs::create_dir_all(&path)?;
 
@@ -54,10 +54,9 @@ pub fn setup_logger(verbosity: usize, filename: &str) -> Result<()> {
         )
         .apply()?;
 
-    log!(
-        log::max_level().to_level().unwrap_or(log::Level::Error),
-        "Log started."
-    );
+    if let Some(level) = log::max_level().to_level() {
+        log!(level, "Log started.");
+    }
 
     Ok(())
 }

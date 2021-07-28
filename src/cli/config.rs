@@ -1,14 +1,86 @@
-use crate::tfmt::ast::Program;
-use crate::tfmt::parser::Parser;
-use anyhow::Result;
-use std::convert::TryFrom;
-use std::path::PathBuf;
+use once_cell::sync::Lazy;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
-pub fn read_script(name: &str) -> Result<(PathBuf, Program)> {
-    // FIXME actually implement read_script
-    let path = PathBuf::from("testdata/script/typical_input.tfmt");
+pub fn get_log_dir() -> PathBuf {
+    let mut path = std::env::temp_dir();
+    path.push("tfmttools");
+    path
+}
+fn get_config_dirs() -> &'static [PathBuf] {
+    static DIRS: Lazy<Vec<PathBuf>> = Lazy::new(|| {
+        let config = match dirs::config_dir() {
+            Some(dir) => {
+                let mut dir = dir;
+                dir.push("tfmttools");
+                Some(dir)
+            }
+            None => None,
+        };
 
-    let program = Parser::try_from(&path)?.parse()?;
+        let home = match dirs::home_dir() {
+            Some(dir) => {
+                let mut dir = dir;
+                dir.push(".tfmttools");
+                Some(dir)
+            }
+            None => None,
+        };
 
-    Ok((path, program))
+        let cwd = std::env::current_dir().ok();
+
+        vec![cwd, home, config].into_iter().flatten().collect()
+    });
+
+    &DIRS
+}
+
+fn search_dir_for_script(dir: &Path) -> HashMap<String, PathBuf> {
+    let mut scripts = HashMap::new();
+
+    if let Ok(iter) = std::fs::read_dir(dir) {
+        for entry in iter.flatten() {
+            let path = entry.path();
+            if let Ok(file_type) = entry.file_type() {
+                if file_type.is_file() {
+                    if let Some(extension) = path.extension() {
+                        // TODO? Mime type or something?
+                        if extension == "tfmt" {
+                            scripts.insert(
+                                entry.file_name().to_string_lossy().to_string(),
+                                path,
+                            );
+                        }
+                    }
+                    // TODO? Do we want recursion?
+                    // } else if file_type.is_dir() {
+                    //     scripts.extend(search_dir_for_script(&path))
+                }
+            }
+        }
+    }
+
+    scripts
+}
+
+pub fn get_all_scripts() -> HashMap<String, PathBuf> {
+    let mut scripts = HashMap::new();
+
+    for dir in get_config_dirs() {
+        let mut dir = PathBuf::from(dir);
+        scripts.extend(search_dir_for_script(&dir));
+
+        dir.push("script");
+        scripts.extend(search_dir_for_script(&dir));
+        dir.pop();
+
+        dir.push("scripts");
+        scripts.extend(search_dir_for_script(&dir));
+    }
+
+    scripts
+}
+
+pub fn get_script(name: &str) -> Option<PathBuf> {
+    get_all_scripts().get(name).map(PathBuf::from)
 }

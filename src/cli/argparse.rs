@@ -27,12 +27,14 @@ impl Args {
 #[derive(Debug, PartialEq)]
 // TODO? Add a default subcommand?
 pub enum Subcommand {
-    /// Undo `amount` actions.
-    Undo { amount: u64 },
-    /// Redo `amount` actions.
-    Redo { amount: u64 },
+    /// List scripts.
+    ListScripts,
     /// Inspect script `name`.
-    Inspect { name: String },
+    Inspect(String),
+    /// Redo `amount` actions.
+    Redo(u64),
+    /// Undo `amount` actions.
+    Undo(u64),
     /// Rename files.
     Rename {
         name: String,
@@ -44,26 +46,27 @@ pub enum Subcommand {
 impl Subcommand {
     fn from_subcommand(name: &str, submatches: &ArgMatches) -> Result<Self> {
         match name {
-            "undo" => Ok(Subcommand::Undo {
-                amount: submatches
-                    .value_of("amount")
-                    .unwrap()
-                    .parse::<u64>()
-                    .expect("Invalid amount!"),
-            }),
-            "redo" => Ok(Subcommand::Redo {
-                amount: submatches
-                    .value_of("amount")
-                    .unwrap()
-                    .parse::<u64>()
-                    .expect("Invalid amount!"),
-            }),
-            "inspect" => Ok(Subcommand::Inspect {
-                name: submatches
+            "list-scripts" => Ok(Subcommand::ListScripts),
+            "inspect" => Ok(Subcommand::Inspect(
+                submatches
                     .value_of("name")
                     .expect("Name wasn't specified!")
                     .to_string(),
-            }),
+            )),
+            "redo" => Ok(Subcommand::Redo(
+                submatches
+                    .value_of("amount")
+                    .unwrap()
+                    .parse::<u64>()
+                    .expect("Invalid amount!"),
+            )),
+            "undo" => Ok(Subcommand::Undo(
+                submatches
+                    .value_of("amount")
+                    .unwrap()
+                    .parse::<u64>()
+                    .expect("Invalid amount!"),
+            )),
             "rename" => Ok(Subcommand::Rename {
                 name: submatches
                     .value_of("name")
@@ -106,7 +109,7 @@ where
     };
 
     args.accumulate_ArgMatches(&matches);
-    args.accumulate_ArgMatches(&submatches);
+    args.accumulate_ArgMatches(submatches);
 
     Ok(args)
 }

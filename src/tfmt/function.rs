@@ -1,6 +1,6 @@
 use super::token::FORBIDDEN_GRAPHEMES;
 use crate::error::FunctionError;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use std::convert::TryFrom;
 
@@ -41,24 +41,22 @@ pub fn handle_function<S: AsRef<str>>(
 
     let function_output = match name {
         "prepend" => function_prepend(
-            &arguments[0],
+            arguments[0],
             arguments[1].parse()?,
             arguments[2].parse()?,
         ),
-        "num" => function_leading_zeroes(&arguments[0], arguments[1].parse()?),
-        "replace" => {
-            function_replace(&arguments[0], &arguments[1], &arguments[2])
-        }
+        "num" => function_leading_zeroes(arguments[0], arguments[1].parse()?),
+        "replace" => function_replace(arguments[0], arguments[1], arguments[2]),
         "split" => function_split(
-            &arguments[0],
-            &arguments[1],
+            arguments[0],
+            arguments[1],
             arguments[2].parse()?,
             arguments[3].parse()?,
         ),
-        "validate" => function_validate(&arguments[0]),
-        "year_from_date" => function_year_from_date(&arguments[0]),
-        "andif" => function_andif(&arguments[0], &arguments[1]),
-        "if" => function_if(&arguments[0], &arguments[1], &arguments[2]),
+        "validate" => function_validate(arguments[0]),
+        "year_from_date" => function_year_from_date(arguments[0]),
+        "andif" => function_andif(arguments[0], arguments[1]),
+        "if" => function_if(arguments[0], arguments[1], arguments[2]),
 
         _ => return Err(FunctionError::UnknownFunction(name.to_string())),
     };
@@ -79,7 +77,7 @@ fn function_leading_zeroes(string: &str, length: usize) -> String {
 }
 
 fn function_replace(string: &str, from: &str, to: &str) -> String {
-    string.replace(&from, &to)
+    string.replace(from, to)
 }
 
 fn function_split(
@@ -109,19 +107,13 @@ fn function_validate(string: &str) -> String {
 }
 
 fn function_year_from_date(string: &str) -> String {
-    lazy_static! {
-        static ref REGEXES: [Regex; 3] = [
+    static REGEXES: Lazy<[Regex; 3]> = Lazy::new(|| {
+        [
             Regex::new(r"^(?P<year>\d{4})$").unwrap(),
             Regex::new(r"^(?P<year>\d{4})-\d{2}-\d{2}$").unwrap(),
             Regex::new(r"^\d{2}-\d{2}-(?P<year>\d{4})$").unwrap(),
-        ];
-    }
-
-    // let REGEXES = [
-    //     Regex::new(r"^(?P<year>\d{4})$").unwrap(),
-    //     Regex::new(r"^(?P<year>\d{4})-\d{2}-\d{2}$").unwrap(),
-    //     Regex::new(r"^\d{2}-\d{2}-(?P<year>\d{4})$").unwrap(),
-    // ];
+        ]
+    });
 
     // re.captures returns None if there are not matches. We always have one
     // group, so if re.captures returns Some(), c[1] should never panic.

@@ -1,7 +1,7 @@
 #![allow(non_camel_case_types)]
 use crate::error::TokenError;
 use bimap::BiMap;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 
 type Result<T> = std::result::Result<T, TokenError>;
 
@@ -59,8 +59,8 @@ impl TokenType {
     pub const IGNORED: [TokenType; 1] = [TokenType::Comment];
 
     fn string_map() -> &'static BiMap<TokenType, &'static str> {
-        lazy_static! {
-            static ref STRING_MAP: BiMap<TokenType, &'static str> = {
+        static STRING_MAP: Lazy<BiMap<TokenType, &'static str>> =
+            Lazy::new(|| {
                 let mut ttypes = BiMap::new();
                 ttypes.insert(TokenType::Ampersand, "&");
                 ttypes.insert(TokenType::AngleBracketLeft, "<");
@@ -101,26 +101,24 @@ impl TokenType {
                 ttypes.insert(TokenType::Uninitialized, "UNINITIALIZED");
 
                 ttypes
-            };
-        }
+            });
+
         &STRING_MAP
     }
 
     pub fn reserved_strings() -> &'static [&'static str] {
-        lazy_static! {
-            /// Reserved strings.
-            static ref RESERVED_STRINGS: Vec<&'static str> = {
-                let mut reserved = Vec::new();
-                for (_, string) in TokenType::string_map().iter() {
-                    if !string.chars().all(|c| c.is_alphabetic()) {
-                        reserved.push(*string)
-                    }
+        static RESERVED_STRINGS: Lazy<Vec<&'static str>> = Lazy::new(|| {
+            let mut reserved = Vec::new();
+            for (_, string) in TokenType::string_map().iter() {
+                if !string.chars().all(|c| c.is_alphabetic()) {
+                    reserved.push(*string)
                 }
-                reserved.sort_by_key(|a| a.len());
-                reserved.reverse();
-                reserved
-            };
-        }
+            }
+            reserved.sort_by_key(|a| a.len());
+            reserved.reverse();
+            reserved
+        });
+
         &RESERVED_STRINGS
     }
 
@@ -196,7 +194,7 @@ impl Token {
         ttype_str: &str,
         value: Option<String>,
     ) -> Result<Token> {
-        Self::new(line_no, col_no, TokenType::from_string(&ttype_str)?, value)
+        Self::new(line_no, col_no, TokenType::from_string(ttype_str)?, value)
     }
 
     pub fn get_value_unchecked(&self) -> &str {
