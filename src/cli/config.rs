@@ -12,10 +12,11 @@ pub fn get_config_dirs() -> &'static [PathBuf] {
         let home = dirs::home_dir().map(|p| p.join(".tfmttools"));
         let cwd = std::env::current_dir().ok();
 
-        // testdata is added only when run from Cargo.
-        let dirs = match std::env::var("CARGO_HOME") {
-            Ok(_) => vec![Some(PathBuf::from("testdata")), home, config, cwd],
-            Err(_) => vec![home, config, cwd],
+        //let dirs: Vec<PathBuf> = if cfg!(test) || std::env::var("CARGO_HOME").is_ok() {
+        let dirs: Vec<PathBuf> = if cfg!(test) {
+            vec![Some(PathBuf::from("testdata")), home, config, cwd]
+        } else {
+            vec![None, home, config, cwd]
         }
         .into_iter()
         .flatten()

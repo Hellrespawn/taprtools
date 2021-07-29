@@ -1,16 +1,19 @@
-use anyhow::{Result, bail};
-use std::path::{PathBuf, Path};
-use tempfile::{tempdir, TempDir};
+use anyhow::{bail, Result};
+use std::path::{Path, PathBuf};
+use tempfile::{Builder, TempDir};
 use tfmttools::cli::tfmttools;
 
 struct Environment {
     tempdir: TempDir,
     cwd: PathBuf,
 }
-
-fn setup_environment() -> Result<Environment> {
+//FIXME Temp dirs clash?
+fn setup_environment(suffix: &str) -> Result<Environment> {
     let environment = Environment {
-        tempdir: tempdir()?,
+        tempdir: Builder::new()
+            .prefix("tfmttools")
+            .suffix(suffix)
+            .tempdir()?,
         cwd: std::env::current_dir()?,
     };
 
@@ -54,7 +57,10 @@ fn teardown_environment(environment: Environment) -> Result<()> {
     Ok(())
 }
 
-fn check_paths<P: AsRef<Path>>(environment: &Environment, reference: &[P]) -> Result<()> {
+fn check_paths<P: AsRef<Path>>(
+    environment: &Environment,
+    reference: &[P],
+) -> Result<()> {
     for r in reference {
         let path = environment.tempdir.path().join(r);
 
@@ -66,39 +72,39 @@ fn check_paths<P: AsRef<Path>>(environment: &Environment, reference: &[P]) -> Re
     Ok(())
 }
 
-fn test_tfmttools<P: AsRef<Path>>(args: &str, reference: &[P]) -> Result<()> {
-    let e = setup_environment()?;
+fn test_tfmttools<P: AsRef<Path>>(
+    name: &str,
+    args: &str,
+    reference: &[P],
+) -> Result<()> {
+    let e = setup_environment(name)?;
 
-    tfmttools::_main(&args.split_whitespace()
-    .collect::<Vec<&str>>())?;
+    tfmttools::_main(&args.split_whitespace().collect::<Vec<&str>>())?;
 
     check_paths(&e, &reference)?;
 
     teardown_environment(e)?;
 
     Ok(())
-
 }
 
 #[test]
 fn tfmttools_simple_input_test() -> Result<()> {
-
-    let args = "tfmttools_test -vvvvv rename simple_input -r";
+    let args = "tfmttools_test rename simple_input -r";
 
     let reference = [
-    "MASTER BOOT RECORD/Dune.mp3",
-    "MASTER BOOT RECORD/SET MIDI=SYNTH1 MAPG MODE1.mp3",
-    "Amon Amarth/Under Siege.mp3",
-    "Damjan Mravunac/Welcome To Heaven.ogg",
-    "Nightwish/While Your Lips Are Still Red.mp3",
+        "MASTER BOOT RECORD/Dune.mp3",
+        "MASTER BOOT RECORD/SET MIDI=SYNTH1 MAPG MODE1.mp3",
+        "Amon Amarth/Under Siege.mp3",
+        "Damjan Mravunac/Welcome To Heaven.ogg",
+        "Nightwish/While Your Lips Are Still Red.mp3",
     ];
 
-    test_tfmttools(args, &reference)
+    test_tfmttools("simple", args, &reference)
 }
 
 #[test]
 fn tfmttools_typical_input_test() -> Result<()> {
-
     let args = "tfmttools_test -vvvvv rename typical_input -r -- myname";
 
     let reference = [
@@ -109,5 +115,5 @@ fn tfmttools_typical_input_test() -> Result<()> {
         "myname/Nightwish/While Your Lips Are Still Red.mp3",
     ];
 
-    test_tfmttools(args, &reference)
+    test_tfmttools("typical", args, &reference)
 }

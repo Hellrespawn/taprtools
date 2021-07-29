@@ -52,7 +52,15 @@ pub fn setup_logger(verbosity: usize, filename: &str) -> Result<()> {
         .apply()?;
 
     if let Some(level) = log::max_level().to_level() {
-        log!(level, "Log started.");
+        log!(
+            level,
+            "{}",
+            if cfg!(test) {
+                "Log started in test mode"
+            } else {
+                "Log started"
+            }
+        );
     }
 
     Ok(())
