@@ -1,14 +1,14 @@
 use super::argparse::{Args, Subcommand};
+use super::history::{History, Rename};
 use super::inspector::{Inspector, Mode};
 use super::{argparse, config, logging};
+use crate::file::audiofile::get_audiofiles;
 use crate::tfmt::interpreter::Interpreter;
 use crate::tfmt::parser::Parser;
-use anyhow::{bail, Result};
+use anyhow::Result;
 use log::info;
 use std::convert::{TryFrom, TryInto};
 use std::path::{Path, PathBuf};
-use super::history::History;
-use crate::file::audiofile::get_audiofiles;
 
 /// Main tfmttools entrypoint.
 pub fn main() -> Result<()> {
@@ -17,20 +17,31 @@ pub fn main() -> Result<()> {
     logging::setup_logger(args.verbosity.try_into()?, "tfmttools")?;
     info!("Parsed arguments:\n{:#?}", &args);
 
+    let mut history = History::load_history(args.dry_run).unwrap_or_default();
+
     // TODO Pretty-print errors
-    TFMTTools { args }.main()
+    let mut p = TFMTTools {
+        args: &args,
+        history: &mut history,
+    };
+    p.main()?;
+
+    history.save_history()?;
+
+    Ok(())
 }
 
-struct TFMTTools {
-    args: Args,
+struct TFMTTools<'a> {
+    args: &'a Args,
+    history: &'a mut History,
 }
 
-impl TFMTTools {
-    fn main(&self) -> Result<()> {
+impl<'a> TFMTTools<'a> {
+    fn main(&mut self) -> Result<()> {
         self.handle_command(&self.args.subcommand)
     }
 
-    fn handle_command(&self, subcommand: &Subcommand) -> Result<()> {
+    fn handle_command(&mut self, subcommand: &Subcommand) -> Result<()> {
         match subcommand {
             Subcommand::ListScripts => self.list_scripts(),
             Subcommand::Redo(amount) => self.redo(*amount),
@@ -70,14 +81,14 @@ impl TFMTTools {
         Ok(())
     }
 
-    fn redo(&self, amount: u64) -> Result<()> {
-        bail!("Redo({}) is unimplemented!", amount)
+    fn redo(&mut self, amount: u64) -> Result<()> {
+        self.history.redo(amount)?;
+
+        Ok(())
     }
 
-    fn undo(&self, amount: u64) -> Result<()> {
-        let history = History::load_history()?;
-
-        //history.record.undo();
+    fn undo(&mut self, amount: u64) -> Result<()> {
+        self.history.undo(amount)?;
 
         Ok(())
     }
@@ -90,7 +101,7 @@ impl TFMTTools {
     }
 
     fn rename<P: AsRef<Path>>(
-        &self,
+        &mut self,
         script_name: &str,
         arguments: &[&str],
         input_folder: &P,
@@ -111,14 +122,13 @@ impl TFMTTools {
 
         println!("Paths:\n{:#?}", paths);
 
-        let mut history = History::load_history().unwrap_or_default();
+        let action: Vec<Rename> = paths
+            .iter()
+            .zip(&songs)
+            .map(|(p, s)| Rename::new(p, s.path()))
+            .collect();
 
-        // for (path, song) in paths.iter().zip(&songs) {
-        //     let rename = Rename::new(path);
-        //     history.record.apply(&mut PathBuf::from(song.path()), rename)?;
-        // }
-
-        history.save_history()?;
+        self.history.apply(action)?;
 
         Ok(())
     }

@@ -116,13 +116,6 @@ where
 
     fn d(&mut self) -> String {
         (0..self.depth).map(|i| (i % 10).to_string()).collect()
-
-        // let mut f_string: String = String::new();
-        // for i in 0..self.depth {
-        //     f_string.push_str(&(i % 10).to_string());
-        // }
-
-        // f_string
     }
 
     // Grammar functions

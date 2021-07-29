@@ -1,5 +1,5 @@
 use anyhow::Result;
-use tfmttools::cli::rename::get_audiofiles;
+use tfmttools::file::audiofile::get_audiofiles;
 use tfmttools::tfmt::interpreter::Interpreter;
 use tfmttools::tfmt::lexer::{Lexer, LexerResult};
 use tfmttools::tfmt::parser::Parser;

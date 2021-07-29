@@ -1,3 +1,9 @@
+use super::mp3::MP3;
+use super::ogg::OGG;
+use anyhow::Result;
+use log::{debug, info};
+use std::borrow::Cow;
+use std::convert::TryFrom;
 /// Common functions for reading audio file tags.
 use std::path::{Path, PathBuf};
 
@@ -41,9 +47,59 @@ pub trait AudioFile: std::fmt::Debug {
     }
 }
 
+pub fn get_audiofiles<P: AsRef<Path>>(
+    dir: &P,
+    depth: u64,
+) -> Result<Vec<Box<dyn AudioFile>>> {
+    let audiofiles = _get_audiofiles(dir, depth)?;
+    info!("Read {} files", audiofiles.len());
+    debug!(
+        "[\n\"{}\"\n]",
+        audiofiles
+            .iter()
+            .map(|a| a.path().to_string_lossy())
+            .collect::<Vec<Cow<str>>>()
+            .join("\",\n\"")
+    );
+
+    Ok(audiofiles)
+}
+
+fn _get_audiofiles<P: AsRef<Path>>(
+    dir: &P,
+    depth: u64,
+) -> Result<Vec<Box<dyn AudioFile>>> {
+    let mut audiofiles = Vec::new();
+
+    if depth == 0 {
+        return Ok(audiofiles);
+    }
+
+    if let Ok(iter) = std::fs::read_dir(dir) {
+        for entry in iter.flatten() {
+            let path = entry.path();
+            if let Ok(file_type) = entry.file_type() {
+                if file_type.is_file() {
+                    if let Some(extension) = path.extension() {
+                        if extension == "mp3" {
+                            audiofiles.push(Box::new(MP3::try_from(&path)?));
+                        } else if extension == "ogg" {
+                            audiofiles.push(Box::new(OGG::try_from(&path)?));
+                        }
+                    }
+                } else if file_type.is_dir() {
+                    audiofiles.extend(_get_audiofiles(&path, depth - 1)?)
+                }
+            }
+        }
+    }
+
+    Ok(audiofiles)
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::cli::rename::get_audiofiles;
+    use super::*;
     use anyhow::{bail, Result};
     use std::path::PathBuf;
 
