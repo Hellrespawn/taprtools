@@ -7,6 +7,7 @@ settings:
     - SubcommandRequired
 
 args:
+    # Universal - Start
     - verbose:
         short: v
         multiple: true
@@ -15,6 +16,13 @@ args:
     - dry-run:
         long: dry-run
         help: Simulate file actions only.
+
+    - config-folder:
+        short: c
+        long: config-folder
+        takes_value: true
+        help: Optional config folder.
+    # Universal - End
 
 subcommands:
     # - clear-history:
@@ -44,6 +52,7 @@ subcommands:
     - list-scripts:
         about: List scripts.
         args:
+            # Universal - Start
             - verbose:
                 short: v
                 multiple: true
@@ -52,10 +61,18 @@ subcommands:
             - dry-run:
                 long: dry-run
                 help: Simulate file actions only.
+
+            - config-folder:
+                short: c
+                long: config-folder
+                takes_value: true
+                help: Optional config folder.
+            # Universal - End
 
     - undo:
         about: Undo <amount> actions.
         args:
+            # Universal - Start
             - verbose:
                 short: v
                 multiple: true
@@ -64,6 +81,13 @@ subcommands:
             - dry-run:
                 long: dry-run
                 help: Simulate file actions only.
+
+            - config-folder:
+                short: c
+                long: config-folder
+                takes_value: true
+                help: Optional config folder.
+            # Universal - End
 
             - amount:
                 help: Number of times to undo.
@@ -73,6 +97,7 @@ subcommands:
     - redo:
         about: Redo <amount> actions.
         args:
+            # Universal - Start
             - verbose:
                 short: v
                 multiple: true
@@ -81,6 +106,13 @@ subcommands:
             - dry-run:
                 long: dry-run
                 help: Simulate file actions only.
+
+            - config-folder:
+                short: c
+                long: config-folder
+                takes_value: true
+                help: Optional config folder.
+            # Universal - End
 
             - amount:
                 help: Number of times to redo.
@@ -90,15 +122,22 @@ subcommands:
     - inspect:
         about: Inspect script <name>.
         args:
+            # Universal - Start
             - verbose:
                 short: v
                 multiple: true
                 help: Sets the level of verbosity.
 
-            # TODO? Remove dry-run from actions that don't do anything?
             - dry-run:
                 long: dry-run
                 help: Simulate file actions only.
+
+            - config-folder:
+                short: c
+                long: config-folder
+                takes_value: true
+                help: Optional config folder.
+            # Universal - End
 
             - name:
                 help: Name of script to inspect.
@@ -114,6 +153,7 @@ subcommands:
     - rename:
         about: Rename files according to tags.
         args:
+            # Universal - Start
             - verbose:
                 short: v
                 multiple: true
@@ -122,6 +162,13 @@ subcommands:
             - dry-run:
                 long: dry-run
                 help: Simulate file actions only.
+
+            - config-folder:
+                short: c
+                long: config-folder
+                takes_value: true
+                help: Optional config folder.
+            # Universal - End
 
             - script-name:
                 help: Name of script to inspect.
@@ -136,7 +183,14 @@ subcommands:
             - input-folder:
                 short: i
                 long: input-folder
+                takes_value: true
                 help: Optional input folder.
+
+            - output-folder:
+                short: o
+                long: output-folder
+                takes_value: true
+                help: Optional output folder. Ignored if the script path is absolute.
 
             - recursive:
                 short: r

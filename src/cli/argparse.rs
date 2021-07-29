@@ -10,6 +10,8 @@ pub struct Args {
     pub verbosity: u64,
     /// Whether or not to actually rename files.
     pub dry_run: bool,
+    /// Folder to read/write configuration to.
+    pub config_folder: Option<PathBuf>,
     /// Arguments specific to chosen subcommand.
     pub subcommand: Subcommand,
 }
@@ -20,6 +22,7 @@ impl Args {
     pub fn accumulate_ArgMatches(&mut self, matches: &ArgMatches) {
         self.verbosity += matches.occurrences_of("verbose");
         self.dry_run |= matches.is_present("dry-run");
+        self.config_folder = matches.value_of("config-folder").map(PathBuf::from);
     }
 }
 
@@ -44,6 +47,7 @@ pub enum Subcommand {
         script_name: String,
         arguments: Vec<String>,
         input_folder: PathBuf,
+        output_folder: Option<PathBuf>,
         recursive: bool,
     },
 }
@@ -89,6 +93,9 @@ impl Subcommand {
                     .value_of("input-folder")
                     .map(PathBuf::from)
                     .unwrap_or(std::env::current_dir()?),
+                output_folder: submatches
+                    .value_of("output-folder")
+                    .map(PathBuf::from),
                 recursive: submatches.is_present("recursive"),
             }),
             other => bail!("Unknown subcommand name: {}", other),
@@ -102,12 +109,14 @@ pub fn parse_args<S: AsRef<OsStr>>(args: &[S]) -> Result<Args> {
     let matches = App::from_yaml(yaml).get_matches_from(args.iter());
 
     let (name, submatches) = matches.subcommand();
+
+    // SubcommandRequired is enabled in tfmttools.yml
     let submatches = submatches.unwrap();
 
     let mut args = Args {
         verbosity: 0,
         dry_run: false,
-        // SubcommandRequired is enabled in tfmttools.yml
+        config_folder: None,
         subcommand: Subcommand::from_subcommand(name, submatches)?,
     };
 
@@ -129,6 +138,7 @@ mod test {
         let test_args = Args {
             verbosity: 4,
             dry_run: false,
+            config_folder: None,
             subcommand: Subcommand::Rename {
                 script_name: "Sync".to_string(),
                 arguments: vec![
@@ -137,6 +147,7 @@ mod test {
                     "arguments".to_string(),
                 ],
                 input_folder: std::env::current_dir()?,
+                output_folder: None,
                 recursive: false,
             },
         };

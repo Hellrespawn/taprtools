@@ -16,29 +16,33 @@ pub fn main() -> Result<()> {
     _main(&std::env::args().collect::<Vec<String>>())
 }
 
-// FIXME Absolutely fucking hate this
+// FIXME Absolutely fucking hate this pub.
 pub fn _main<S: AsRef<OsStr>>(args: &[S]) -> Result<()> {
     let args = argparse::parse_args(args)?;
 
     logging::setup_logger(args.verbosity.try_into()?, "tfmttools")?;
     info!("Parsed arguments:\n{:#?}", &args);
 
-    let mut history = History::load_history(args.dry_run).unwrap_or_default();
+    let config_folder = config::get_config_folder(&args)?;
+
+    let mut history = History::load_history(args.dry_run, &config_folder).unwrap_or_default();
 
     // TODO Pretty-print errors
     let mut p = TFMTTools {
         args: &args,
+        config_folder: &config_folder,
         history: &mut history,
     };
     p.main()?;
 
-    history.save_history()?;
+    history.save_history(&config_folder)?;
 
     Ok(())
 }
 
 struct TFMTTools<'a> {
     args: &'a Args,
+    config_folder: &'a Path,
     history: &'a mut History,
 }
 
@@ -60,6 +64,7 @@ impl<'a> TFMTTools<'a> {
                 script_name,
                 arguments,
                 input_folder,
+                output_folder,
                 recursive,
             } => self.rename(
                 script_name,
@@ -68,13 +73,14 @@ impl<'a> TFMTTools<'a> {
                     .map(std::ops::Deref::deref)
                     .collect::<Vec<&str>>(),
                 input_folder,
+                output_folder,
                 *recursive,
             ),
         }
     }
 
     fn list_scripts(&self) -> Result<()> {
-        let paths = &config::get_all_scripts();
+        let paths = &config::get_all_scripts(&self.config_folder);
 
         if paths.is_empty() {
             println!("Couldn't find any scripts.")
@@ -101,7 +107,7 @@ impl<'a> TFMTTools<'a> {
 
     fn inspect(&self, name: &str, render_ast: bool) -> Result<()> {
         Inspector::inspect(
-            &config::get_script(name)?,
+            &config::get_script(name, &self.config_folder)?,
             if render_ast { Mode::Dot } else { Mode::Long },
         )
     }
@@ -111,9 +117,10 @@ impl<'a> TFMTTools<'a> {
         script_name: &str,
         arguments: &[&str],
         input_folder: &P,
+        output_folder: &Option<P>,
         recursive: bool,
     ) -> Result<()> {
-        let path = config::get_script(script_name)?;
+        let path = config::get_script(script_name, &self.config_folder)?;
 
         let program = Parser::try_from(&path)?.parse()?;
 
@@ -123,10 +130,26 @@ impl<'a> TFMTTools<'a> {
 
         let mut intp = Interpreter::new(&program, arguments, &songs)?;
 
-        let paths: Vec<PathBuf> =
+        let mut paths: Vec<PathBuf> =
             intp.interpret()?.iter().map(PathBuf::from).collect();
 
-        //println!("Paths:\n{:#?}", paths);
+        if let Some(prefix) = output_folder {
+            let prefix = prefix.as_ref();
+
+            if paths.iter().any(|p| p.is_absolute()) {
+                println!(
+                    "Absolute path found, ignoring --output-folder {}",
+                    prefix.to_string_lossy()
+                );
+            } else {
+                paths = paths
+                    .into_iter()
+                    .map(|p| prefix.join(p))
+                    .collect::<Vec<PathBuf>>();
+            }
+        }
+
+        println!("Paths:\n{:#?}", paths);
 
         let action: Vec<Rename> = paths
             .iter()

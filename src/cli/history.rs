@@ -26,20 +26,22 @@ impl History {
         Default::default()
     }
 
-    pub fn load_history(dry_run: bool) -> Result<History> {
+    pub fn load_history<P: AsRef<Path>>(dry_run: bool, config_folder: &P) -> Result<History> {
         // These were selected through path.is_file(), file_name.unwrap()
         // should be safe.
-        let path = config::get_config_dirs()
-            .iter()
-            .map(|d| config::search_dir_for_filename(d, HISTORY_FILENAME))
-            .flatten()
-            .find(|p| p.file_name().unwrap() == HISTORY_FILENAME)
-            .ok_or_else(|| {
-                anyhow!("Unable to load history from {}", HISTORY_FILENAME)
-            })?;
+        let path = config::search_dir_for_filename(config_folder, HISTORY_FILENAME)
+        .into_iter()
+        .find(|p| p.file_name().unwrap() == HISTORY_FILENAME)
+        .ok_or_else(||
+            anyhow!("Unable to load history from {}", HISTORY_FILENAME)
+        )?;
 
         let serialized = std::fs::read_to_string(&path)?;
-        trace!("Loaded history:\n{}", serialized);
+        trace!(
+            "Loaded history from {}:\n{}",
+            path.to_string_lossy(),
+            serialized
+        );
 
         let (undo_actions, redo_actions) = serde_json::from_str(&serialized)?;
 
@@ -51,17 +53,12 @@ impl History {
         })
     }
 
-    pub fn save_history(&self) -> Result<()> {
+    pub fn save_history<P: AsRef<Path>>(&self, config_folder: &P) -> Result<()> {
         let path = if let Some(path) = &self.path {
             PathBuf::from(path)
         } else {
-            PathBuf::from(
-                config::get_config_dirs().iter().next().ok_or_else(|| {
-                    anyhow!("Can't find any valid config dirs!")
-                })?,
-            )
-        }
-        .join(HISTORY_FILENAME);
+            config_folder.as_ref().join(HISTORY_FILENAME)
+        };
 
         let serialized = serde_json::to_string_pretty(&(
             &self.undo_stack,

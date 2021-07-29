@@ -1,33 +1,35 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
 use log::debug;
-use once_cell::sync::Lazy;
 use std::path::{Path, PathBuf};
+use super::argparse::Args;
 
 pub fn get_log_dir() -> PathBuf {
     std::env::temp_dir().join("tfmttools")
 }
-pub fn get_config_dirs() -> &'static [PathBuf] {
-    static DIRS: Lazy<Vec<PathBuf>> = Lazy::new(|| {
-        let config = dirs::config_dir().map(|p| p.join("tfmttools"));
-        let home = dirs::home_dir().map(|p| p.join(".tfmttools"));
-        let cwd = std::env::current_dir().ok();
 
-        //let dirs: Vec<PathBuf> = if cfg!(test) || std::env::var("CARGO_HOME").is_ok() {
-        let dirs: Vec<PathBuf> = if cfg!(test) {
-            vec![Some(PathBuf::from("testdata")), home, config, cwd]
-        } else {
-            vec![None, home, config, cwd]
-        }
-        .into_iter()
-        .flatten()
-        .filter(|p| p.is_dir())
-        .collect();
+pub fn get_config_folder(args: &Args) -> Result<PathBuf> {
+    let dir = if let Some(config_folder) = &args.config_folder {
+        Ok(config_folder.to_path_buf())
+    } else {
+        dirs::home_dir().
+        map(|p| p.join(".tfmttools"))
+        .or_else(||
+            dirs::config_dir()
+            .map(|p| p.join("tfmttools"))
+        ).ok_or_else(|| anyhow!("Unable to find valid configuration directory!"))
+    }?;
 
-        debug!("Valid config dirs:\n{:#?}", dirs);
-        dirs
-    });
+    if !dir.exists() {
+        std::fs::create_dir_all(&dir)?;
+    } else if !dir.is_dir() {
+        bail!("{} is not a folder!", dir.to_string_lossy())
+    }
 
-    &DIRS
+    //FIXME Add testdata somehow.
+    //let dirs: Vec<PathBuf> = if cfg!(test) || std::env::var("CARGO_HOME").is_ok() {
+    //let dirs: Vec<PathBuf> = if cfg!(test) {
+
+    Ok(dir)
 }
 
 // TODO? Join search_dir function, take a closure?
@@ -87,23 +89,22 @@ pub fn search_dir_for_filename<P: AsRef<Path>>(
     paths
 }
 
-pub fn get_all_scripts() -> Vec<PathBuf> {
+pub fn get_all_scripts<P: AsRef<Path>>(config_folder: &P) -> Vec<PathBuf> {
     let mut scripts = Vec::new();
 
-    for dir in get_config_dirs() {
-        scripts.extend(search_dir_for_extension(&dir, "tfmt"));
-        scripts.extend(search_dir_for_extension(&dir.join("script"), "tfmt"));
-        scripts.extend(search_dir_for_extension(&dir.join("scripts"), "tfmt"));
-    }
+    let config_folder = config_folder.as_ref();
+
+    scripts.extend(search_dir_for_extension(&config_folder, "tfmt"));
+    scripts.extend(search_dir_for_extension(&config_folder.join("script"), "tfmt"));
+    scripts.extend(search_dir_for_extension(&config_folder.join("scripts"), "tfmt"));
 
     debug!("Found scripts:\n{:#?}", scripts);
-
     scripts
 }
 
-pub fn get_script(name: &str) -> Result<PathBuf> {
+pub fn get_script<P: AsRef<Path>>(name: &str, config_folder: &P) -> Result<PathBuf> {
     let name = format!("{}.tfmt", name);
-    let scripts = get_all_scripts();
+    let scripts = get_all_scripts(config_folder);
     // These were selected through path.is_file(), unwrap should be safe.
     scripts
         .into_iter()
