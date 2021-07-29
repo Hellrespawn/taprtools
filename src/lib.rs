@@ -1,4 +1,4 @@
-//#![warn(missing_docs)]
+#![warn(missing_docs)]
 //! Tools to manage your music library using TagFormat.
 //!
 //! The TagFormat scripting language lets you write scripts to dynamically

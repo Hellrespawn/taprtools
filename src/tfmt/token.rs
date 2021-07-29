@@ -106,6 +106,7 @@ impl TokenType {
         &STRING_MAP
     }
 
+    /// A collection of strings that represent a [TokenType].
     pub fn reserved_strings() -> &'static [&'static str] {
         static RESERVED_STRINGS: Lazy<Vec<&'static str>> = Lazy::new(|| {
             let mut reserved = Vec::new();
@@ -197,10 +198,11 @@ impl Token {
         Self::new(line_no, col_no, TokenType::from_string(ttype_str)?, value)
     }
 
+    /// Get unwrapped value from [Token]. Only use it after checking it's
+    /// a [TokenType] with a value.
     pub fn get_value_unchecked(&self) -> &str {
         self.value.as_ref().expect(
-            "Token values are checked at creation! Are you \
-            trying to get the value from a token that doesn't have one?",
+            "Token values are checked at creation! Are you  trying to get the value from a token that isn't supposed to have one?",
         )
     }
 }

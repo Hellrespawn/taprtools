@@ -16,33 +16,30 @@ pub fn main() -> Result<()> {
     _main(&std::env::args().collect::<Vec<String>>())
 }
 
-// FIXME Absolutely fucking hate this pub.
+/// Public only for integration testing. Absolutely fucking hate this pub. Kill me.
 pub fn _main<S: AsRef<OsStr>>(args: &[S]) -> Result<()> {
     let args = argparse::parse_args(args)?;
 
     logging::setup_logger(args.verbosity.try_into()?, "tfmttools")?;
     info!("Parsed arguments:\n{:#?}", &args);
 
-    let config_folder = config::get_config_folder(&args)?;
-
-    let mut history = History::load_history(args.dry_run, &config_folder).unwrap_or_default();
+    let mut history = History::load_history(args.dry_run, &args.config_folder)
+        .unwrap_or_default();
 
     // TODO Pretty-print errors
     let mut p = TFMTTools {
         args: &args,
-        config_folder: &config_folder,
         history: &mut history,
     };
     p.main()?;
 
-    history.save_history(&config_folder)?;
+    history.save_history(&args.config_folder)?;
 
     Ok(())
 }
 
 struct TFMTTools<'a> {
     args: &'a Args,
-    config_folder: &'a Path,
     history: &'a mut History,
 }
 
@@ -58,8 +55,8 @@ impl<'a> TFMTTools<'a> {
             Subcommand::Undo(amount) => self.undo(*amount),
             Subcommand::Inspect {
                 script_name,
-                render_ast,
-            } => self.inspect(script_name, *render_ast),
+                visualize,
+            } => self.inspect(script_name, *visualize),
             Subcommand::Rename {
                 script_name,
                 arguments,
@@ -80,7 +77,7 @@ impl<'a> TFMTTools<'a> {
     }
 
     fn list_scripts(&self) -> Result<()> {
-        let paths = &config::get_all_scripts(&self.config_folder);
+        let paths = &config::get_all_scripts(&self.args.config_folder);
 
         if paths.is_empty() {
             println!("Couldn't find any scripts.")
@@ -107,7 +104,7 @@ impl<'a> TFMTTools<'a> {
 
     fn inspect(&self, name: &str, render_ast: bool) -> Result<()> {
         Inspector::inspect(
-            &config::get_script(name, &self.config_folder)?,
+            &config::get_script(name, &self.args.config_folder)?,
             if render_ast { Mode::Dot } else { Mode::Long },
         )
     }
@@ -120,7 +117,7 @@ impl<'a> TFMTTools<'a> {
         output_folder: &Option<P>,
         recursive: bool,
     ) -> Result<()> {
-        let path = config::get_script(script_name, &self.config_folder)?;
+        let path = config::get_script(script_name, &self.args.config_folder)?;
 
         let program = Parser::try_from(&path)?.parse()?;
 

@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 /// Representation of an MP3-file.
 #[derive(Debug)]
 pub struct MP3 {
-    pub path: PathBuf,
+    path: PathBuf,
     tags: Tag,
 }
 

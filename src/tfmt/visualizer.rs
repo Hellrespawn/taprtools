@@ -11,11 +11,11 @@ use std::process::Command;
 
 #[derive(Default)]
 /// A [Visitor] used to construct a GraphViz dot-file.
-pub struct GenAstDot {
+pub struct Visualizer {
     counter: u64,
 }
 
-impl GenAstDot {
+impl Visualizer {
     /// Construct a GraphViz dot-file from a [ast::Program] and render it as a png.
     pub fn visualize_ast<P: AsRef<Path>>(
         program: &ast::Program,
@@ -142,7 +142,7 @@ impl GenAstDot {
     }
 }
 
-impl Visitor<String> for GenAstDot {
+impl Visitor<String> for Visualizer {
     fn visit_program(&mut self, program: &ast::Program) -> String {
         let (mut string, program_node) = self.new_node(&format!(
             "Program\n{}",

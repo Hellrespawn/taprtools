@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 /// Representation of an Ogg-file.
 #[derive(Debug)]
 pub struct OGG {
-    pub path: PathBuf,
+    path: PathBuf,
     tags: HashMap<String, String>,
 }
 

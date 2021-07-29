@@ -1,6 +1,6 @@
 use crate::cli::config;
 use crate::tfmt::ast::{self, Node, Program};
-use crate::tfmt::genastdot::GenAstDot;
+use crate::tfmt::visualizer::Visualizer;
 use crate::tfmt::parser::Parser;
 use crate::tfmt::token::Token;
 use crate::tfmt::visitor::Visitor;
@@ -11,14 +11,33 @@ use std::path::{Path, PathBuf};
 
 type Result = anyhow::Result<()>;
 
-/// Walks AST and checks for symbols.
-
+/// Inspector format
 pub enum Mode {
+    /// Short format.
+    ///
+    /// {name}: "{description}"
     Short,
+    /// Long format.
+    ///
+    /// {name}: "{description}"
+    ///
+    /// path: {path}
+    ///
+    /// parameters:
+    ///     {param}: {default}
     Long,
+    /// Dot format. Also visualizes AST.
+    ///
+    /// {name}: "{description}"
+    ///
+    /// path: {path}
+    ///
+    /// parameters:
+    ///     {param}: {default}
     Dot,
 }
 
+/// Walks AST and checks for symbols.
 pub struct Inspector<'a> {
     name: String,
     path: PathBuf,
@@ -81,7 +100,7 @@ impl<'a> Inspector<'a> {
         let path = config::get_log_dir();
 
         let dot =
-            GenAstDot::visualize_ast(self.program, &path, &self.name, true);
+            Visualizer::visualize_ast(self.program, &path, &self.name, true);
 
         match dot {
             Ok(()) => write!(

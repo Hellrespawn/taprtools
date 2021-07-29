@@ -3,7 +3,7 @@ pub mod ast;
 /// Functions
 pub mod function;
 /// AST Dot Generator
-pub mod genastdot;
+pub mod visualizer;
 ///Interpreter
 pub mod interpreter;
 /// Lexer

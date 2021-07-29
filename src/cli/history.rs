@@ -26,15 +26,22 @@ impl History {
         Default::default()
     }
 
-    pub fn load_history<P: AsRef<Path>>(dry_run: bool, config_folder: &P) -> Result<History> {
+    pub fn load_history<P: AsRef<Path>>(
+        dry_run: bool,
+        config_folder: &P,
+    ) -> Result<History> {
         // These were selected through path.is_file(), file_name.unwrap()
         // should be safe.
-        let path = config::search_dir_for_filename(config_folder, HISTORY_FILENAME)
+        let path = config::search_dir(
+            config_folder,
+            |p| p.file_name().unwrap() == HISTORY_FILENAME,
+            1,
+        )
         .into_iter()
         .find(|p| p.file_name().unwrap() == HISTORY_FILENAME)
-        .ok_or_else(||
+        .ok_or_else(|| {
             anyhow!("Unable to load history from {}", HISTORY_FILENAME)
-        )?;
+        })?;
 
         let serialized = std::fs::read_to_string(&path)?;
         trace!(
@@ -53,7 +60,10 @@ impl History {
         })
     }
 
-    pub fn save_history<P: AsRef<Path>>(&self, config_folder: &P) -> Result<()> {
+    pub fn save_history<P: AsRef<Path>>(
+        &self,
+        config_folder: &P,
+    ) -> Result<()> {
         let path = if let Some(path) = &self.path {
             PathBuf::from(path)
         } else {

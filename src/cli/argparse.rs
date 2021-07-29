@@ -1,7 +1,7 @@
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 use clap::{load_yaml, App, ArgMatches};
 use std::ffi::OsStr;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Contains the collected and parsed command line arguments.
 #[derive(Debug, PartialEq)]
@@ -11,7 +11,7 @@ pub struct Args {
     /// Whether or not to actually rename files.
     pub dry_run: bool,
     /// Folder to read/write configuration to.
-    pub config_folder: Option<PathBuf>,
+    pub config_folder: PathBuf,
     /// Arguments specific to chosen subcommand.
     pub subcommand: Subcommand,
 }
@@ -19,10 +19,17 @@ pub struct Args {
 impl Args {
     /// Accumulate arguments from submatches into main struct.
     #[allow(non_snake_case)]
-    pub fn accumulate_ArgMatches(&mut self, matches: &ArgMatches) {
-        self.verbosity += matches.occurrences_of("verbose");
-        self.dry_run |= matches.is_present("dry-run");
-        self.config_folder = matches.value_of("config-folder").map(PathBuf::from);
+    pub fn accumulate_ArgMatches(
+        matches: &ArgMatches,
+        verbosity: &mut u64,
+        dry_run: &mut bool,
+        config_folder: &mut Option<PathBuf>,
+    ) {
+        *verbosity += matches.occurrences_of("verbose");
+        *dry_run |= matches.is_present("dry-run");
+        if let Some(folder) = matches.value_of("config-folder") {
+            *config_folder = Some(PathBuf::from(folder));
+        }
     }
 }
 
@@ -40,7 +47,7 @@ pub enum Subcommand {
     /// Inspect script `name`.
     Inspect {
         script_name: String,
-        render_ast: bool,
+        visualize: bool,
     },
     /// Rename files.
     Rename {
@@ -75,7 +82,7 @@ impl Subcommand {
                     .value_of("name")
                     .expect("Name wasn't specified!")
                     .to_string(),
-                render_ast: submatches.is_present("render-ast"),
+                visualize: submatches.is_present("visualize"),
             }),
             "rename" => Ok(Subcommand::Rename {
                 script_name: submatches
@@ -113,17 +120,65 @@ pub fn parse_args<S: AsRef<OsStr>>(args: &[S]) -> Result<Args> {
     // SubcommandRequired is enabled in tfmttools.yml
     let submatches = submatches.unwrap();
 
-    let mut args = Args {
-        verbosity: 0,
-        dry_run: false,
-        config_folder: None,
+    let mut verbosity = 0;
+    let mut dry_run = false;
+    let mut config_folder = None;
+
+    Args::accumulate_ArgMatches(
+        &matches,
+        &mut verbosity,
+        &mut dry_run,
+        &mut config_folder,
+    );
+    Args::accumulate_ArgMatches(
+        submatches,
+        &mut verbosity,
+        &mut dry_run,
+        &mut config_folder,
+    );
+
+    let args = Args {
+        verbosity,
+        dry_run,
+        config_folder: get_config_folder(config_folder.as_ref(), dry_run)?,
         subcommand: Subcommand::from_subcommand(name, submatches)?,
     };
 
-    args.accumulate_ArgMatches(&matches);
-    args.accumulate_ArgMatches(submatches);
-
     Ok(args)
+}
+
+fn get_config_folder<P: AsRef<Path>>(
+    config_folder: Option<&P>,
+    dry_run: bool,
+) -> Result<PathBuf> {
+    let dir = if let Some(config_folder) = config_folder {
+        Ok(PathBuf::from(config_folder.as_ref()))
+    } else {
+        dirs::home_dir()
+            .map(|p| p.join(".tfmttools"))
+            .or_else(|| dirs::config_dir().map(|p| p.join("tfmttools")))
+            .ok_or_else(|| {
+                anyhow!("Unable to find valid configuration directory!")
+            })
+    }?;
+
+    if !dir.exists() {
+        if !dry_run {
+            std::fs::create_dir_all(&dir)?;
+            println!(
+                "Creating configuration directory at {}",
+                dir.to_string_lossy()
+            )
+        }
+    } else if !dir.is_dir() {
+        bail!("{} is not a folder!", dir.to_string_lossy())
+    }
+
+    //FIXME Add testdata somehow.
+    //let dirs: Vec<PathBuf> = if cfg!(test) || std::env::var("CARGO_HOME").is_ok() {
+    //let dirs: Vec<PathBuf> = if cfg!(test) {
+
+    Ok(dir)
 }
 
 #[cfg(test)]
@@ -134,11 +189,11 @@ mod test {
     fn argparse_test() -> Result<()> {
         // Don't forget program name!
         let cli_args =
-            "argparse.exe -vv rename -vv Sync -- these are arguments";
+            "argparse.exe -vv --dry-run rename -vv Sync -- these are arguments";
         let test_args = Args {
             verbosity: 4,
-            dry_run: false,
-            config_folder: None,
+            dry_run: true,
+            config_folder: PathBuf::new(),
             subcommand: Subcommand::Rename {
                 script_name: "Sync".to_string(),
                 arguments: vec![
@@ -152,10 +207,11 @@ mod test {
             },
         };
 
-        assert_eq!(
-            parse_args(&cli_args.split_whitespace().collect::<Vec<&str>>())?,
-            test_args
-        );
+        let mut parsed_args =
+            parse_args(&cli_args.split_whitespace().collect::<Vec<&str>>())?;
+        parsed_args.config_folder = PathBuf::new();
+
+        assert_eq!(parsed_args, test_args);
 
         Ok(())
     }

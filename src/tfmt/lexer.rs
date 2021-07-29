@@ -9,6 +9,8 @@ use std::str::FromStr;
 use unicode_segmentation::UnicodeSegmentation;
 
 type Result<T> = std::result::Result<T, LexerError>;
+
+/// The [Result] that a [Lexer] returns.
 pub type LexerResult = std::result::Result<Token, LexerError>;
 
 /// Lexer takes a string and returns [Token]s

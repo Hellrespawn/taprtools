@@ -3,19 +3,16 @@ use std::path::{Path, PathBuf};
 use tempfile::{Builder, TempDir};
 use tfmttools::cli::tfmttools;
 
-struct Environment {
-    tempdir: TempDir,
-}
-//FIXME Temp dirs clash?
-fn setup_environment(suffix: &str) -> Result<Environment> {
-    let environment = Environment {
-        tempdir: Builder::new()
-            .prefix("tfmttools-")
-            .suffix(&("-".to_string() + suffix))
-            .tempdir()?,
-    };
+const CONFIG_FOLDER: &str = "config";
+const ORIGIN_FOLDER: &str = "origin";
 
-    let path = environment.tempdir.as_ref();
+fn setup_environment(suffix: &str) -> Result<TempDir> {
+    let tempdir = Builder::new()
+        .prefix("tfmttools-")
+        .suffix(&("-".to_string() + suffix))
+        .tempdir()?;
+
+    let path = tempdir.as_ref();
 
     println!("Temporary directory at \"{}\"", path.to_string_lossy());
 
@@ -23,20 +20,35 @@ fn setup_environment(suffix: &str) -> Result<Environment> {
         .flat_map(|r| r.map(|d| d.path()))
         .collect();
 
-    std::fs::create_dir_all(path.join("origin"))?;
+    std::fs::create_dir_all(path.join(ORIGIN_FOLDER))?;
     for song_path in &song_paths {
         // Unchecked unwrap, probably works.
         std::fs::copy(
             song_path,
-            path.join("origin").join(song_path.file_name().unwrap()),
+            path.join(ORIGIN_FOLDER)
+                .join(song_path.file_name().unwrap()),
         )?;
     }
 
-    Ok(environment)
+    let script_paths: Vec<PathBuf> = std::fs::read_dir("testdata/script")?
+        .flat_map(|r| r.map(|d| d.path()))
+        .collect();
+
+    std::fs::create_dir_all(path.join(CONFIG_FOLDER))?;
+    for script_path in &script_paths {
+        // FIXME Unchecked unwrap, probably works.
+        std::fs::copy(
+            script_path,
+            path.join(CONFIG_FOLDER)
+                .join(script_path.file_name().unwrap()),
+        )?;
+    }
+
+    Ok(tempdir)
 }
 
-fn teardown_environment(environment: Environment) -> Result<()> {
-    environment.tempdir.close()?;
+fn teardown_environment(tempdir: TempDir) -> Result<()> {
+    tempdir.close()?;
 
     Ok(())
 }
@@ -79,14 +91,14 @@ fn print_filetree(path: &Path, depth: u64) {
 }
 
 fn check_paths<P: AsRef<Path>>(
-    environment: &Environment,
+    tempdir: &TempDir,
     reference: &[P],
 ) -> Result<()> {
     for r in reference {
-        let path = environment.tempdir.path().join(r);
+        let path = tempdir.path().join(r);
 
         if !path.is_file() {
-            print_filetree(&environment.tempdir.path(), 0);
+            print_filetree(&tempdir.path(), 0);
             bail!("File {} not in expected place!", path.to_string_lossy())
         }
     }
@@ -99,20 +111,22 @@ fn test_tfmttools<P: AsRef<Path>>(
     args: &str,
     reference: &[P],
 ) -> Result<()> {
-    let environment = setup_environment(name)?;
+    let tempdir = setup_environment(name)?;
 
     let args = format!(
-        "tfmttools_test rename {0} --input-folder {1} --output-folder {1} --config-folder testdata -r {2}",
+        "tfmttools_test --config-folder {} rename {} --input-folder {} --output-folder {} -r {}",
+        tempdir.path().join(CONFIG_FOLDER).to_string_lossy(),
         name,
-        environment.tempdir.path().to_string_lossy(),
+        tempdir.path().join(ORIGIN_FOLDER).to_string_lossy(),
+        tempdir.path().to_string_lossy(),
         args
     );
 
     tfmttools::_main(&args.split_whitespace().collect::<Vec<&str>>())?;
 
-    check_paths(&environment, &reference)?;
+    check_paths(&tempdir, &reference)?;
 
-    teardown_environment(environment)?;
+    teardown_environment(tempdir)?;
 
     Ok(())
 }
