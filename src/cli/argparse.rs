@@ -131,7 +131,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_argparser() -> Result<()> {
+    fn argparse_test() -> Result<()> {
         // Don't forget program name!
         let cli_args =
             "argparse.exe -vv rename -vv Sync -- these are arguments";

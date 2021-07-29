@@ -104,7 +104,7 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    fn test_songs() -> Result<()> {
+    fn audiofile_test() -> Result<()> {
         let files = get_audiofiles(&PathBuf::from("testdata/music"), 1)?;
 
         assert_eq!(files.len(), 5);

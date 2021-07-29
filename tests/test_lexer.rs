@@ -43,7 +43,7 @@ fn create_lexer(string: &str) -> Result<Lexer> {
 }
 
 #[test]
-fn simple_input() -> Result<()> {
+fn lexer_simple_input_test() -> Result<()> {
     let reference = &[
         Token::new(1, 1, ID, Some("simple_input".to_string()))?,
         Token::new(1, 13, ParenthesisLeft, None)?,
@@ -63,7 +63,7 @@ fn simple_input() -> Result<()> {
 }
 
 #[test]
-fn typical_input() -> Result<()> {
+fn lexer_typical_input_test() -> Result<()> {
     let reference = &[
         Token::new(1, 1, ID, Some("typical_input".to_string()))?,
         Token::new(1, 14, ParenthesisLeft, None)?,
@@ -200,7 +200,7 @@ fn typical_input() -> Result<()> {
 }
 
 #[test]
-fn empty_text() -> Result<()> {
+fn lexer_empty_text_test() -> Result<()> {
     match Lexer::from_str("") {
         Ok(_) => bail!("Lexer should fail with empty text!"),
         Err(_) => Ok(()),

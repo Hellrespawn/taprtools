@@ -406,14 +406,14 @@ mod tests {
         }
 
         #[test]
-        fn single_char() -> Result<()> {
+        fn lexer_single_char_test() -> Result<()> {
             reserved_test("+", TokenType::Plus)?;
             reserved_test("-", TokenType::Hyphen)?;
             Ok(())
         }
 
         #[test]
-        fn double_char() -> Result<()> {
+        fn lexer_double_char_test() -> Result<()> {
             reserved_test("&&", TokenType::DoubleAmpersand)?;
             reserved_test("||", TokenType::DoubleVerticalBar)?;
             Ok(())
@@ -455,7 +455,7 @@ mod tests {
         }
 
         #[test]
-        fn string() -> Result<()> {
+        fn lexer_string_test() -> Result<()> {
             for string in &[SINGLE_QUOTED_STRING, DOUBLE_QUOTED_STRING] {
                 bounded_test(string, TokenType::String, dequote(string))?;
             }
@@ -463,7 +463,7 @@ mod tests {
         }
 
         #[test]
-        fn multiline_string() -> Result<()> {
+        fn lexer_multiline_string_test() -> Result<()> {
             bounded_test(
                 MULTILINE_STRING,
                 TokenType::String,
@@ -472,7 +472,7 @@ mod tests {
         }
 
         #[test]
-        fn forbidden_graphemes() -> Result<()> {
+        fn lexer_forbidden_graphemes_test() -> Result<()> {
             match bounded_test(STRING_WITH_FORBIDDEN_GRAPHEMES, TokenType::String, "") {
                 Ok(tokens) => bail!("Lexer did not error on forbidden characters, returned {:?}", tokens),
                 Err(err) => {
@@ -486,7 +486,7 @@ mod tests {
         }
 
         #[test]
-        fn unterminated_string() -> Result<()> {
+        fn lexer_unterminated_string_test() -> Result<()> {
             for string in &[UNTERMINATED_STRING, UNTERMINATED_MULTILINE_STRING]
             {
                 if let Err(err) = bounded_test(string, TokenType::String, "") {
@@ -503,7 +503,7 @@ mod tests {
         }
 
         #[test]
-        fn single_line_comment() -> Result<()> {
+        fn lexer_single_line_comment_test() -> Result<()> {
             bounded_test(
                 SINGLE_LINE_COMMENT,
                 TokenType::Comment,
@@ -512,7 +512,7 @@ mod tests {
         }
 
         #[test]
-        fn multiline_comment() -> Result<()> {
+        fn lexer_multiline_comment_test() -> Result<()> {
             bounded_test(
                 MULTILINE_COMMENT,
                 TokenType::Comment,
@@ -521,7 +521,7 @@ mod tests {
         }
 
         #[test]
-        fn unterminated_comment() -> Result<()> {
+        fn lexer_unterminated_comment_test() -> Result<()> {
             if let Err(err) =
                 bounded_test(UNTERMINATED_COMMENT, TokenType::Comment, "")
             {
@@ -577,12 +577,12 @@ mod tests {
             }
         }
         #[test]
-        fn test_id() -> Result<()> {
+        fn lexer_id_test() -> Result<()> {
             misc_test("id", TokenType::ID, Some("id"))
         }
 
         #[test]
-        fn test_integer() -> Result<()> {
+        fn lexer_integer_test() -> Result<()> {
             misc_test("1", TokenType::Integer, Some("1"))
         }
     }
@@ -635,14 +635,14 @@ mod tests {
         }
 
         #[test]
-        fn string() -> Result<()> {
+        fn lexer_string_test() -> Result<()> {
             string_test(SINGLE_QUOTED_STRING)?;
             string_test(DOUBLE_QUOTED_STRING)?;
             Ok(())
         }
 
         #[test]
-        fn single_line_comment() -> Result<()> {
+        fn lexer_single_line_comment_test() -> Result<()> {
             // Terminate on \n
             crawler_test(
                 &String::from(SINGLE_LINE_COMMENT),
@@ -667,7 +667,7 @@ mod tests {
         }
 
         #[test]
-        fn multiline_comment() -> Result<()> {
+        fn lexer_multiline_comment_test() -> Result<()> {
             crawler_test(
                 &String::from(MULTILINE_COMMENT),
                 slice_ends(&MULTILINE_COMMENT, 2, 2),

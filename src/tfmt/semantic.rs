@@ -180,7 +180,7 @@ mod tests {
     }
 
     #[test]
-    fn test_typical_input() -> Result<()> {
+    fn semantic_typical_input_test() -> Result<()> {
         script_test(
             "typical_input.tfmt",
             &hashmap! {

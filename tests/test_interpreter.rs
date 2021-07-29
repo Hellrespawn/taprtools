@@ -34,31 +34,31 @@ fn file_test(
 }
 
 #[test]
-fn test_simple_input() -> Result<()> {
+fn interpreter_simple_input_test() -> Result<()> {
     file_test(
         "simple_input.tfmt",
         &[
-            r"MASTER BOOT RECORD/Dune",
-            r"MASTER BOOT RECORD/SET MIDI=SYNTH1 MAPG MODE1",
-            r"Amon Amarth/Under Siege",
-            r"Damjan Mravunac/Welcome To Heaven",
-            r"Nightwish/While Your Lips Are Still Red",
+            "MASTER BOOT RECORD/Dune.mp3",
+            "MASTER BOOT RECORD/SET MIDI=SYNTH1 MAPG MODE1.mp3",
+            "Amon Amarth/Under Siege.mp3",
+            "Damjan Mravunac/Welcome To Heaven.ogg",
+            "Nightwish/While Your Lips Are Still Red.mp3",
         ],
         &[],
     )
 }
 
 #[test]
-fn test_typical_input() -> Result<()> {
+fn interpreter_typical_input_test() -> Result<()> {
     common::init_logger();
     file_test(
         "typical_input.tfmt",
         &[
-            r"destination/MASTER BOOT RECORD/WAREZ/Dune",
-            r"destination/MASTER BOOT RECORD/2016.03 - CEDIT AUTOEXEC.BAT/05 - SET MIDI=SYNTH1 MAPG MODE1",
-            r"destination/Amon Amarth/2013 - Deceiver of the Gods/105 - Under Siege",
-            r"destination/The Talos Principle/2015 - The Talos Principle OST/01 - Damjan Mravunac - Welcome To Heaven",
-            r"destination/Nightwish/While Your Lips Are Still Red",
+            "destination/MASTER BOOT RECORD/WAREZ/Dune.mp3",
+            "destination/MASTER BOOT RECORD/2016.03 - CEDIT AUTOEXEC.BAT/05 - SET MIDI=SYNTH1 MAPG MODE1.mp3",
+            "destination/Amon Amarth/2013 - Deceiver of the Gods/105 - Under Siege.mp3",
+            "destination/The Talos Principle/2015 - The Talos Principle OST/01 - Damjan Mravunac - Welcome To Heaven.ogg",
+            "destination/Nightwish/While Your Lips Are Still Red.mp3",
         ],
         &["destination"],
     )

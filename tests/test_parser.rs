@@ -26,7 +26,7 @@ fn file_test(filename: &str, reference: Option<ast::Program>) -> Result<()> {
 }
 
 #[test]
-fn simple_input() -> Result<()> {
+fn parser_simple_input_test() -> Result<()> {
     let reference = ast::Program {
         name: Token::new(
             1,
@@ -81,7 +81,7 @@ fn simple_input() -> Result<()> {
 }
 
 #[test]
-fn typical_input() -> Result<()> {
+fn parser_typical_input_test() -> Result<()> {
     let reference = ast::Program {
         name: Token::new(1, 1, TokenType::ID, Some("typical_input".to_string(),))?,
         parameters: ast::Parameters {

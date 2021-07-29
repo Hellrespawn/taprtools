@@ -90,7 +90,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_ogg() -> Result<()> {
+    fn ogg_test() -> Result<()> {
         OGG::read_from_path(&PathBuf::from("testdata/music/Welcome To Heaven - Damjan Mravunac.ogg"))
     }
 }

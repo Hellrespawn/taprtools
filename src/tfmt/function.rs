@@ -152,7 +152,7 @@ mod tests {
     use anyhow::{bail, Result};
 
     #[test]
-    fn test_wrong_arguments() -> Result<()> {
+    fn function_test_wrong_arguments() -> Result<()> {
         match handle_function("prepend", &["a", "b"]) {
             Ok(_) => bail!("prepend with 2 arguments did not raise an error!"),
             Err(FunctionError::WrongArguments { .. }) => (),
