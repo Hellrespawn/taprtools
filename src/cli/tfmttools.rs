@@ -1,6 +1,5 @@
 use super::argparse::{Args, Subcommand};
 use super::inspector::{Inspector, Mode};
-use super::rename::get_audiofiles;
 use super::{argparse, config, logging};
 use crate::tfmt::interpreter::Interpreter;
 use crate::tfmt::parser::Parser;
@@ -9,6 +8,7 @@ use log::info;
 use std::convert::{TryFrom, TryInto};
 use std::path::{Path, PathBuf};
 use super::history::History;
+use crate::file::audiofile::get_audiofiles;
 
 /// Main tfmttools entrypoint.
 pub fn main() -> Result<()> {
@@ -89,11 +89,11 @@ impl TFMTTools {
         )
     }
 
-    fn rename(
+    fn rename<P: AsRef<Path>>(
         &self,
         script_name: &str,
         arguments: &[&str],
-        input_folder: &Path,
+        input_folder: &P,
         recursive: bool,
     ) -> Result<()> {
         let path = config::get_script(script_name)?;
@@ -102,7 +102,7 @@ impl TFMTTools {
 
         // TODO Get recursion depth from somewhere.
         let depth = if recursive { 4 } else { 1 };
-        let songs = get_audiofiles(input_folder, depth)?;
+        let songs = get_audiofiles(&input_folder, depth)?;
 
         let mut intp = Interpreter::new(&program, arguments, &songs)?;
 

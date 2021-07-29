@@ -17,9 +17,9 @@ pub struct GenAstDot {
 
 impl GenAstDot {
     /// Construct a GraphViz dot-file from a [ast::Program] and render it as a png.
-    pub fn visualize_ast(
+    pub fn visualize_ast<P: AsRef<Path>>(
         program: &ast::Program,
-        directory: &Path,
+        directory: &P,
         name: &str,
         remove_dot_file: bool,
     ) -> Result<()> {
@@ -39,7 +39,7 @@ impl GenAstDot {
 
         trace!("Generated .dot-file:\n{}", dot);
 
-        let mut path = PathBuf::from(directory);
+        let mut path = PathBuf::from(directory.as_ref());
         path.push(format!("{}.dot", name));
 
         fs::create_dir_all(directory)?;

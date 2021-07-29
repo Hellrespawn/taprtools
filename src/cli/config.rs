@@ -47,7 +47,7 @@ pub fn get_config_dirs() -> &'static [PathBuf] {
     &DIRS
 }
 
-fn search_dir_for_extension(dir: &Path, extension: &str) -> Vec<PathBuf> {
+fn search_dir_for_extension<P: AsRef<Path>>(dir: &P, extension: &str) -> Vec<PathBuf> {
     let mut paths = Vec::new();
 
     if let Ok(iter) = std::fs::read_dir(dir) {
@@ -72,7 +72,7 @@ fn search_dir_for_extension(dir: &Path, extension: &str) -> Vec<PathBuf> {
     paths
 }
 
-pub fn search_dir_for_filename(dir: &Path, filename: &str) -> Vec<PathBuf> {
+pub fn search_dir_for_filename<P: AsRef<Path>>(dir: &P, filename: &str) -> Vec<PathBuf> {
     let mut paths = Vec::new();
 
     if let Ok(iter) = std::fs::read_dir(dir) {
