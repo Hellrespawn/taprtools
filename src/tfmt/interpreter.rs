@@ -44,7 +44,7 @@ impl<'a> Interpreter<'a> {
             self.index = i;
 
             trace!("In:  \"{}\"", self.songs[i].path().to_string_lossy());
-            let path = self.program.accept(self)?;
+            let path = self.program.accept(self)? + "." + self.songs[i].extension();
             trace!("Out: \"{}\"", path);
 
             paths.push(path);

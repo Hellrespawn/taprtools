@@ -29,7 +29,6 @@ pub fn get_config_dirs() -> &'static [PathBuf] {
     &DIRS
 }
 
-
 // TODO? Join search_dir function, take a closure?
 fn search_dir_for_extension<P: AsRef<Path>>(
     dir: &P,

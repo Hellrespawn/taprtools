@@ -60,7 +60,8 @@ impl History {
                     anyhow!("Can't find any valid config dirs!")
                 })?,
             )
-        }.join(HISTORY_FILENAME);
+        }
+        .join(HISTORY_FILENAME);
 
         let serialized = serde_json::to_string_pretty(&(
             &self.undo_stack,

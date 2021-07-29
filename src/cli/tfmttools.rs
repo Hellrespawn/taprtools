@@ -8,11 +8,17 @@ use crate::tfmt::parser::Parser;
 use anyhow::Result;
 use log::info;
 use std::convert::{TryFrom, TryInto};
+use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
 /// Main tfmttools entrypoint.
 pub fn main() -> Result<()> {
-    let args = argparse::parse_args()?;
+    _main(&std::env::args().collect::<Vec<String>>())
+}
+
+// FIXME Absolutely fucking hate this
+pub fn _main<S: AsRef<OsStr>>(args: &[S]) -> Result<()> {
+    let args = argparse::parse_args(args)?;
 
     logging::setup_logger(args.verbosity.try_into()?, "tfmttools")?;
     info!("Parsed arguments:\n{:#?}", &args);
@@ -120,7 +126,7 @@ impl<'a> TFMTTools<'a> {
         let paths: Vec<PathBuf> =
             intp.interpret()?.iter().map(PathBuf::from).collect();
 
-        println!("Paths:\n{:#?}", paths);
+        //println!("Paths:\n{:#?}", paths);
 
         let action: Vec<Rename> = paths
             .iter()

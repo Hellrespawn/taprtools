@@ -1,6 +1,6 @@
 use anyhow::{bail, Result};
 use clap::{load_yaml, App, ArgMatches};
-use std::ffi::OsString;
+use std::ffi::OsStr;
 use std::path::PathBuf;
 
 /// Contains the collected and parsed command line arguments.
@@ -96,19 +96,10 @@ impl Subcommand {
     }
 }
 
-/// Wrapper function for [`_parse_args`] using command line arguments..
-pub fn parse_args() -> Result<Args> {
-    _parse_args(std::env::args_os())
-}
-
 /// Parse arguments.
-fn _parse_args<I, T>(iterator: I) -> Result<Args>
-where
-    I: IntoIterator<Item = T>,
-    T: Into<OsString> + Clone,
-{
+pub fn parse_args<S: AsRef<OsStr>>(args: &[S]) -> Result<Args> {
     let yaml = load_yaml!("tfmttools.yml");
-    let matches = App::from_yaml(yaml).get_matches_from(iterator);
+    let matches = App::from_yaml(yaml).get_matches_from(args.iter());
 
     let (name, submatches) = matches.subcommand();
     let submatches = submatches.unwrap();
@@ -150,7 +141,10 @@ mod test {
             },
         };
 
-        assert_eq!(_parse_args(cli_args.split_whitespace())?, test_args);
+        assert_eq!(
+            parse_args(&cli_args.split_whitespace().collect::<Vec<&str>>())?,
+            test_args
+        );
 
         Ok(())
     }
