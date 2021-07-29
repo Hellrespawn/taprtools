@@ -10,8 +10,7 @@ pub fn init_logger() {
 
 #[allow(dead_code)]
 pub fn get_script(filename: &str) -> Result<String> {
-    let mut path = PathBuf::from("testdata/script");
-    path.push(filename);
+    let path = PathBuf::from("testdata/script").join(filename);
 
     Ok(fs::read_to_string(path)?)
 }

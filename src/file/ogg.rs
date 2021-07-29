@@ -51,12 +51,8 @@ impl OGG {
 
 // TODO Implement less common tags for OGG
 impl AudioFile for OGG {
-    fn path(&self) -> &Path {
-        self.path.as_path()
-    }
-
-    fn set_path(&mut self, path: &Path) {
-        self.path = PathBuf::from(path)
+    fn path(&self) -> &PathBuf {
+        &self.path
     }
 
     fn extension(&self) -> &'static str {

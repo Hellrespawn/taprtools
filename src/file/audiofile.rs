@@ -1,9 +1,8 @@
 /// Common functions for reading audio file tags.
-use std::path::Path;
-pub trait AudioFile: std::fmt::Debug {
-    fn path(&self) -> &Path;
+use std::path::{Path, PathBuf};
 
-    fn set_path(&mut self, path: &Path);
+pub trait AudioFile: std::fmt::Debug {
+    fn path(&self) -> &PathBuf;
 
     fn extension(&self) -> &'static str;
 

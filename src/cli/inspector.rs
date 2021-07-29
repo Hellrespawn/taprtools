@@ -78,18 +78,16 @@ impl<'a> Inspector<'a> {
     fn fmt_dot(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.fmt_long(f)?;
 
-        let mut path = config::get_log_dir();
+        let path = config::get_log_dir();
 
         let dot =
             GenAstDot::visualize_ast(self.program, &path, &self.name, true);
-
-        path.push(&format!("{}.png", self.name));
 
         match dot {
             Ok(()) => write!(
                 f,
                 "\n\nRendered Abstract Syntax Tree to {}",
-                path.to_string_lossy()
+                path.join(&format!("{}.png", self.name)).to_string_lossy()
             ),
             Err(err) => write!(f, "\n\n{}", err),
         }?;

@@ -25,11 +25,9 @@ pub fn setup_logger(verbosity: usize, filename: &str) -> Result<()> {
         ),
     };
 
-    let mut path: PathBuf = config::get_log_dir();
+    let path: PathBuf = config::get_log_dir();
 
     fs::create_dir_all(&path)?;
-
-    path.push(format!("{}.log", filename));
 
     fern::Dispatch::new()
         .format(|out, message, record| {
@@ -49,7 +47,7 @@ pub fn setup_logger(verbosity: usize, filename: &str) -> Result<()> {
                 .write(true)
                 .create(true)
                 .truncate(true)
-                .open(&path)?,
+                .open(&path.join(format!("{}.log", filename)))?,
         )
         .apply()?;
 

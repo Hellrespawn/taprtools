@@ -4,30 +4,12 @@ use once_cell::sync::Lazy;
 use std::path::{Path, PathBuf};
 
 pub fn get_log_dir() -> PathBuf {
-    let mut path = std::env::temp_dir();
-    path.push("tfmttools");
-    path
+    std::env::temp_dir().join("tfmttools")
 }
 pub fn get_config_dirs() -> &'static [PathBuf] {
     static DIRS: Lazy<Vec<PathBuf>> = Lazy::new(|| {
-        let config = match dirs::config_dir() {
-            Some(dir) => {
-                let mut dir = dir;
-                dir.push("tfmttools");
-                Some(dir)
-            }
-            None => None,
-        };
-
-        let home = match dirs::home_dir() {
-            Some(dir) => {
-                let mut dir = dir;
-                dir.push(".tfmttools");
-                Some(dir)
-            }
-            None => None,
-        };
-
+        let config = dirs::config_dir().map(|p| p.join("tfmttools"));
+        let home = dirs::home_dir().map(|p| p.join(".tfmttools"));
         let cwd = std::env::current_dir().ok();
 
         // testdata is added only when run from Cargo.
@@ -47,7 +29,12 @@ pub fn get_config_dirs() -> &'static [PathBuf] {
     &DIRS
 }
 
-fn search_dir_for_extension<P: AsRef<Path>>(dir: &P, extension: &str) -> Vec<PathBuf> {
+
+// TODO? Join search_dir function, take a closure?
+fn search_dir_for_extension<P: AsRef<Path>>(
+    dir: &P,
+    extension: &str,
+) -> Vec<PathBuf> {
     let mut paths = Vec::new();
 
     if let Ok(iter) = std::fs::read_dir(dir) {
@@ -72,7 +59,10 @@ fn search_dir_for_extension<P: AsRef<Path>>(dir: &P, extension: &str) -> Vec<Pat
     paths
 }
 
-pub fn search_dir_for_filename<P: AsRef<Path>>(dir: &P, filename: &str) -> Vec<PathBuf> {
+pub fn search_dir_for_filename<P: AsRef<Path>>(
+    dir: &P,
+    filename: &str,
+) -> Vec<PathBuf> {
     let mut paths = Vec::new();
 
     if let Ok(iter) = std::fs::read_dir(dir) {
@@ -101,15 +91,9 @@ pub fn get_all_scripts() -> Vec<PathBuf> {
     let mut scripts = Vec::new();
 
     for dir in get_config_dirs() {
-        let mut dir = PathBuf::from(dir);
         scripts.extend(search_dir_for_extension(&dir, "tfmt"));
-
-        dir.push("script");
-        scripts.extend(search_dir_for_extension(&dir, "tfmt"));
-        dir.pop();
-
-        dir.push("scripts");
-        scripts.extend(search_dir_for_extension(&dir, "tfmt"));
+        scripts.extend(search_dir_for_extension(&dir.join("script"), "tfmt"));
+        scripts.extend(search_dir_for_extension(&dir.join("scripts"), "tfmt"));
     }
 
     debug!("Found scripts:\n{:#?}", scripts);

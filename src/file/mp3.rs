@@ -41,12 +41,8 @@ impl MP3 {
 
 // TODO Implement less common tags for MP3
 impl AudioFile for MP3 {
-    fn path(&self) -> &Path {
-        self.path.as_path()
-    }
-
-    fn set_path(&mut self, path: &Path) {
-        self.path = PathBuf::from(path)
+    fn path(&self) -> &PathBuf {
+        &self.path
     }
 
     fn extension(&self) -> &'static str {

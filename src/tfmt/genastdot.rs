@@ -39,8 +39,7 @@ impl GenAstDot {
 
         trace!("Generated .dot-file:\n{}", dot);
 
-        let mut path = PathBuf::from(directory.as_ref());
-        path.push(format!("{}.dot", name));
+        let path = PathBuf::from(directory.as_ref()).join(format!("{}.dot", name));
 
         fs::create_dir_all(directory)?;
 
