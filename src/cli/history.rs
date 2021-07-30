@@ -10,10 +10,11 @@ const HISTORY_FILENAME: &str = "tfmttools.hist";
 
 #[derive(Default, Deserialize, Serialize)]
 pub struct History {
-    pub undo_stack: Vec<Vec<Rename>>,
-    pub redo_stack: Vec<Vec<Rename>>,
-    pub path: Option<PathBuf>,
-    pub dry_run: bool,
+    undo_stack: Vec<Vec<Rename>>,
+    redo_stack: Vec<Vec<Rename>>,
+    path: Option<PathBuf>,
+    dry_run: bool,
+    changed: bool,
 }
 
 pub enum Action {
@@ -26,7 +27,7 @@ impl History {
         Default::default()
     }
 
-    pub fn load_history<P: AsRef<Path>>(
+    pub fn load_from_path<P: AsRef<Path>>(
         dry_run: bool,
         config_folder: &P,
     ) -> Result<History> {
@@ -57,13 +58,19 @@ impl History {
             redo_stack: redo_actions,
             path: Some(path),
             dry_run,
+            changed: false,
         })
     }
 
-    pub fn save_history<P: AsRef<Path>>(
+    pub fn save_to_path<P: AsRef<Path>>(
         &self,
         config_folder: &P,
     ) -> Result<()> {
+        if !self.changed {
+            info!("History was unchanged.");
+            return Ok(());
+        }
+
         let path = if let Some(path) = &self.path {
             PathBuf::from(path)
         } else {
@@ -75,11 +82,9 @@ impl History {
             &self.redo_stack,
         ))?;
 
-        trace!(
-            "Saving history to {}:\n{}",
-            path.to_string_lossy(),
-            serialized
-        );
+        info!("Saving history to {}", path.to_string_lossy());
+
+        trace!("\n{}", serialized);
 
         if !self.dry_run {
             let mut filehandle = std::fs::OpenOptions::new()
@@ -94,6 +99,20 @@ impl History {
         Ok(())
     }
 
+    pub fn delete(&mut self) -> Result<()> {
+        if !self.dry_run {
+            // This function is only called after History::load_history has
+            // succeeded. Unwrap should be safe.
+            std::fs::remove_file(self.path.as_ref().unwrap())?;
+
+            self.undo_stack = Vec::new();
+            self.redo_stack = Vec::new();
+            self.path = None;
+            self.changed = false;
+        }
+        Ok(())
+    }
+
     pub fn apply(&mut self, action: Vec<Rename>) -> Result<()> {
         for rename in &action {
             rename.apply(self.dry_run)?;
@@ -101,6 +120,7 @@ impl History {
 
         if !self.dry_run {
             self.undo_stack.push(action);
+            self.changed = true;
         }
 
         Ok(())
@@ -116,21 +136,25 @@ impl History {
             }
         };
 
-        let method: fn(&Rename, bool) -> Result<()> = match action {
-            Action::Undo => Rename::undo,
-            Action::Redo => Rename::redo,
-        };
-
         let min = std::cmp::min(amount, u64::try_from(from.len())?);
 
-        if min != amount {
+        if min == 0 {
+            println!("There is nothing to {}.", name);
+            return Ok(());
+        } else if min != amount {
             println!("Warning: there are only {} actions to {}.", min, name)
         }
 
         info!("{}ing {} times...", name, min);
 
+        let method: fn(&Rename, bool) -> Result<()> = match action {
+            Action::Undo => Rename::undo,
+            Action::Redo => Rename::redo,
+        };
+
         for _ in 0..min {
-            // We test in the above line, pop().unwrap() should be safe.
+            // We test the amount of actions to do,
+            // pop().unwrap() should be safe.
             let action = from.pop().unwrap();
 
             for rename in &action {
@@ -141,6 +165,10 @@ impl History {
             if !self.dry_run {
                 to.push(action);
             }
+        }
+
+        if !self.dry_run {
+            self.changed = true;
         }
 
         Ok(())

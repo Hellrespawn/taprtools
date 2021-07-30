@@ -2,8 +2,6 @@
 pub mod ast;
 /// Functions
 pub mod function;
-/// AST Dot Generator
-pub mod visualizer;
 ///Interpreter
 pub mod interpreter;
 /// Lexer
@@ -16,3 +14,5 @@ pub mod semantic;
 pub mod token;
 /// Visitor Trait
 pub mod visitor;
+/// AST Dot Generator
+pub mod visualizer;

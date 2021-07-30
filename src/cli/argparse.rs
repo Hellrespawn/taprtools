@@ -38,6 +38,8 @@ impl Args {
 #[derive(Debug, PartialEq)]
 // TODO? Add a default subcommand?
 pub enum Subcommand {
+    /// Clear History.
+    ClearHistory,
     /// List scripts.
     ListScripts,
     /// Redo `amount` actions.
@@ -62,6 +64,7 @@ pub enum Subcommand {
 impl Subcommand {
     fn from_subcommand(name: &str, submatches: &ArgMatches) -> Result<Self> {
         match name {
+            "clear-history" => Ok(Subcommand::ClearHistory),
             "list-scripts" => Ok(Subcommand::ListScripts),
             "redo" => Ok(Subcommand::Redo(
                 submatches
@@ -173,10 +176,6 @@ fn get_config_folder<P: AsRef<Path>>(
     } else if !dir.is_dir() {
         bail!("{} is not a folder!", dir.to_string_lossy())
     }
-
-    //FIXME Add testdata somehow.
-    //let dirs: Vec<PathBuf> = if cfg!(test) || std::env::var("CARGO_HOME").is_ok() {
-    //let dirs: Vec<PathBuf> = if cfg!(test) {
 
     Ok(dir)
 }

@@ -12,35 +12,27 @@ use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
 /// Main tfmttools entrypoint.
-pub fn main() -> Result<()> {
-    _main(&std::env::args().collect::<Vec<String>>())
+pub fn main<S: AsRef<OsStr>>(args: Option<&[S]>) -> Result<()> {
+    match args {
+        Some(args) => _main(args),
+        None => _main(&std::env::args().collect::<Vec<String>>()),
+    }
 }
 
-/// Public only for integration testing. Absolutely fucking hate this pub. Kill me.
-pub fn _main<S: AsRef<OsStr>>(args: &[S]) -> Result<()> {
+fn _main<S: AsRef<OsStr>>(args: &[S]) -> Result<()> {
     let args = argparse::parse_args(args)?;
 
     logging::setup_logger(args.verbosity.try_into()?, "tfmttools")?;
     info!("Parsed arguments:\n{:#?}", &args);
 
-    let mut history = History::load_history(args.dry_run, &args.config_folder)
-        .unwrap_or_default();
-
     // TODO Pretty-print errors
-    let mut p = TFMTTools {
-        args: &args,
-        history: &mut history,
-    };
-    p.main()?;
-
-    history.save_history(&args.config_folder)?;
+    TFMTTools { args: &args }.main()?;
 
     Ok(())
 }
 
 struct TFMTTools<'a> {
     args: &'a Args,
-    history: &'a mut History,
 }
 
 impl<'a> TFMTTools<'a> {
@@ -50,6 +42,7 @@ impl<'a> TFMTTools<'a> {
 
     fn handle_command(&mut self, subcommand: &Subcommand) -> Result<()> {
         match subcommand {
+            Subcommand::ClearHistory => self.clear_history(),
             Subcommand::ListScripts => self.list_scripts(),
             Subcommand::Redo(amount) => self.redo(*amount),
             Subcommand::Undo(amount) => self.undo(*amount),
@@ -76,6 +69,21 @@ impl<'a> TFMTTools<'a> {
         }
     }
 
+    fn clear_history(&self) -> Result<()> {
+        match History::load_from_path(self.args.dry_run, &self.args.config_folder)
+        {
+            Ok(mut history) => history.delete()?,
+            Err(err) if err.to_string().contains("Unable to load") => {
+                println!("Can't find history file to clear!")
+            }
+
+            Err(err) => {
+                println!("Error while trying to clear history!\n{}", err)
+            }
+        }
+        Ok(())
+    }
+
     fn list_scripts(&self) -> Result<()> {
         let paths = &config::get_all_scripts(&self.args.config_folder);
 
@@ -91,13 +99,28 @@ impl<'a> TFMTTools<'a> {
     }
 
     fn redo(&mut self, amount: u64) -> Result<()> {
-        self.history.redo(amount)?;
+        // Creating a new history will make history.history_action() return
+        // without doing anything, thus never setting history.changed.
+        // We run history.save() purely for the side effects.
+        let mut history =
+            History::load_from_path(self.args.dry_run, &self.args.config_folder)
+                .unwrap_or_default();
+
+        history.redo(amount)?;
+
+        history.save_to_path(&self.args.config_folder)?;
 
         Ok(())
     }
 
     fn undo(&mut self, amount: u64) -> Result<()> {
-        self.history.undo(amount)?;
+        let mut history =
+            History::load_from_path(self.args.dry_run, &self.args.config_folder)
+                .unwrap_or_default();
+
+        history.undo(amount)?;
+
+        history.save_to_path(&self.args.config_folder)?;
 
         Ok(())
     }
@@ -154,7 +177,13 @@ impl<'a> TFMTTools<'a> {
             .map(|(p, s)| Rename::new(p, s.path()))
             .collect();
 
-        self.history.apply(action)?;
+        let mut history =
+            History::load_from_path(self.args.dry_run, &self.args.config_folder)
+                .unwrap_or_default();
+
+        history.apply(action)?;
+
+        history.save_to_path(&self.args.config_folder)?;
 
         Ok(())
     }

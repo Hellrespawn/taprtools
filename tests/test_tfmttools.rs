@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::{bail, Result};
 use std::path::{Path, PathBuf};
 use tempfile::{Builder, TempDir};
 use tfmttools::cli::tfmttools;
@@ -22,7 +22,8 @@ fn setup_environment(suffix: &str) -> Result<TempDir> {
 
     std::fs::create_dir_all(path.join(ORIGIN_FOLDER))?;
     for song_path in &song_paths {
-        // Unchecked unwrap, probably works.
+        // Songs are selected by is_file, should always have a filename so
+        // path.file_name().unwrap() should be safe.
         std::fs::copy(
             song_path,
             path.join(ORIGIN_FOLDER)
@@ -36,7 +37,8 @@ fn setup_environment(suffix: &str) -> Result<TempDir> {
 
     std::fs::create_dir_all(path.join(CONFIG_FOLDER))?;
     for script_path in &script_paths {
-        // FIXME Unchecked unwrap, probably works.
+        // Scripts are selected by is_file, should always have a filename so
+        // path.file_name().unwrap() should be safe.
         std::fs::copy(
             script_path,
             path.join(CONFIG_FOLDER)
@@ -98,7 +100,7 @@ fn check_paths<P: AsRef<Path>>(
         let path = tempdir.path().join(r);
 
         if !path.is_file() {
-            print_filetree(&tempdir.path(), 0);
+            print_filetree(&tempdir.as_ref(), 0);
             bail!("File {} not in expected place!", path.to_string_lossy())
         }
     }
@@ -106,13 +108,12 @@ fn check_paths<P: AsRef<Path>>(
     Ok(())
 }
 
-fn test_tfmttools<P: AsRef<Path>>(
+fn test_rename<P: AsRef<Path>>(
     name: &str,
     args: &str,
     reference: &[P],
+    tempdir: &TempDir,
 ) -> Result<()> {
-    let tempdir = setup_environment(name)?;
-
     let args = format!(
         "tfmttools_test --config-folder {} rename {} --input-folder {} --output-folder {} -r {}",
         tempdir.path().join(CONFIG_FOLDER).to_string_lossy(),
@@ -122,17 +123,66 @@ fn test_tfmttools<P: AsRef<Path>>(
         args
     );
 
-    tfmttools::_main(&args.split_whitespace().collect::<Vec<&str>>())?;
+    tfmttools::main(Some(&args.split_whitespace().collect::<Vec<&str>>()))?;
 
     check_paths(&tempdir, &reference)?;
 
-    teardown_environment(tempdir)?;
+    Ok(())
+}
+
+fn test_undo<P: AsRef<Path>>(
+    name: &str,
+    args: &str,
+    reference: &[P],
+    tempdir: &TempDir,
+) -> Result<()> {
+    test_rename(name, args, reference, tempdir)?;
+
+    let args = format!(
+        "tfmttools_test --config-folder {} undo",
+        tempdir.path().join(CONFIG_FOLDER).to_string_lossy(),
+    );
+
+    tfmttools::main(Some(&args.split_whitespace().collect::<Vec<&str>>()))?;
+
+    let reference = [
+        "origin/Dune - MASTER BOOT RECORD.mp3",
+        "origin/SET MIDI=SYNTH1 MAPG MODE1 - MASTER BOOT RECORD.mp3",
+        "origin/Under Siege - Amon Amarth.mp3",
+        "origin/Welcome To Heaven - Damjan Mravunac.ogg",
+        "origin/While Your Lips Are Still Red - Nightwish.mp3",
+    ];
+
+    check_paths(&tempdir, &reference)?;
+
+    Ok(())
+}
+
+fn test_redo<P: AsRef<Path>>(
+    name: &str,
+    args: &str,
+    reference: &[P],
+    tempdir: &TempDir,
+) -> Result<()> {
+    test_undo(name, args, reference, tempdir)?;
+
+    let args = format!(
+        "tfmttools_test --config-folder {} redo",
+        tempdir.path().join(CONFIG_FOLDER).to_string_lossy(),
+    );
+
+    tfmttools::main(Some(&args.split_whitespace().collect::<Vec<&str>>()))?;
+
+    check_paths(&tempdir, &reference)?;
 
     Ok(())
 }
 
 #[test]
 fn tfmttools_simple_input_test() -> Result<()> {
+    let name = "simple_input";
+    let tempdir = setup_environment(name)?;
+
     let args = "";
 
     let reference = [
@@ -143,12 +193,59 @@ fn tfmttools_simple_input_test() -> Result<()> {
         "Nightwish/While Your Lips Are Still Red.mp3",
     ];
 
-    test_tfmttools("simple_input", args, &reference)
-        .map_err(|e| anyhow!("Error in simple_input:\n{}", e))
+    match test_rename(name, args, &reference, &tempdir) {
+        Ok(()) => Ok(teardown_environment(tempdir)?),
+        Err(err) => bail!("Error in {}:\n{}", name, err),
+    }
 }
 
 #[test]
 fn tfmttools_typical_input_test() -> Result<()> {
+    let name = "typical_input";
+    let tempdir = setup_environment(name)?;
+
+    let args = "-- myname";
+
+    let reference = [
+        "myname/MASTER BOOT RECORD/WAREZ/Dune.mp3",
+        "myname/MASTER BOOT RECORD/2016.03 - CEDIT AUTOEXEC.BAT/05 - SET MIDI=SYNTH1 MAPG MODE1.mp3",
+        "myname/Amon Amarth/2013 - Deceiver of the Gods/105 - Under Siege.mp3",
+        "myname/The Talos Principle/2015 - The Talos Principle OST/01 - Damjan Mravunac - Welcome To Heaven.ogg",
+        "myname/Nightwish/While Your Lips Are Still Red.mp3",
+    ];
+
+    match test_rename(name, args, &reference, &tempdir) {
+        Ok(()) => Ok(teardown_environment(tempdir)?),
+        Err(err) => bail!("Error in {}:\n{}", name, err),
+    }
+}
+
+#[test]
+fn tfmttools_undo_test() -> Result<()> {
+    let name = "typical_input";
+    let tempdir = setup_environment(name)?;
+
+    let args = "-- myname";
+
+    let reference = [
+        "myname/MASTER BOOT RECORD/WAREZ/Dune.mp3",
+        "myname/MASTER BOOT RECORD/2016.03 - CEDIT AUTOEXEC.BAT/05 - SET MIDI=SYNTH1 MAPG MODE1.mp3",
+        "myname/Amon Amarth/2013 - Deceiver of the Gods/105 - Under Siege.mp3",
+        "myname/The Talos Principle/2015 - The Talos Principle OST/01 - Damjan Mravunac - Welcome To Heaven.ogg",
+        "myname/Nightwish/While Your Lips Are Still Red.mp3",
+    ];
+
+    match test_undo(name, args, &reference, &tempdir) {
+        Ok(()) => Ok(teardown_environment(tempdir)?),
+        Err(err) => bail!("Error in {}:\n{}", name, err),
+    }
+}
+
+#[test]
+fn tfmttools_redo_test() -> Result<()> {
+    let name = "typical_input";
+    let tempdir = setup_environment(name)?;
+
     let args = "-vvvvv -- myname";
 
     let reference = [
@@ -159,6 +256,8 @@ fn tfmttools_typical_input_test() -> Result<()> {
         "myname/Nightwish/While Your Lips Are Still Red.mp3",
     ];
 
-    test_tfmttools("typical_input", args, &reference)
-        .map_err(|e| anyhow!("Error in typical_input:\n{}", e))
+    match test_redo(name, args, &reference, &tempdir) {
+        Ok(()) => Ok(teardown_environment(tempdir)?),
+        Err(err) => bail!("Error in {}:\n{}", name, err),
+    }
 }

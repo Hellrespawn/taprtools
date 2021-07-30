@@ -1,9 +1,9 @@
 use crate::cli::config;
 use crate::tfmt::ast::{self, Node, Program};
-use crate::tfmt::visualizer::Visualizer;
 use crate::tfmt::parser::Parser;
 use crate::tfmt::token::Token;
 use crate::tfmt::visitor::Visitor;
+use crate::tfmt::visualizer::Visualizer;
 use log::info;
 use std::convert::TryFrom;
 use std::fmt::{self, Display};
