@@ -1,4 +1,4 @@
-use crate::cli::config;
+use crate::cli::helpers;
 use crate::tfmt::ast::{self, Node, Program};
 use crate::tfmt::parser::Parser;
 use crate::tfmt::token::Token;
@@ -8,6 +8,7 @@ use log::info;
 use std::convert::TryFrom;
 use std::fmt::{self, Display};
 use std::path::{Path, PathBuf};
+use super::strings::Strings;
 
 type Result = anyhow::Result<()>;
 
@@ -39,7 +40,7 @@ pub enum Mode {
 
 /// Walks AST and checks for symbols.
 pub struct Inspector<'a> {
-    name: String,
+    pub name: String,
     path: PathBuf,
     description: String,
     parameters: Vec<(String, Option<String>)>,
@@ -62,9 +63,8 @@ impl<'a> Inspector<'a> {
         };
 
         inspector.program.accept(&mut inspector);
-        info!("Inspected script \"{}\"", inspector.name);
 
-        println!("{}", inspector);
+        Strings::Inspector(&inspector).print();
 
         Ok(())
     }
@@ -97,7 +97,7 @@ impl<'a> Inspector<'a> {
     fn fmt_dot(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.fmt_long(f)?;
 
-        let path = config::get_log_dir();
+        let path = helpers::get_log_dir();
 
         let dot =
             Visualizer::visualize_ast(self.program, &path, &self.name, true);
