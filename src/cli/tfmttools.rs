@@ -11,8 +11,17 @@ use std::convert::{TryFrom, TryInto};
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
+#[cfg(feature = "rayon")]
+use rayon::prelude::*;
+
 /// Main tfmttools entrypoint.
 pub fn main<S: AsRef<OsStr>>(args: Option<&[S]>) -> Result<()> {
+    #[cfg(feature = "rayon")]
+    info!("rayon is enabled, running in parallell.");
+
+    #[cfg(not(feature = "rayon"))]
+    info!("rayon is not enabled.");
+
     match args {
         Some(args) => _main(args),
         None => _main(&std::env::args().collect::<Vec<String>>()),
@@ -70,8 +79,10 @@ impl<'a> TFMTTools<'a> {
     }
 
     fn clear_history(&self) -> Result<()> {
-        match History::load_from_path(self.args.dry_run, &self.args.config_folder)
-        {
+        match History::load_from_path(
+            self.args.dry_run,
+            &self.args.config_folder,
+        ) {
             Ok(mut history) => history.delete()?,
             Err(err) if err.to_string().contains("Unable to load") => {
                 println!("Can't find history file to clear!")
@@ -102,9 +113,11 @@ impl<'a> TFMTTools<'a> {
         // Creating a new history will make history.history_action() return
         // without doing anything, thus never setting history.changed.
         // We run history.save() purely for the side effects.
-        let mut history =
-            History::load_from_path(self.args.dry_run, &self.args.config_folder)
-                .unwrap_or_default();
+        let mut history = History::load_from_path(
+            self.args.dry_run,
+            &self.args.config_folder,
+        )
+        .unwrap_or_default();
 
         history.redo(amount)?;
 
@@ -114,9 +127,11 @@ impl<'a> TFMTTools<'a> {
     }
 
     fn undo(&mut self, amount: u64) -> Result<()> {
-        let mut history =
-            History::load_from_path(self.args.dry_run, &self.args.config_folder)
-                .unwrap_or_default();
+        let mut history = History::load_from_path(
+            self.args.dry_run,
+            &self.args.config_folder,
+        )
+        .unwrap_or_default();
 
         history.undo(amount)?;
 
@@ -150,13 +165,24 @@ impl<'a> TFMTTools<'a> {
 
         let mut intp = Interpreter::new(&program, arguments, &songs)?;
 
+        #[cfg(feature = "rayon")]
+        let mut paths: Vec<PathBuf> =
+            intp.interpret()?.par_iter().map(PathBuf::from).collect();
+
+        #[cfg(not(feature = "rayon"))]
         let mut paths: Vec<PathBuf> =
             intp.interpret()?.iter().map(PathBuf::from).collect();
 
         if let Some(prefix) = output_folder {
             let prefix = prefix.as_ref();
 
-            if paths.iter().any(|p| p.is_absolute()) {
+            #[cfg(feature = "rayon")]
+            let iter = paths.par_iter();
+
+            #[cfg(not(feature = "rayon"))]
+            let mut iter = paths.iter();
+
+            if iter.any(|p| p.is_absolute()) {
                 println!(
                     "Absolute path found, ignoring --output-folder {}",
                     prefix.to_string_lossy()
@@ -177,9 +203,11 @@ impl<'a> TFMTTools<'a> {
             .map(|(p, s)| Rename::new(p, s.path()))
             .collect();
 
-        let mut history =
-            History::load_from_path(self.args.dry_run, &self.args.config_folder)
-                .unwrap_or_default();
+        let mut history = History::load_from_path(
+            self.args.dry_run,
+            &self.args.config_folder,
+        )
+        .unwrap_or_default();
 
         history.apply(action)?;
 

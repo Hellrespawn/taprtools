@@ -47,16 +47,6 @@ pub fn get_all_scripts<P: AsRef<Path>>(config_folder: &P) -> Vec<PathBuf> {
     scripts.extend(search_dir(&config_folder.join("script"), closure, 1));
     scripts.extend(search_dir(&config_folder.join("scripts"), closure, 1));
 
-    // scripts.extend(search_dir_for_extension(&config_folder, "tfmt"));
-    // scripts.extend(search_dir_for_extension(
-    //     &config_folder.join("script"),
-    //     "tfmt",
-    // ));
-    // scripts.extend(search_dir_for_extension(
-    //     &config_folder.join("scripts"),
-    //     "tfmt",
-    // ));
-
     debug!("Found scripts:\n{:#?}", scripts);
     scripts
 }

@@ -10,10 +10,10 @@ const HISTORY_FILENAME: &str = "tfmttools.hist";
 
 #[derive(Default, Deserialize, Serialize)]
 pub struct History {
+    dry_run: bool,
     undo_stack: Vec<Vec<Rename>>,
     redo_stack: Vec<Vec<Rename>>,
     path: Option<PathBuf>,
-    dry_run: bool,
     changed: bool,
 }
 
@@ -23,8 +23,11 @@ pub enum Action {
 }
 
 impl History {
-    pub fn new() -> History {
-        Default::default()
+    pub fn new(dry_run: bool) -> History {
+        History {
+            dry_run,
+            ..Default::default()
+        }
     }
 
     pub fn load_from_path<P: AsRef<Path>>(
@@ -54,10 +57,10 @@ impl History {
         let (undo_actions, redo_actions) = serde_json::from_str(&serialized)?;
 
         Ok(History {
+            dry_run,
             undo_stack: undo_actions,
             redo_stack: redo_actions,
             path: Some(path),
-            dry_run,
             changed: false,
         })
     }
