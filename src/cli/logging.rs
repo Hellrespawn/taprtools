@@ -1,4 +1,4 @@
-use super::config;
+use super::helpers;
 use anyhow::{bail, Result};
 use log::{log, LevelFilter};
 use std::fs;
@@ -25,17 +25,19 @@ pub fn setup_logger(verbosity: usize, filename: &str) -> Result<()> {
         ),
     };
 
-    let path: PathBuf = config::get_log_dir();
+    let path: PathBuf = helpers::get_log_dir();
 
     fs::create_dir_all(&path)?;
 
     fern::Dispatch::new()
         .format(|out, message, record| {
             out.finish(format_args!(
-                "[{}][{}:{}] {}",
-                // chrono::Local::now().format("%Y-%m-%d][%H:%M:%S"),
+                "[{:.1}][{}][{}:{}] {}",
                 record.level(),
-                &record.target().replace("tfmttools::", "::"),
+                chrono::Local::now().format("%H:%M:%S.%6f"),
+                // rsplitn returns the remainder as final element, so the
+                // first next().unwrap() is safe.
+                record.target().rsplitn(2, "::").next().unwrap(),
                 record.line().unwrap_or(0),
                 message
             ))

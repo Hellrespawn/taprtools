@@ -1,7 +1,6 @@
 use super::token::{self, Token, TokenType};
 use crate::error::LexerError;
 use log::{error, trace};
-use normalize_line_endings::normalized;
 use std::convert::{TryFrom, TryInto};
 use std::iter::Iterator;
 use std::path::{Path, PathBuf};
@@ -31,7 +30,7 @@ impl FromStr for Lexer {
     type Err = LexerError;
 
     fn from_str(text: &str) -> Result<Self> {
-        let normalized_text: String = normalized(text.trim().chars()).collect();
+        let normalized_text = Lexer::normalize_newlines(&text.trim());
 
         if normalized_text.is_empty() {
             Err(LexerError::Generic(
@@ -86,6 +85,10 @@ impl Lexer {
     //     self.ended = false;
     //     trace!("Resetting lexer:\n{}", self.text.join(""));
     // }
+
+    fn normalize_newlines<S: AsRef<str>>(string: &S) -> String {
+        string.as_ref().replace("\r\n", "\n").replace("\r", "\n")
+    }
 
     /// Returns [UnicodeSegmentation::Grapheme] pointed to by [Lexer.index]
     fn current_grapheme(&self) -> Result<&str> {
@@ -384,6 +387,16 @@ mod tests {
 
     fn dequote(string: &str) -> &str {
         slice_ends(&string, 1, 1)
+    }
+
+    #[test]
+    fn lexer_normalize_test() {
+        let input =
+            "This \n string \r has \r\n CRs and \r\r\n\n LFs mixed together!";
+        assert_eq!(
+            Lexer::normalize_newlines(&input),
+            "This \n string \n has \n CRs and \n\n\n LFs mixed together!"
+        );
     }
 
     mod handle_reserved {

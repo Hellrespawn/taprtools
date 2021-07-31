@@ -1,7 +1,7 @@
 use super::argparse::{Args, Subcommand};
 use super::history::{History, Rename};
 use super::inspector::{Inspector, Mode};
-use super::{argparse, config, logging};
+use super::{argparse, helpers, logging};
 use crate::file::audiofile::get_audiofiles;
 use crate::tfmt::interpreter::Interpreter;
 use crate::tfmt::parser::Parser;
@@ -16,12 +16,6 @@ use rayon::prelude::*;
 
 /// Main tfmttools entrypoint.
 pub fn main<S: AsRef<OsStr>>(args: Option<&[S]>) -> Result<()> {
-    #[cfg(feature = "rayon")]
-    info!("rayon is enabled, running in parallell.");
-
-    #[cfg(not(feature = "rayon"))]
-    info!("rayon is not enabled.");
-
     match args {
         Some(args) => _main(args),
         None => _main(&std::env::args().collect::<Vec<String>>()),
@@ -32,6 +26,13 @@ fn _main<S: AsRef<OsStr>>(args: &[S]) -> Result<()> {
     let args = argparse::parse_args(args)?;
 
     logging::setup_logger(args.verbosity.try_into()?, "tfmttools")?;
+
+    #[cfg(feature = "rayon")]
+    info!("rayon is enabled, running in parallel.");
+
+    #[cfg(not(feature = "rayon"))]
+    info!("rayon is not enabled.");
+
     info!("Parsed arguments:\n{:#?}", &args);
 
     // TODO Pretty-print errors
@@ -96,7 +97,7 @@ impl<'a> TFMTTools<'a> {
     }
 
     fn list_scripts(&self) -> Result<()> {
-        let paths = &config::get_all_scripts(&self.args.config_folder);
+        let paths = &helpers::get_all_scripts(&self.args.config_folder);
 
         if paths.is_empty() {
             println!("Couldn't find any scripts.")
@@ -142,7 +143,7 @@ impl<'a> TFMTTools<'a> {
 
     fn inspect(&self, name: &str, render_ast: bool) -> Result<()> {
         Inspector::inspect(
-            &config::get_script(name, &self.args.config_folder)?,
+            &helpers::get_script(name, &self.args.config_folder)?,
             if render_ast { Mode::Dot } else { Mode::Long },
         )
     }
@@ -155,7 +156,7 @@ impl<'a> TFMTTools<'a> {
         output_folder: &Option<P>,
         recursive: bool,
     ) -> Result<()> {
-        let path = config::get_script(script_name, &self.args.config_folder)?;
+        let path = helpers::get_script(script_name, &self.args.config_folder)?;
 
         let program = Parser::try_from(&path)?.parse()?;
 

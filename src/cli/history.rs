@@ -1,4 +1,5 @@
-use super::config;
+use super::helpers;
+use super::strings::Strings;
 use anyhow::{anyhow, Result};
 use log::{info, trace};
 use serde::{Deserialize, Serialize};
@@ -36,7 +37,7 @@ impl History {
     ) -> Result<History> {
         // These were selected through path.is_file(), file_name.unwrap()
         // should be safe.
-        let path = config::search_dir(
+        let path = helpers::search_dir(
             config_folder,
             |p| p.file_name().unwrap() == HISTORY_FILENAME,
             1,
@@ -142,13 +143,13 @@ impl History {
         let min = std::cmp::min(amount, u64::try_from(from.len())?);
 
         if min == 0 {
-            println!("There is nothing to {}.", name);
+            Strings::HistoryNothingToDo(name).print();
             return Ok(());
         } else if min != amount {
-            println!("Warning: there are only {} actions to {}.", min, name)
+            Strings::HistoryOnlyNToDo(min, name).print();
         }
 
-        info!("{}ing {} times...", name, min);
+        Strings::HistoryDoingNTimes(min, name).print();
 
         let method: fn(&Rename, bool) -> Result<()> = match action {
             Action::Undo => Rename::undo,
