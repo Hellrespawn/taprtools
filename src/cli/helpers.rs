@@ -41,7 +41,10 @@ pub fn get_all_scripts<P: AsRef<Path>>(config_folder: &P) -> Vec<PathBuf> {
 
     // This condition is only called if p.is_file() is true, so
     // p.extension().unwrap() should be safe.
-    let closure = |p: &Path| p.extension().unwrap() == "tfmt";
+    let closure = |p: &Path| {
+        debug_assert!(p.is_file());
+        p.extension().unwrap() == "tfmt"
+    };
 
     scripts.extend(search_dir(&config_folder, closure, 1));
     scripts.extend(search_dir(&config_folder.join("script"), closure, 1));
@@ -60,6 +63,9 @@ pub fn get_script<P: AsRef<Path>>(
     // These were selected through path.is_file(), unwrap should be safe.
     scripts
         .into_iter()
-        .find(|p| p.file_name().unwrap() == name.as_str())
+        .find(|p| {
+            debug_assert!(p.is_file());
+            p.file_name().unwrap() == name.as_str()
+        })
         .ok_or_else(|| anyhow!("Unable to find script {}", name))
 }

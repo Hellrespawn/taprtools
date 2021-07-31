@@ -1,13 +1,9 @@
-use super::mp3::MP3;
-use super::ogg::OGG;
-use anyhow::Result;
-use log::{debug, info};
-use std::borrow::Cow;
-use std::convert::TryFrom;
+pub use super::mp3::MP3;
+pub use super::ogg::OGG;
 /// Common functions for reading audio file tags.
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-pub trait AudioFile: std::fmt::Debug {
+pub trait AudioFile: std::fmt::Debug + Sync {
     fn path(&self) -> &PathBuf;
 
     fn extension(&self) -> &'static str;
@@ -47,65 +43,16 @@ pub trait AudioFile: std::fmt::Debug {
     }
 }
 
-pub fn get_audiofiles<P: AsRef<Path>>(
-    dir: &P,
-    depth: u64,
-) -> Result<Vec<Box<dyn AudioFile>>> {
-    let audiofiles = _get_audiofiles(dir, depth)?;
-    info!("Read {} files", audiofiles.len());
-    debug!(
-        "[\n\"{}\"\n]",
-        audiofiles
-            .iter()
-            .map(|a| a.path().to_string_lossy())
-            .collect::<Vec<Cow<str>>>()
-            .join("\",\n\"")
-    );
-
-    Ok(audiofiles)
-}
-
-fn _get_audiofiles<P: AsRef<Path>>(
-    dir: &P,
-    depth: u64,
-) -> Result<Vec<Box<dyn AudioFile>>> {
-    let mut audiofiles = Vec::new();
-
-    if depth == 0 {
-        return Ok(audiofiles);
-    }
-
-    if let Ok(iter) = std::fs::read_dir(dir) {
-        for entry in iter.flatten() {
-            let path = entry.path();
-            if let Ok(file_type) = entry.file_type() {
-                if file_type.is_file() {
-                    if let Some(extension) = path.extension() {
-                        if extension == "mp3" {
-                            audiofiles.push(Box::new(MP3::try_from(&path)?));
-                        } else if extension == "ogg" {
-                            audiofiles.push(Box::new(OGG::try_from(&path)?));
-                        }
-                    }
-                } else if file_type.is_dir() {
-                    audiofiles.extend(_get_audiofiles(&path, depth - 1)?)
-                }
-            }
-        }
-    }
-
-    Ok(audiofiles)
-}
-
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::cli::tfmttools::get_audio_files;
     use anyhow::{bail, Result};
     use std::path::PathBuf;
 
     #[test]
-    fn audiofile_test() -> Result<()> {
-        let files = get_audiofiles(&PathBuf::from("testdata/music"), 1)?;
+    fn audio_file_test() -> Result<()> {
+        let mut files = Vec::new();
+        get_audio_files(&mut files, &PathBuf::from("testdata/music"), 1, None)?;
 
         assert_eq!(files.len(), 5);
 

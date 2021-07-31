@@ -265,17 +265,18 @@ impl Lexer {
     fn handle_reserved(&mut self) -> Result<Option<Token>> {
         for string in TokenType::reserved_strings() {
             if self.test_current_string(string) {
+                // Uses string from TokenType::string_map(), unwrap should
+                // always be safe.
                 let token = Token::new_type_from_string(
                     self.line_no,
                     self.col_no,
                     string,
                     None,
-                )
-                // Uses string from TokenType::string_map(), unwrap should
-                // always be safe.
-                .unwrap();
+                );
+                debug_assert!(token.is_ok());
+
                 self.advance_times(string.len().try_into()?)?;
-                return Ok(Some(token));
+                return Ok(Some(token.unwrap()));
             }
         }
 

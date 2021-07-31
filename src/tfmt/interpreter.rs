@@ -1,57 +1,44 @@
 use super::ast::*;
 use super::function::handle_function;
-use super::semantic::{SemanticAnalyzer, SymbolTable};
+use super::semantic::SymbolTable;
 use super::token::{
     Token, TokenType, DIRECTORY_SEPARATORS, FORBIDDEN_GRAPHEMES,
 };
 use super::visitor::Visitor;
 use crate::error::InterpreterError;
-use crate::file::audiofile::AudioFile;
+use crate::file::audio_file::AudioFile;
 use log::trace;
 
 type Result<T> = std::result::Result<T, InterpreterError>;
 
 /// Interprets an AST based on tags from and [AudioFile].
 pub struct Interpreter<'a> {
-    songs: &'a [Box<dyn AudioFile>],
     program: &'a Program,
-    symbol_table: SymbolTable,
-    index: usize,
+    symbol_table: &'a SymbolTable,
+    song: &'a dyn AudioFile,
 }
 
 impl<'a> Interpreter<'a> {
     /// Constructor
     pub fn new(
         program: &'a Program,
-        arguments: &'a [&str],
-        songs: &'a [Box<dyn AudioFile>],
-    ) -> Result<Self> {
-        let symbol_table = SemanticAnalyzer::analyze(program, arguments)?;
-
-        Ok(Interpreter {
-            songs,
+        symbol_table: &'a SymbolTable,
+        song: &'a dyn AudioFile,
+    ) -> Self {
+        Interpreter {
             program,
+            song,
             symbol_table,
-            index: 0,
-        })
+        }
     }
 
     /// Public function for interpreter.
-    pub fn interpret(&mut self) -> Result<Vec<String>> {
-        let mut paths = Vec::new();
+    pub fn interpret(&mut self) -> Result<String> {
+        trace!("In:  \"{}\"", self.song.path().to_string_lossy());
+        let path = self.program.accept(self)? + "." + self.song.extension();
+        trace!("Out: \"{}\"", path);
 
-        for i in 0..self.songs.len() {
-            self.index = i;
-
-            trace!("In:  \"{}\"", self.songs[i].path().to_string_lossy());
-            let path =
-                self.program.accept(self)? + "." + self.songs[i].extension();
-            trace!("Out: \"{}\"", path);
-
-            paths.push(path);
-        }
-
-        Ok(paths)
+        Ok(path)
     }
 
     fn strip_leading_zeroes(number: &str) -> &str {
@@ -215,6 +202,7 @@ impl<'a> Visitor<Result<String>> for Interpreter<'a> {
     fn visit_symbol(&mut self, symbol: &Token) -> Result<String> {
         let name = symbol.get_value_unchecked();
         // This is checked by SemanticAnalyzer, should be safe.
+        debug_assert!(self.symbol_table.get(name).is_some());
         Ok(self.symbol_table.get(name).unwrap().to_string())
     }
 
@@ -223,23 +211,21 @@ impl<'a> Visitor<Result<String>> for Interpreter<'a> {
 
         let mut tag = match tag_name {
             // TODO Add less common tags from AudioFile
-            "album" => self.songs[self.index].album(),
-            "albumartist" | "album_artist" => {
-                self.songs[self.index].album_artist()
-            }
-            "albumsort" | "album_sort" => self.songs[self.index].albumsort(),
-            "artist" => self.songs[self.index].artist(),
-            "duration" | "length" => self.songs[self.index].duration(),
+            "album" => self.song.album(),
+            "albumartist" | "album_artist" => self.song.album_artist(),
+            "albumsort" | "album_sort" => self.song.albumsort(),
+            "artist" => self.song.artist(),
+            "duration" | "length" => self.song.duration(),
             "disc" | "disk" | "discnumber" | "disknumber" | "disc_number"
-            | "disk_number" => self.songs[self.index]
-                .disc_number()
-                .map(Self::strip_leading_zeroes),
-            "genre" => self.songs[self.index].genre(),
-            "title" | "name" => self.songs[self.index].title(),
-            "track" | "tracknumber" | "track_number" => self.songs[self.index]
-                .track_number()
-                .map(Self::strip_leading_zeroes),
-            "year" | "date" => self.songs[self.index].year(),
+            | "disk_number" => {
+                self.song.disc_number().map(Self::strip_leading_zeroes)
+            }
+            "genre" => self.song.genre(),
+            "title" | "name" => self.song.title(),
+            "track" | "tracknumber" | "track_number" => {
+                self.song.track_number().map(Self::strip_leading_zeroes)
+            }
+            "year" | "date" => self.song.year(),
             _ => None,
         }
         .unwrap_or("")

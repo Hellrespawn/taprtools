@@ -1,11 +1,9 @@
 use anyhow::Result;
-
+use std::str::FromStr;
 use tfmttools::tfmt::ast::{self, Expression};
 use tfmttools::tfmt::lexer::{Lexer, LexerResult};
 use tfmttools::tfmt::parser::Parser;
 use tfmttools::tfmt::token::{Token, TokenType};
-
-use std::str::FromStr;
 
 mod common;
 

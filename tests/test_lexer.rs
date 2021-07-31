@@ -1,9 +1,8 @@
 use anyhow::{bail, Result};
+use std::str::FromStr;
 use tfmttools::tfmt::lexer::Lexer;
 use tfmttools::tfmt::token::Token;
 use tfmttools::tfmt::token::TokenType::*;
-
-use std::str::FromStr;
 
 mod common;
 

@@ -1,14 +1,13 @@
+use super::strings::Strings;
 use crate::cli::helpers;
 use crate::tfmt::ast::{self, Node, Program};
 use crate::tfmt::parser::Parser;
 use crate::tfmt::token::Token;
 use crate::tfmt::visitor::Visitor;
 use crate::tfmt::visualizer::Visualizer;
-use log::info;
 use std::convert::TryFrom;
 use std::fmt::{self, Display};
 use std::path::{Path, PathBuf};
-use super::strings::Strings;
 
 type Result = anyhow::Result<()>;
 
@@ -64,7 +63,7 @@ impl<'a> Inspector<'a> {
 
         inspector.program.accept(&mut inspector);
 
-        Strings::Inspector(&inspector).print();
+        Strings::Inspector(&inspector).iprint();
 
         Ok(())
     }

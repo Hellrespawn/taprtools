@@ -39,7 +39,10 @@ impl History {
         // should be safe.
         let path = helpers::search_dir(
             config_folder,
-            |p| p.file_name().unwrap() == HISTORY_FILENAME,
+            |p| {
+                debug_assert!(p.is_file());
+                p.file_name().unwrap() == HISTORY_FILENAME
+            },
             1,
         )
         .into_iter()
@@ -107,6 +110,7 @@ impl History {
         if !self.dry_run {
             // This function is only called after History::load_history has
             // succeeded. Unwrap should be safe.
+            debug_assert!(self.path.is_some());
             std::fs::remove_file(self.path.as_ref().unwrap())?;
 
             self.undo_stack = Vec::new();
@@ -130,6 +134,16 @@ impl History {
         Ok(())
     }
 
+    /// Inserts action without applying it.
+    pub fn insert(&mut self, action: Vec<Rename>) -> Result<()> {
+        if !self.dry_run {
+            self.undo_stack.push(action);
+            self.changed = true;
+        }
+
+        Ok(())
+    }
+
     fn history_function(&mut self, amount: u64, action: Action) -> Result<()> {
         let (name, from, to) = match action {
             Action::Undo => {
@@ -143,13 +157,13 @@ impl History {
         let min = std::cmp::min(amount, u64::try_from(from.len())?);
 
         if min == 0 {
-            Strings::HistoryNothingToDo(name).print();
+            Strings::HistoryNothingToDo(name).iprint();
             return Ok(());
         } else if min != amount {
-            Strings::HistoryOnlyNToDo(min, name).print();
+            Strings::HistoryOnlyNToDo(min, name).iprint();
         }
 
-        Strings::HistoryDoingNTimes(min, name).print();
+        Strings::HistoryDoingNTimes(min, name).iprint();
 
         let method: fn(&Rename, bool) -> Result<()> = match action {
             Action::Undo => Rename::undo,
@@ -159,11 +173,11 @@ impl History {
         for _ in 0..min {
             // We test the amount of actions to do,
             // pop().unwrap() should be safe.
+            debug_assert!(from.last().is_some());
             let action = from.pop().unwrap();
 
             for rename in &action {
                 method(rename, self.dry_run)?
-                //rename.undo(dry_run)?
             }
 
             if !self.dry_run {

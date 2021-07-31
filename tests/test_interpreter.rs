@@ -1,11 +1,14 @@
 use anyhow::Result;
-use tfmttools::file::audiofile::get_audiofiles;
+use std::path::PathBuf;
+use std::str::FromStr;
+use tfmttools::cli::tfmttools::get_audio_files;
 use tfmttools::tfmt::interpreter::Interpreter;
 use tfmttools::tfmt::lexer::{Lexer, LexerResult};
 use tfmttools::tfmt::parser::Parser;
+use tfmttools::tfmt::semantic::SemanticAnalyzer;
 
-use std::path::PathBuf;
-use std::str::FromStr;
+#[cfg(feature = "rayon")]
+use rayon::prelude::*;
 
 mod common;
 
@@ -22,12 +25,34 @@ fn file_test(
 
     let program = parser.parse()?;
 
-    let songs = get_audiofiles(&PathBuf::from("testdata/music"), 1)?;
+    let symbol_table = SemanticAnalyzer::analyze(&program, arguments)?;
 
-    let mut intp = Interpreter::new(&program, arguments, &songs)?;
+    let mut audio_files = Vec::new();
 
-    for output in intp.interpret()? {
-        assert!(reference.contains(&output.as_str()))
+    get_audio_files(
+        &mut audio_files,
+        &PathBuf::from("testdata/music"),
+        1,
+        None,
+    )?;
+
+    #[cfg(feature = "rayon")]
+    let iter = audio_files.par_iter();
+
+    #[cfg(not(feature = "rayon"))]
+    let iter = audio_files.iter();
+
+    let output: std::result::Result<
+        Vec<String>,
+        tfmttools::error::InterpreterError,
+    > = iter
+        .map(|s| {
+            Interpreter::new(&program, &symbol_table, s.as_ref()).interpret()
+        })
+        .collect();
+
+    for string in output? {
+        assert!(reference.contains(&string.as_str()))
     }
 
     Ok(())

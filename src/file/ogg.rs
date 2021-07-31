@@ -1,4 +1,4 @@
-use super::audiofile::AudioFile;
+use super::audio_file::AudioFile;
 use anyhow::Result;
 use lewton::inside_ogg::OggStreamReader;
 use std::collections::HashMap;

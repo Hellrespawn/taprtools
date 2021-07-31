@@ -1,8 +1,8 @@
+use super::strings::Strings;
 use anyhow::{anyhow, bail, Result};
 use clap::{load_yaml, App, ArgMatches};
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
-use super::strings::Strings;
 
 /// Contains the collected and parsed command line arguments.
 #[derive(Debug, PartialEq)]
@@ -170,7 +170,7 @@ fn get_config_folder<P: AsRef<Path>>(
         if !dry_run {
             std::fs::create_dir_all(&dir)?;
 
-            Strings::ArgparseCreatedDir(&dir).print();
+            Strings::ArgparseCreatedDir(&dir).iprint();
         }
     } else if !dir.is_dir() {
         bail!("{} is not a folder!", dir.to_string_lossy())

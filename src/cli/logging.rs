@@ -31,6 +31,7 @@ pub fn setup_logger(verbosity: usize, filename: &str) -> Result<()> {
 
     fern::Dispatch::new()
         .format(|out, message, record| {
+            debug_assert!(record.line().is_some());
             out.finish(format_args!(
                 "[{:.1}][{}][{}:{}] {}",
                 record.level(),

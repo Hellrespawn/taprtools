@@ -134,11 +134,12 @@ impl TokenType {
 
     /// Get string representation of self.[TokenType].
     pub fn as_str(&self) -> &str {
-        TokenType::string_map()
-            .get_by_left(self)
-            // All TokenTypes should be in TokenType::string_map, so unwrap
-            // should always be safe.
-            .unwrap()
+        // All TokenTypes should be in TokenType::string_map, so unwrap
+        // should always be safe.
+        let string = TokenType::string_map().get_by_left(self);
+
+        debug_assert!(string.is_some());
+        string.unwrap()
     }
 }
 

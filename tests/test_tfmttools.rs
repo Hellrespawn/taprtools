@@ -24,6 +24,9 @@ fn setup_environment(suffix: &str) -> Result<TempDir> {
     for song_path in &song_paths {
         // Songs are selected by is_file, should always have a filename so
         // path.file_name().unwrap() should be safe.
+
+        assert!(song_path.file_name().is_some());
+
         std::fs::copy(
             song_path,
             path.join(ORIGIN_FOLDER)
@@ -39,6 +42,9 @@ fn setup_environment(suffix: &str) -> Result<TempDir> {
     for script_path in &script_paths {
         // Scripts are selected by is_file, should always have a filename so
         // path.file_name().unwrap() should be safe.
+
+        assert!(script_path.file_name().is_some());
+
         std::fs::copy(
             script_path,
             path.join(CONFIG_FOLDER)
