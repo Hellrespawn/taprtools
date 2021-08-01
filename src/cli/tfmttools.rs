@@ -1,7 +1,6 @@
 use super::argparse::{Args, Subcommand};
-use super::history::{History, Rename};
+use super::history::{Action, ActionGroup, History};
 use super::inspector::{Inspector, Mode};
-use super::strings::Strings;
 use super::{argparse, helpers, logging};
 use crate::error::InterpreterError;
 use crate::file::audio_file::{AudioFile, MP3, OGG};
@@ -9,12 +8,11 @@ use crate::tfmt::ast::Program;
 use crate::tfmt::interpreter::Interpreter;
 use crate::tfmt::parser::Parser;
 use crate::tfmt::semantic::SemanticAnalyzer;
-use anyhow::Result;
+use anyhow::{bail, Result};
 use indicatif::{
-    ProgressBar, ProgressDrawTarget, ProgressFinish, ProgressIterator,
-    ProgressStyle,
+    ProgressBar, ProgressDrawTarget, ProgressFinish, ProgressStyle,
 };
-use log::info;
+use log::{info, warn};
 use std::convert::{TryFrom, TryInto};
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
@@ -23,6 +21,9 @@ use std::path::{Path, PathBuf};
 use indicatif::ParallelProgressIterator;
 #[cfg(feature = "rayon")]
 use rayon::prelude::*;
+
+#[cfg(not(feature = "rayon"))]
+use indicatif::ProgressIterator;
 
 /// Main tfmttools entrypoint.
 pub fn main<S: AsRef<OsStr>>(args: Option<&[S]>) -> Result<()> {
@@ -94,12 +95,21 @@ impl<'a> TFMTTools<'a> {
             self.args.dry_run,
             &self.args.config_folder,
         ) {
-            Ok(mut history) => history.delete()?,
+            Ok(mut history) => {
+                history.delete()?;
+            }
             Err(err) if err.to_string().contains("Unable to load") => {
-                Strings::ClearHistoryCantFindHistory.wprint()
+                let s = "Can't find history file to clear!";
+                println!("{}", s);
+                warn!("{}", s);
             }
 
-            Err(err) => Strings::ClearHistoryError(&err.to_string()).wprint(),
+            Err(err) => {
+                let s =
+                    format!("Error while trying to clear history!\n{}", err);
+                println!("{}", s);
+                warn!("{}", s);
+            }
         }
         Ok(())
     }
@@ -108,7 +118,9 @@ impl<'a> TFMTTools<'a> {
         let paths = &helpers::get_all_scripts(&self.args.config_folder);
 
         if paths.is_empty() {
-            Strings::ListScripts.iprint()
+            let s = "Couldn't find any scripts.";
+            println!("{}", s);
+            info!("{}", s);
         } else {
             for path in paths {
                 Inspector::inspect(path, Mode::Short)?
@@ -164,6 +176,9 @@ impl<'a> TFMTTools<'a> {
         output_folder: &Option<P>,
         recursive: bool,
     ) -> Result<()> {
+        // FIXME Check that there are actually files to move
+        // FIXME Do validation, nomove, collisions, that sort of thing.
+        // TODO? Explicitly concat cwd and relative path?
         let path = helpers::get_script(script_name, &self.args.config_folder)?;
 
         let program = Parser::try_from(&path)?.parse()?;
@@ -174,15 +189,12 @@ impl<'a> TFMTTools<'a> {
             if recursive { 4 } else { 1 },
         )?;
 
-        let paths = TFMTTools::interpret_audio_files(
-            &audio_files,
-            &program,
-            arguments,
-        )?;
+        let paths =
+            self.interpret_audio_files(&audio_files, &program, arguments)?;
 
-        debug_assert_eq!(audio_files.len(), paths.len());
+        TFMTTools::preview_audio_files(&paths, 8);
 
-        self.rename_audiofiles(&audio_files, &paths, output_folder)
+        self.rename_audio_files(&paths, output_folder)
     }
 
     pub fn get_audio_files<P: AsRef<Path>>(
@@ -207,10 +219,11 @@ impl<'a> TFMTTools<'a> {
     }
 
     fn interpret_audio_files(
+        &self,
         audio_files: &[Box<dyn AudioFile>],
         program: &Program,
         arguments: &[&str],
-    ) -> Result<Vec<PathBuf>> {
+    ) -> Result<Vec<(PathBuf, PathBuf)>> {
         let symbol_table = SemanticAnalyzer::analyze(program, arguments)?;
 
         let bar = ProgressBar::new(audio_files.len().try_into()?);
@@ -231,29 +244,90 @@ impl<'a> TFMTTools<'a> {
         #[cfg(not(feature = "rayon"))]
         let iter = audio_files.iter().progress_with(bar);
 
-        let paths: std::result::Result<Vec<PathBuf>, InterpreterError> = iter
-            .map(|s| {
+        let paths: std::result::Result<
+            Vec<(PathBuf, PathBuf)>,
+            InterpreterError,
+        > = iter
+            .map(|af| {
                 sleep();
-                Interpreter::new(program, &symbol_table, s.as_ref())
-                    .interpret()
-                    .map(PathBuf::from)
+                let result =
+                    Interpreter::new(program, &symbol_table, af.as_ref())
+                        .interpret();
+                //.map(|s| (PathBuf::from(af.path()), PathBuf::from(s)));
+
+                // TODO? Why do we need to manually destructure here?
+                match result {
+                    Ok(s) => Ok((PathBuf::from(af.path()), PathBuf::from(s))),
+                    Err(e) => Err(e),
+                }
             })
             .collect();
 
-        Ok(paths?)
+        let paths = paths?;
+
+        Ok(paths)
     }
 
-    fn rename_audiofiles<P: AsRef<Path>>(
+    fn preview_audio_files<P: AsRef<Path>>(paths: &[(P, P)], amount: usize) {
+        println!(
+            "Previewing {}/{} files:",
+            std::cmp::min(amount, paths.len()),
+            paths.len()
+        );
+
+        for (i, (_, d)) in paths.iter().enumerate() {
+            if i >= amount {
+                break;
+            }
+            println!("{}", d.as_ref().to_string_lossy())
+        }
+    }
+
+    fn create_dir_recursive<P: AsRef<Path>>(
         &self,
-        audio_files: &[Box<dyn AudioFile>],
-        paths: &[PathBuf],
+        path: P,
+    ) -> Result<ActionGroup> {
+        let path = path.as_ref();
+
+        if path.is_dir() {
+            Ok(Vec::new())
+        } else if path.exists() {
+            bail!(
+                "Path {} exists, but isn't a directory!",
+                path.to_string_lossy()
+            )
+        } else {
+            let mut action_group = ActionGroup::new();
+            if let Some(parent) = path.parent() {
+                action_group.extend(self.create_dir_recursive(parent)?)
+            }
+            let action = Action::CreateDir {
+                path: PathBuf::from(path),
+                dry_run: self.args.dry_run,
+            };
+            action.apply()?;
+            action_group.push(action);
+
+            Ok(action_group)
+        }
+    }
+
+    fn rename_audio_files<P: AsRef<Path>>(
+        &self,
+        paths: &[(PathBuf, PathBuf)],
         output_folder: &Option<P>,
     ) -> Result<()> {
         // Absolute paths clobber existing paths when joined/pushed.
         let prefix = if let Some(folder) = output_folder {
             let folder = folder.as_ref();
-            if paths.iter().any(|p| p.is_absolute()) {
-                Strings::RenameIgnoringOutputFolder(folder).wprint();
+
+            if paths.iter().any(|(_, p)| p.is_absolute()) {
+                let s = format!(
+                    "Absolute path found, ignoring --output-folder {}",
+                    folder.to_string_lossy()
+                );
+                println!("{}", s);
+                warn!("{}", s);
             }
 
             PathBuf::from(folder)
@@ -261,7 +335,7 @@ impl<'a> TFMTTools<'a> {
             PathBuf::new()
         };
 
-        let bar = ProgressBar::new(audio_files.len().try_into()?);
+        let bar = ProgressBar::new(paths.len().try_into()?);
 
         bar.set_style(
             ProgressStyle::default_bar()
@@ -273,16 +347,29 @@ impl<'a> TFMTTools<'a> {
         bar.set_draw_target(ProgressDrawTarget::stdout());
         bar.set_message("Renaming files...");
 
-        let action: Vec<Rename> = paths
-            .iter()
-            .zip(audio_files)
-            .map(|(p, s)| Rename::new(&prefix.join(p), s.path()))
-            .collect();
+        let mut action_group = ActionGroup::new();
 
-        action
-            .iter()
-            .progress_with(bar)
-            .try_for_each(|r| r.apply(self.args.dry_run))?;
+        for (origin, destination) in paths {
+            let destination = prefix.join(destination);
+            // These paths are all files, so should always have at
+            // least one parent.
+            debug_assert!(destination.parent().is_some());
+
+            action_group.extend(
+                self.create_dir_recursive(destination.parent().unwrap())?,
+            );
+
+            let action = Action::Rename {
+                origin: PathBuf::from(origin),
+                destination,
+                dry_run: self.args.dry_run,
+            };
+
+            action.apply()?;
+            action_group.push(action);
+
+            bar.inc(1);
+        }
 
         let mut history = History::load_from_path(
             self.args.dry_run,
@@ -290,7 +377,7 @@ impl<'a> TFMTTools<'a> {
         )
         .unwrap_or_default();
 
-        history.insert(action)?;
+        history.insert(action_group)?;
 
         history.save_to_path(&self.args.config_folder)?;
 

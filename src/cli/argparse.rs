@@ -1,6 +1,6 @@
-use super::strings::Strings;
 use anyhow::{anyhow, bail, Result};
 use clap::{load_yaml, App, ArgMatches};
+use log::info;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
@@ -170,7 +170,13 @@ fn get_config_folder<P: AsRef<Path>>(
         if !dry_run {
             std::fs::create_dir_all(&dir)?;
 
-            Strings::ArgparseCreatedDir(&dir).iprint();
+            let s = format!(
+                "Creating configuration directory at \"{}\"",
+                dir.to_string_lossy()
+            );
+
+            println!("{}", s);
+            info!("{}", s);
         }
     } else if !dir.is_dir() {
         bail!("{} is not a folder!", dir.to_string_lossy())

@@ -8,7 +8,5 @@ pub mod history;
 pub mod inspector;
 /// Logging setup
 pub mod logging;
-/// printing code
-pub mod strings;
 /// Main tfmttools code.
 pub mod tfmttools;

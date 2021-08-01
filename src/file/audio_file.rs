@@ -3,7 +3,7 @@ pub use super::ogg::OGG;
 /// Common functions for reading audio file tags.
 use std::path::PathBuf;
 
-pub trait AudioFile: std::fmt::Debug + Sync {
+pub trait AudioFile: std::fmt::Debug + Send + Sync {
     fn path(&self) -> &PathBuf;
 
     fn extension(&self) -> &'static str;

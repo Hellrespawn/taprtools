@@ -1,10 +1,10 @@
-use super::strings::Strings;
 use crate::cli::helpers;
 use crate::tfmt::ast::{self, Node, Program};
 use crate::tfmt::parser::Parser;
 use crate::tfmt::token::Token;
 use crate::tfmt::visitor::Visitor;
 use crate::tfmt::visualizer::Visualizer;
+use log::{debug, info};
 use std::convert::TryFrom;
 use std::fmt::{self, Display};
 use std::path::{Path, PathBuf};
@@ -39,7 +39,7 @@ pub enum Mode {
 
 /// Walks AST and checks for symbols.
 pub struct Inspector<'a> {
-    pub name: String,
+    name: String,
     path: PathBuf,
     description: String,
     parameters: Vec<(String, Option<String>)>,
@@ -63,7 +63,11 @@ impl<'a> Inspector<'a> {
 
         inspector.program.accept(&mut inspector);
 
-        Strings::Inspector(&inspector).iprint();
+        info!("Inspected script \"{}\"", inspector.name);
+
+        let s = inspector.to_string();
+        println!("{}", s);
+        debug!("{}", s);
 
         Ok(())
     }
