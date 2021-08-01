@@ -10,13 +10,14 @@ license = "BSD-3-Clause AND MIT AND Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [[bin]]
-name = "tfmttools"
+name = "tfmt"
 path = "src/bin/main.rs"
 
 [features]
-default = ["history", "rayon"]
+default = ["rayon"]
+#default = ["history", "rayon"]
 slow-progress-bars = []
-history = []
+# history = []
 
 [dependencies]
 anyhow = "1.0"
