@@ -21,10 +21,8 @@ pub fn search_dir<P: AsRef<Path>>(
         for entry in iter.flatten() {
             let path = entry.path();
 
-            if path.is_file() {
-                if condition(&path) {
-                    paths.push(path)
-                }
+            if path.is_file() & condition(&path) {
+                paths.push(path)
             } else if path.is_dir() {
                 paths.extend(search_dir(&path, condition, depth - 1))
             }

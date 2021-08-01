@@ -19,8 +19,7 @@ pub struct Args {
 
 impl Args {
     /// Accumulate arguments from submatches into main struct.
-    #[allow(non_snake_case)]
-    pub fn accumulate_ArgMatches(
+    pub fn accumulate_arg_matches(
         matches: &ArgMatches,
         verbosity: &mut u64,
         dry_run: &mut bool,
@@ -28,6 +27,7 @@ impl Args {
     ) {
         *verbosity += matches.occurrences_of("verbose");
         *dry_run |= matches.is_present("dry-run");
+        //TODO? Error on double config-folder?
         if let Some(folder) = matches.value_of("config-folder") {
             *config_folder = Some(PathBuf::from(folder));
         }
@@ -63,23 +63,15 @@ pub enum Subcommand {
 }
 
 impl Subcommand {
-    fn from_subcommand(name: &str, submatches: &ArgMatches) -> Result<Self> {
+    fn from_str(name: &str, submatches: &ArgMatches) -> Result<Self> {
         match name {
             "clear-history" => Ok(Subcommand::ClearHistory),
             "list-scripts" => Ok(Subcommand::ListScripts),
             "redo" => Ok(Subcommand::Redo(
-                submatches
-                    .value_of("amount")
-                    .unwrap()
-                    .parse::<u64>()
-                    .expect("Invalid amount!"),
+                submatches.value_of("amount").unwrap().parse::<u64>()?,
             )),
             "undo" => Ok(Subcommand::Undo(
-                submatches
-                    .value_of("amount")
-                    .unwrap()
-                    .parse::<u64>()
-                    .expect("Invalid amount!"),
+                submatches.value_of("amount").unwrap().parse::<u64>()?,
             )),
             "inspect" => Ok(Subcommand::Inspect {
                 script_name: submatches
@@ -122,19 +114,20 @@ pub fn parse_args<S: AsRef<OsStr>>(args: &[S]) -> Result<Args> {
     let (name, submatches) = matches.subcommand();
 
     // SubcommandRequired is enabled in tfmttools.yml
+    debug_assert!(submatches.is_some());
     let submatches = submatches.unwrap();
 
     let mut verbosity = 0;
     let mut dry_run = false;
     let mut config_folder = None;
 
-    Args::accumulate_ArgMatches(
+    Args::accumulate_arg_matches(
         &matches,
         &mut verbosity,
         &mut dry_run,
         &mut config_folder,
     );
-    Args::accumulate_ArgMatches(
+    Args::accumulate_arg_matches(
         submatches,
         &mut verbosity,
         &mut dry_run,
@@ -145,7 +138,7 @@ pub fn parse_args<S: AsRef<OsStr>>(args: &[S]) -> Result<Args> {
         verbosity,
         dry_run,
         config_folder: get_config_folder(config_folder.as_ref(), dry_run)?,
-        subcommand: Subcommand::from_subcommand(name, submatches)?,
+        subcommand: Subcommand::from_str(name, submatches)?,
     };
 
     Ok(args)
@@ -179,7 +172,7 @@ fn get_config_folder<P: AsRef<Path>>(
             info!("{}", s);
         }
     } else if !dir.is_dir() {
-        bail!("{} is not a folder!", dir.to_string_lossy())
+        bail!("{} exists but is not a folder!", dir.to_string_lossy())
     }
 
     Ok(dir)

@@ -49,7 +49,7 @@ impl History {
             1,
         )
         .into_iter()
-        .find(|p| p.file_name().unwrap() == HISTORY_FILENAME)
+        .next()
         .ok_or_else(|| {
             anyhow!("Unable to load history from {}", HISTORY_FILENAME)
         })?;
@@ -157,22 +157,27 @@ impl History {
         println!("{}", s);
         info!("{}", s);
 
-        let (func, reverse): (fn(&Action) -> Result<()>, bool) = match mode {
-            Mode::Undo => (Action::undo, true),
-            Mode::Redo => (Action::redo, false),
-        };
-
-        for _ in 0..min {
+        for i in 0..min {
             // We test the amount of actions to do,
             // pop().unwrap() should be safe.
             debug_assert!(from.last().is_some());
 
             let action_group = from.pop().unwrap();
+            let dry_run = self.dry_run;
 
-            if reverse {
-                action_group.iter().rev().try_for_each(|a| func(a))?
-            } else {
-                action_group.iter().try_for_each(|a| func(a))?
+            let s = format!("{}: {}ing {} actions", i + 1, name, action_group.len());
+            println!("{}", s);
+            info!("{}", s);
+
+            match mode {
+                Mode::Undo => action_group
+                    .iter()
+                    .rev()
+                    .try_for_each(|a| a.undo(dry_run))?,
+
+                Mode::Redo => {
+                    action_group.iter().try_for_each(|a| a.redo(dry_run))?
+                }
             }
 
             if !self.dry_run {
@@ -197,32 +202,26 @@ impl History {
 }
 
 #[derive(Deserialize, Serialize)]
+// TODO Add RemoveDir and remove leftover empty dirs.
 pub enum Action {
     Rename {
         origin: PathBuf,
         destination: PathBuf,
-        dry_run: bool,
     },
     CreateDir {
         path: PathBuf,
-        dry_run: bool,
+    },
+    RemoveDir {
+        path: PathBuf,
     },
 }
 
 impl Action {
-    pub fn apply(&self) -> Result<()> {
+    pub fn apply(&self, dry_run: bool) -> Result<()> {
         match self {
-            Action::CreateDir { path, dry_run } => {
-                trace!("Creating directory {}", path.to_string_lossy());
-                if !dry_run {
-                    std::fs::create_dir_all(path)?;
-                }
-            }
-
             Action::Rename {
                 origin,
                 destination,
-                dry_run,
             } => {
                 trace!(
                     "Renaming:\n\"{}\"\n\"{}\"",
@@ -234,23 +233,29 @@ impl Action {
                     std::fs::rename(origin, destination)?
                 }
             }
-        }
-        Ok(())
-    }
 
-    pub fn undo(&self) -> Result<()> {
-        match self {
-            Action::CreateDir { path, dry_run } => {
+            Action::CreateDir { path } => {
+                trace!("Creating directory {}", path.to_string_lossy());
+                if !dry_run {
+                    std::fs::create_dir(path)?;
+                }
+            }
+
+            Action::RemoveDir { path } => {
                 trace!("Removing directory {}", path.to_string_lossy());
                 if !dry_run {
                     std::fs::remove_dir(path)?;
                 }
             }
+        }
+        Ok(())
+    }
 
+    pub fn undo(&self, dry_run: bool) -> Result<()> {
+        match self {
             Action::Rename {
                 origin,
                 destination,
-                dry_run,
             } => {
                 trace!(
                     "Undoing:\n\"{}\"\n\"{}\"",
@@ -262,11 +267,25 @@ impl Action {
                     std::fs::rename(destination, origin)?
                 }
             }
+
+            Action::CreateDir { path } => {
+                trace!("Undoing directory {}", path.to_string_lossy());
+                if !dry_run {
+                    std::fs::remove_dir(path)?;
+                }
+            }
+
+            Action::RemoveDir { path } => {
+                trace!("Recreating directory {}", path.to_string_lossy());
+                if !dry_run {
+                    std::fs::create_dir(path)?;
+                }
+            }
         }
         Ok(())
     }
 
-    pub fn redo(&self) -> Result<()> {
-        self.apply()
+    pub fn redo(&self, dry_run: bool) -> Result<()> {
+        self.apply(dry_run)
     }
 }

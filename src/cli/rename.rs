@@ -76,7 +76,7 @@ impl<'a> Rename<'a> {
 
         Self::preview_audio_files(&to_move, 8);
 
-        self.rename_audio_files(&to_move, output_folder)
+        self.rename_audio_files(&to_move, input_folder, output_folder)
     }
 
     pub fn get_audio_files<P: AsRef<Path>>(
@@ -171,11 +171,11 @@ impl<'a> Rename<'a> {
 
     fn create_dir_recursive<P: AsRef<Path>>(
         &self,
-        path: P,
+        path: &P,
     ) -> Result<ActionGroup> {
         let path = path.as_ref();
 
-        if path.is_dir() {
+        if path.is_dir() | (path == Path::new("")) {
             Ok(Vec::new())
         } else if path.exists() {
             bail!(
@@ -184,23 +184,55 @@ impl<'a> Rename<'a> {
             )
         } else {
             let mut action_group = ActionGroup::new();
+
             if let Some(parent) = path.parent() {
-                action_group.extend(self.create_dir_recursive(parent)?)
+                action_group.extend(self.create_dir_recursive(&parent)?)
             }
+
             let action = Action::CreateDir {
                 path: PathBuf::from(path),
-                dry_run: self.args.dry_run,
             };
-            action.apply()?;
+            action.apply(self.args.dry_run)?;
             action_group.push(action);
 
             Ok(action_group)
         }
     }
 
+    fn remove_dir_recursive<P: AsRef<Path>>(
+        &self,
+        root_path: &P,
+        depth: u64
+    ) -> Result<ActionGroup> {
+        if depth == 0 {
+            return Ok(Vec::new())
+        }
+
+        let mut action_group = ActionGroup::new();
+
+        for result in std::fs::read_dir(root_path.as_ref())? {
+            let path = result?.path();
+
+            if path.is_dir() {
+                action_group.extend(self.remove_dir_recursive(&path, depth - 1)?);
+
+                let action = Action::RemoveDir{path};
+                if let Ok(()) = action.apply(self.args.dry_run) {
+                    action_group.push(action);
+                }
+            }
+
+
+        }
+
+        Ok(action_group)
+
+    }
+
     fn rename_audio_files<P: AsRef<Path>>(
         &self,
         paths: &[(PathBuf, PathBuf)],
+        input_folder: &P,
         output_folder: &Option<P>,
     ) -> Result<()> {
         // Absolute paths clobber existing paths when joined/pushed.
@@ -242,20 +274,27 @@ impl<'a> Rename<'a> {
             debug_assert!(destination.parent().is_some());
 
             action_group.extend(
-                self.create_dir_recursive(destination.parent().unwrap())?,
+                self.create_dir_recursive(&destination.parent().unwrap())?,
             );
 
             let action = Action::Rename {
                 origin: PathBuf::from(origin),
                 destination,
-                dry_run: self.args.dry_run,
             };
 
-            action.apply()?;
+            action.apply(self.args.dry_run)?;
             action_group.push(action);
 
             bar.inc(1);
         }
+
+        bar.finish();
+
+        print!("Removing empty directories... ");
+
+        action_group.extend(self.remove_dir_recursive(input_folder, 4)?);
+
+        println!("Done.");
 
         let mut history = History::load_from_path(
             self.args.dry_run,
