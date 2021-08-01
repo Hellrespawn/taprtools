@@ -8,5 +8,9 @@ pub mod history;
 pub mod inspector;
 /// Logging setup
 pub mod logging;
+/// Rename stuff
+pub mod rename;
 /// Main tfmttools code.
 pub mod tfmttools;
+/// Validate interpreted paths
+pub mod validate;

@@ -69,3 +69,11 @@ pub fn get_script<P: AsRef<Path>>(
         })
         .ok_or_else(|| anyhow!("Unable to find script {}", name))
 }
+
+#[cfg(feature = "slow-progress-bars")]
+pub fn sleep() {
+    std::thread::sleep(std::time::Duration::from_millis(200));
+}
+
+#[cfg(not(feature = "slow-progress-bars"))]
+pub fn sleep() {}

@@ -1,7 +1,11 @@
 pub use super::mp3::MP3;
 pub use super::ogg::OGG;
+use crate::cli::helpers::sleep;
+use anyhow::Result;
+use indicatif::ProgressBar;
+use std::convert::TryFrom;
 /// Common functions for reading audio file tags.
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub trait AudioFile: std::fmt::Debug + Send + Sync {
     fn path(&self) -> &PathBuf;
@@ -43,9 +47,53 @@ pub trait AudioFile: std::fmt::Debug + Send + Sync {
     }
 }
 
+pub fn get_audio_files(
+    audio_files: &mut Vec<Box<dyn AudioFile>>,
+    dir: &Path,
+    depth: u64,
+    bar: Option<&ProgressBar>,
+) -> Result<()> {
+    if depth == 0 {
+        return Ok(());
+    }
+
+    if let Ok(read_dir) = std::fs::read_dir(dir) {
+        for entry in read_dir.flatten() {
+            let path = entry.path();
+            if let Ok(file_type) = entry.file_type() {
+                if file_type.is_file() {
+                    if let Some(extension) = path.extension() {
+                        if let Some(bar) = bar {
+                            bar.inc_length(1)
+                        };
+
+                        if extension == "mp3" {
+                            audio_files.push(Box::new(MP3::try_from(&path)?));
+                        } else if extension == "ogg" {
+                            audio_files.push(Box::new(OGG::try_from(&path)?));
+                        } else {
+                            continue;
+                        }
+
+                        if let Some(bar) = bar {
+                            bar.inc(1)
+                        };
+
+                        sleep();
+                    }
+                } else if file_type.is_dir() {
+                    get_audio_files(audio_files, &path, depth - 1, bar)?
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::cli::tfmttools::get_audio_files;
+    use super::*;
     use anyhow::{bail, Result};
     use std::path::PathBuf;
 
