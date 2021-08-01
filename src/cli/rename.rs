@@ -126,20 +126,18 @@ impl<'a> Rename<'a> {
         bar.set_message("Interpreting files...");
 
         #[cfg(feature = "rayon")]
-        let iter = audio_files.par_iter().progress_with(bar);
+        let path_iter = audio_files.par_iter().progress_with(bar);
 
         #[cfg(not(feature = "rayon"))]
-        let iter = audio_files.iter().progress_with(bar);
+        let paths_iter = audio_files.iter().progress_with(bar);
 
-        let paths: std::result::Result<PathPairs, InterpreterError> = iter
+        let paths: std::result::Result<PathPairs, InterpreterError> = path_iter
             .map(|af| {
                 helpers::sleep();
                 let result =
                     Interpreter::new(program, &symbol_table, af.as_ref())
                         .interpret();
-                //.map(|s| (PathBuf::from(af.path()), PathBuf::from(s)));
 
-                // TODO? Why do we need to manually destructure here?
                 match result {
                     Ok(s) => Ok((PathBuf::from(af.path()), PathBuf::from(s))),
                     Err(e) => Err(e),
@@ -202,10 +200,10 @@ impl<'a> Rename<'a> {
     fn remove_dir_recursive<P: AsRef<Path>>(
         &self,
         root_path: &P,
-        depth: u64
+        depth: u64,
     ) -> Result<ActionGroup> {
         if depth == 0 {
-            return Ok(Vec::new())
+            return Ok(Vec::new());
         }
 
         let mut action_group = ActionGroup::new();
@@ -214,19 +212,17 @@ impl<'a> Rename<'a> {
             let path = result?.path();
 
             if path.is_dir() {
-                action_group.extend(self.remove_dir_recursive(&path, depth - 1)?);
+                action_group
+                    .extend(self.remove_dir_recursive(&path, depth - 1)?);
 
-                let action = Action::RemoveDir{path};
+                let action = Action::RemoveDir { path };
                 if let Ok(()) = action.apply(self.args.dry_run) {
                     action_group.push(action);
                 }
             }
-
-
         }
 
         Ok(action_group)
-
     }
 
     fn rename_audio_files<P: AsRef<Path>>(

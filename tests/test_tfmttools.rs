@@ -16,21 +16,21 @@ fn setup_environment(suffix: &str) -> Result<TempDir> {
 
     println!("Temporary directory at \"{}\"", path.to_string_lossy());
 
-    let song_paths: Vec<PathBuf> = std::fs::read_dir("testdata/music")?
+    let audio_file_paths: Vec<PathBuf> = std::fs::read_dir("testdata/music")?
         .flat_map(|r| r.map(|d| d.path()))
         .collect();
 
     std::fs::create_dir_all(path.join(ORIGIN_FOLDER))?;
-    for song_path in &song_paths {
-        // Songs are selected by is_file, should always have a filename so
+    for audio_file_path in &audio_file_paths {
+        // Audio files are selected by is_file, should always have a filename so
         // path.file_name().unwrap() should be safe.
 
-        assert!(song_path.file_name().is_some());
+        assert!(audio_file_path.file_name().is_some());
 
         std::fs::copy(
-            song_path,
+            audio_file_path,
             path.join(ORIGIN_FOLDER)
-                .join(song_path.file_name().unwrap()),
+                .join(audio_file_path.file_name().unwrap()),
         )?;
     }
 

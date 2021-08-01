@@ -109,7 +109,12 @@ impl Subcommand {
 /// Parse arguments.
 pub fn parse_args<S: AsRef<OsStr>>(args: &[S]) -> Result<Args> {
     let yaml = load_yaml!("tfmttools.yml");
-    let matches = App::from_yaml(yaml).get_matches_from(args.iter());
+    let matches = App::from_yaml(yaml)
+        .name(clap::crate_name!())
+        .version(clap::crate_version!())
+        .author(clap::crate_authors!())
+        .about(clap::crate_description!())
+        .get_matches_from(args.iter());
 
     let (name, submatches) = matches.subcommand();
 

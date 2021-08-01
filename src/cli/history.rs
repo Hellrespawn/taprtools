@@ -165,7 +165,12 @@ impl History {
             let action_group = from.pop().unwrap();
             let dry_run = self.dry_run;
 
-            let s = format!("{}: {}ing {} actions", i + 1, name, action_group.len());
+            let s = format!(
+                "{}: {}ing {} actions",
+                i + 1,
+                name,
+                action_group.len()
+            );
             println!("{}", s);
             info!("{}", s);
 

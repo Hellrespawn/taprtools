@@ -15,7 +15,7 @@ type Result<T> = std::result::Result<T, InterpreterError>;
 pub struct Interpreter<'a> {
     program: &'a Program,
     symbol_table: &'a SymbolTable,
-    song: &'a dyn AudioFile,
+    audio_file: &'a dyn AudioFile,
 }
 
 impl<'a> Interpreter<'a> {
@@ -23,19 +23,20 @@ impl<'a> Interpreter<'a> {
     pub fn new(
         program: &'a Program,
         symbol_table: &'a SymbolTable,
-        song: &'a dyn AudioFile,
+        audio_file: &'a dyn AudioFile,
     ) -> Self {
         Interpreter {
             program,
-            song,
+            audio_file,
             symbol_table,
         }
     }
 
     /// Public function for interpreter.
     pub fn interpret(&mut self) -> Result<String> {
-        trace!("In:  \"{}\"", self.song.path().to_string_lossy());
-        let path = self.program.accept(self)? + "." + self.song.extension();
+        trace!("In:  \"{}\"", self.audio_file.path().to_string_lossy());
+        let path =
+            self.program.accept(self)? + "." + self.audio_file.extension();
         trace!("Out: \"{}\"", path);
 
         Ok(path)
@@ -211,21 +212,23 @@ impl<'a> Visitor<Result<String>> for Interpreter<'a> {
 
         let mut tag = match tag_name {
             // TODO Add less common tags from AudioFile
-            "album" => self.song.album(),
-            "albumartist" | "album_artist" => self.song.album_artist(),
-            "albumsort" | "album_sort" => self.song.albumsort(),
-            "artist" => self.song.artist(),
-            "duration" | "length" => self.song.duration(),
+            "album" => self.audio_file.album(),
+            "albumartist" | "album_artist" => self.audio_file.album_artist(),
+            "albumsort" | "album_sort" => self.audio_file.albumsort(),
+            "artist" => self.audio_file.artist(),
+            "duration" | "length" => self.audio_file.duration(),
             "disc" | "disk" | "discnumber" | "disknumber" | "disc_number"
-            | "disk_number" => {
-                self.song.disc_number().map(Self::strip_leading_zeroes)
-            }
-            "genre" => self.song.genre(),
-            "title" | "name" => self.song.title(),
-            "track" | "tracknumber" | "track_number" => {
-                self.song.track_number().map(Self::strip_leading_zeroes)
-            }
-            "year" | "date" => self.song.year(),
+            | "disk_number" => self
+                .audio_file
+                .disc_number()
+                .map(Self::strip_leading_zeroes),
+            "genre" => self.audio_file.genre(),
+            "title" | "name" => self.audio_file.title(),
+            "track" | "tracknumber" | "track_number" => self
+                .audio_file
+                .track_number()
+                .map(Self::strip_leading_zeroes),
+            "year" | "date" => self.audio_file.year(),
             _ => None,
         }
         .unwrap_or("")

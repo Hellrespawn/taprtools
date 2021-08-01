@@ -1,7 +1,8 @@
-name: tag_to_filename
-version: "0.1"
-author: S. Korporaal
-about: Rename filenames according to their tags.
+# Set at compile time from crate info.
+name: N/A
+version: N/A
+author: N/A
+about: N/A
 
 settings:
     - SubcommandRequired

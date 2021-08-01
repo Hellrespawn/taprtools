@@ -1,9 +1,11 @@
 [package]
 name = "tfmttools"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Stef Korporaal <stefkorporaal@gmail.com>"]
+description = "Renames audio files according to their tags."
 edition = "2018"
 license = "BSD-3-Clause AND MIT AND Apache-2.0"
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

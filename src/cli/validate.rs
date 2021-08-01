@@ -92,11 +92,13 @@ mod test {
         ];
 
         if let Err(err) = validate_collisions(&reference) {
-            bail!("validate_collisions returned an error when it shouldn't!\n{}", err)
+            bail!(
+                "validate_collisions returned an error when it shouldn't!\n{}",
+                err
+            )
         }
 
         Ok(())
-
     }
 
     #[test]
@@ -108,12 +110,15 @@ mod test {
 
         let (to_move, no_move) = validate_movement(&paths)?;
 
-        assert_eq!(to_move, [(PathBuf::from("/c/d/e.file"), PathBuf::from("/b/c/d.file"))]);
-        assert_eq!(no_move, [(PathBuf::from("/a/b/c.file"), PathBuf::from("/a/b/c.file"))]);
+        assert_eq!(
+            to_move,
+            [(PathBuf::from("/c/d/e.file"), PathBuf::from("/b/c/d.file"))]
+        );
+        assert_eq!(
+            no_move,
+            [(PathBuf::from("/a/b/c.file"), PathBuf::from("/a/b/c.file"))]
+        );
 
         Ok(())
     }
-
-
-
 }
