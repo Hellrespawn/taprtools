@@ -10,14 +10,7 @@ use std::convert::TryInto;
 use std::ffi::OsStr;
 
 /// Main tfmttools entrypoint.
-pub fn main<S: AsRef<OsStr>>(args: Option<&[S]>) -> Result<()> {
-    match args {
-        Some(args) => _main(args),
-        None => _main(&std::env::args().collect::<Vec<String>>()),
-    }
-}
-
-fn _main<S: AsRef<OsStr>>(args: &[S]) -> Result<()> {
+pub fn main<S: AsRef<OsStr>>(args: &[S]) -> Result<()> {
     let args = argparse::parse_args(args)?;
 
     logging::setup_logger(args.verbosity.try_into()?, "tfmttools")?;
