@@ -46,6 +46,7 @@ pub trait AudioFile: std::fmt::Debug + Send + Sync {
     }
 }
 
+/// Read [AudioFile]s into buffer.
 pub fn get_audio_files(
     audio_files: &mut Vec<Box<dyn AudioFile>>,
     dir: &Path,

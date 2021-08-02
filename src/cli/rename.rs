@@ -22,8 +22,9 @@ use rayon::prelude::*;
 #[cfg(not(feature = "rayon"))]
 use indicatif::ProgressIterator;
 
-pub type PathPair = (PathBuf, PathBuf);
-pub type PathPairs = Vec<PathPair>;
+/// Intermediate representation during interpreting.
+pub type SrcTgtPair = (PathBuf, PathBuf);
+//pub type SrcTgtPairs = Vec<SrcTgtPair>;
 
 pub struct Rename<'a> {
     pub args: &'a Args,
@@ -108,7 +109,7 @@ impl<'a> Rename<'a> {
         audio_files: &[Box<dyn AudioFile>],
         program: &Program,
         arguments: &[&str],
-    ) -> Result<PathPairs> {
+    ) -> Result<Vec<SrcTgtPair>> {
         let symbol_table = SemanticAnalyzer::analyze(program, arguments)?;
 
         let bar = ProgressBar::new(audio_files.len().try_into()?);
@@ -129,19 +130,22 @@ impl<'a> Rename<'a> {
         #[cfg(not(feature = "rayon"))]
         let paths_iter = audio_files.iter().progress_with(bar);
 
-        let paths: std::result::Result<PathPairs, InterpreterError> = path_iter
-            .map(|af| {
-                helpers::sleep();
-                let result =
-                    Interpreter::new(program, &symbol_table, af.as_ref())
-                        .interpret();
+        let paths: std::result::Result<Vec<SrcTgtPair>, InterpreterError> =
+            path_iter
+                .map(|af| {
+                    helpers::sleep();
+                    let result =
+                        Interpreter::new(program, &symbol_table, af.as_ref())
+                            .interpret();
 
-                match result {
-                    Ok(s) => Ok((PathBuf::from(af.path()), PathBuf::from(s))),
-                    Err(e) => Err(e),
-                }
-            })
-            .collect();
+                    match result {
+                        Ok(s) => {
+                            Ok((PathBuf::from(af.path()), PathBuf::from(s)))
+                        }
+                        Err(e) => Err(e),
+                    }
+                })
+                .collect();
 
         let paths = paths?;
 
@@ -261,19 +265,18 @@ impl<'a> Rename<'a> {
 
         let mut action_group = ActionGroup::new();
 
-        for (origin, destination) in paths {
-            let destination = prefix.join(destination);
+        for (source, target) in paths {
+            let target = prefix.join(target);
             // These paths are all files, so should always have at
             // least one parent.
-            debug_assert!(destination.parent().is_some());
+            debug_assert!(target.parent().is_some());
 
-            action_group.extend(
-                self.create_dir_recursive(&destination.parent().unwrap())?,
-            );
+            action_group
+                .extend(self.create_dir_recursive(&target.parent().unwrap())?);
 
             let action = Action::Rename {
-                origin: PathBuf::from(origin),
-                destination,
+                source: PathBuf::from(source),
+                target,
             };
 
             action.apply(self.args.dry_run)?;
@@ -298,7 +301,9 @@ impl<'a> Rename<'a> {
 
         history.insert(action_group)?;
 
-        history.save_to_path(&self.args.config_folder)?;
+        history
+            .save()
+            .or_else(|_| history.save_to_path(&self.args.config_folder))?;
 
         Ok(())
     }

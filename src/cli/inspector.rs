@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 type Result = anyhow::Result<()>;
 
 /// Inspector format
+#[derive(Clone, Copy)]
 pub enum Mode {
     /// Short format.
     ///

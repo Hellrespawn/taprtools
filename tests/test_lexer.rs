@@ -198,6 +198,8 @@ fn lexer_typical_input_test() -> Result<()> {
     file_test("typical_input.tfmt", Some(reference))
 }
 
+// TODO Write test with weird unicode characters.
+
 #[test]
 fn lexer_empty_text_test() -> Result<()> {
     match Lexer::from_str("") {

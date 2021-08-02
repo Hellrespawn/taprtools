@@ -30,7 +30,9 @@ fn _main<S: AsRef<OsStr>>(args: &[S]) -> Result<()> {
     info!("Parsed arguments:\n{:#?}", &args);
 
     // TODO Pretty-print errors
-    TFMTTools { args: &args }.main()?;
+    TFMTTools { args: &args }.handle_command()?;
+
+    info!("Program execution complete. Have a nice day!");
 
     Ok(())
 }
@@ -40,20 +42,16 @@ struct TFMTTools<'a> {
 }
 
 impl<'a> TFMTTools<'a> {
-    fn main(&mut self) -> Result<()> {
-        self.handle_command(&self.args.subcommand)
-    }
-
-    fn handle_command(&mut self, subcommand: &Subcommand) -> Result<()> {
-        match subcommand {
+    pub fn handle_command(&mut self) -> Result<()> {
+        match &self.args.subcommand {
             Subcommand::ClearHistory => self.clear_history(),
             Subcommand::ListScripts => self.list_scripts(),
             Subcommand::Redo(amount) => self.redo(*amount),
             Subcommand::Undo(amount) => self.undo(*amount),
             Subcommand::Inspect {
                 script_name,
-                visualize,
-            } => self.inspect(script_name, *visualize),
+                render_ast,
+            } => self.inspect(script_name, *render_ast),
             Subcommand::Rename {
                 script_name,
                 arguments,
@@ -102,15 +100,22 @@ impl<'a> TFMTTools<'a> {
     }
 
     fn list_scripts(&self) -> Result<()> {
-        let paths = &helpers::get_all_scripts(&self.args.config_folder);
+        let paths = &helpers::get_scripts(&self.args.config_folder);
 
         if paths.is_empty() {
             let s = "Couldn't find any scripts.";
             println!("{}", s);
             info!("{}", s);
         } else {
+            println!("Found {} scripts:", paths.len());
+            let mode = if self.args.verbosity == 0 {
+                Mode::Short
+            } else {
+                Mode::Long
+            };
+
             for path in paths {
-                Inspector::inspect(path, Mode::Short)?
+                Inspector::inspect(path, mode)?
             }
         }
 
@@ -129,7 +134,9 @@ impl<'a> TFMTTools<'a> {
 
         history.redo(amount)?;
 
-        history.save_to_path(&self.args.config_folder)?;
+        history
+            .save()
+            .or_else(|_| history.save_to_path(&self.args.config_folder))?;
 
         Ok(())
     }
@@ -143,7 +150,9 @@ impl<'a> TFMTTools<'a> {
 
         history.undo(amount)?;
 
-        history.save_to_path(&self.args.config_folder)?;
+        history
+            .save()
+            .or_else(|_| history.save_to_path(&self.args.config_folder))?;
 
         Ok(())
     }

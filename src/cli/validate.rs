@@ -1,4 +1,4 @@
-use super::rename::PathPairs;
+use super::rename::SrcTgtPair;
 use anyhow::{bail, Result};
 use log::warn;
 use std::collections::HashMap;
@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 /// Returns (to_move, no_move)
 pub fn validate<P: AsRef<Path>>(
     paths: &[(P, P)],
-) -> Result<(PathPairs, PathPairs)> {
+) -> Result<(Vec<SrcTgtPair>, Vec<SrcTgtPair>)> {
     // TODO? Extended print output
     validate_collisions(paths)?;
     validate_existing_files(paths)?;
@@ -17,10 +17,10 @@ pub fn validate<P: AsRef<Path>>(
 fn validate_collisions<P: AsRef<Path>>(paths: &[(P, P)]) -> Result<()> {
     let mut map = HashMap::new();
 
-    paths.iter().for_each(|(orig, dest)| {
-        map.entry(dest.as_ref())
+    paths.iter().for_each(|(src, tgt)| {
+        map.entry(tgt.as_ref())
             .or_insert_with(Vec::new)
-            .push(orig.as_ref())
+            .push(src.as_ref())
     });
 
     let collisions: HashMap<&Path, Vec<&Path>> =
@@ -60,13 +60,13 @@ fn validate_existing_files<P: AsRef<Path>>(paths: &[(P, P)]) -> Result<()> {
 }
 fn validate_movement<P: AsRef<Path>>(
     paths: &[(P, P)],
-) -> Result<(PathPairs, PathPairs)> {
-    let (no_move, to_move): (PathPairs, PathPairs) = paths
+) -> Result<(Vec<SrcTgtPair>, Vec<SrcTgtPair>)> {
+    let (no_move, to_move): (Vec<SrcTgtPair>, Vec<SrcTgtPair>) = paths
         .iter()
-        .map(|(orig, dest)| {
-            (PathBuf::from(orig.as_ref()), PathBuf::from(dest.as_ref()))
+        .map(|(src, tgt)| {
+            (PathBuf::from(src.as_ref()), PathBuf::from(tgt.as_ref()))
         })
-        .partition(|(orig, dest)| orig == dest);
+        .partition(|(src, tgt)| src == tgt);
 
     Ok((to_move, no_move))
 }

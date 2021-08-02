@@ -1,6 +1,8 @@
 use crate::tfmt::TokenType;
 use thiserror::Error;
 
+// TODO Expand tfmt error handling.
+
 #[derive(Error, Debug)]
 /// Error from the [token] module.
 pub enum TokenError {

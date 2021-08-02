@@ -157,7 +157,6 @@ mod tests {
     use crate::tfmt::ast;
     use crate::tfmt::parser::Parser;
     use anyhow::Result;
-    use maplit::hashmap;
     use std::str::FromStr;
 
     fn get_script(path: &str) -> Result<ast::Program> {
@@ -180,11 +179,9 @@ mod tests {
 
     #[test]
     fn semantic_typical_input_test() -> Result<()> {
-        script_test(
-            "typical_input.tfmt",
-            &hashmap! {
-                "folder".to_string() => "destination".to_string()
-            },
-        )
+        let mut map = HashMap::new();
+        map.insert("folder".to_string(), "destination".to_string());
+
+        script_test("typical_input.tfmt", &map)
     }
 }

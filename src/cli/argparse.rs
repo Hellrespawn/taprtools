@@ -10,6 +10,7 @@ pub struct Args {
     /// Verbosity
     pub verbosity: u64,
     /// Whether or not to actually rename files.
+    /// FIXME Add visible indicators when doing a dry run
     pub dry_run: bool,
     /// Folder to read/write configuration to.
     pub config_folder: PathBuf,
@@ -50,7 +51,7 @@ pub enum Subcommand {
     /// Inspect script `name`.
     Inspect {
         script_name: String,
-        visualize: bool,
+        render_ast: bool,
     },
     /// Rename files.
     Rename {
@@ -78,7 +79,7 @@ impl Subcommand {
                     .value_of("name")
                     .expect("Name wasn't specified!")
                     .to_string(),
-                visualize: submatches.is_present("visualize"),
+                render_ast: submatches.is_present("render-ast"),
             }),
             "rename" => Ok(Subcommand::Rename {
                 script_name: submatches

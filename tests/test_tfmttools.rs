@@ -4,7 +4,7 @@ use tempfile::{Builder, TempDir};
 use tfmttools::cli::tfmt;
 
 const CONFIG_FOLDER: &str = "config";
-const ORIGIN_FOLDER: &str = "origin";
+const SOURCE_FOLDER: &str = "source";
 
 fn setup_environment(suffix: &str) -> Result<TempDir> {
     let tempdir = Builder::new()
@@ -20,7 +20,7 @@ fn setup_environment(suffix: &str) -> Result<TempDir> {
         .flat_map(|r| r.map(|d| d.path()))
         .collect();
 
-    std::fs::create_dir_all(path.join(ORIGIN_FOLDER))?;
+    std::fs::create_dir_all(path.join(SOURCE_FOLDER))?;
     for audio_file_path in &audio_file_paths {
         // Audio files are selected by is_file, should always have a filename so
         // path.file_name().unwrap() should be safe.
@@ -29,7 +29,7 @@ fn setup_environment(suffix: &str) -> Result<TempDir> {
 
         std::fs::copy(
             audio_file_path,
-            path.join(ORIGIN_FOLDER)
+            path.join(SOURCE_FOLDER)
                 .join(audio_file_path.file_name().unwrap()),
         )?;
     }
@@ -124,7 +124,7 @@ fn test_rename<P: AsRef<Path>>(
         "tfmttools_test --config-folder {} rename {} --input-folder {} --output-folder {} -r {}",
         tempdir.path().join(CONFIG_FOLDER).to_string_lossy(),
         name,
-        tempdir.path().join(ORIGIN_FOLDER).to_string_lossy(),
+        tempdir.path().join(SOURCE_FOLDER).to_string_lossy(),
         tempdir.path().to_string_lossy(),
         args
     );
@@ -152,11 +152,11 @@ fn test_undo<P: AsRef<Path>>(
     tfmt::main(Some(&args.split_whitespace().collect::<Vec<&str>>()))?;
 
     let reference = [
-        "origin/Dune - MASTER BOOT RECORD.mp3",
-        "origin/SET MIDI=SYNTH1 MAPG MODE1 - MASTER BOOT RECORD.mp3",
-        "origin/Under Siege - Amon Amarth.mp3",
-        "origin/Welcome To Heaven - Damjan Mravunac.ogg",
-        "origin/While Your Lips Are Still Red - Nightwish.mp3",
+        "source/Dune - MASTER BOOT RECORD.mp3",
+        "source/SET MIDI=SYNTH1 MAPG MODE1 - MASTER BOOT RECORD.mp3",
+        "source/Under Siege - Amon Amarth.mp3",
+        "source/Welcome To Heaven - Damjan Mravunac.ogg",
+        "source/While Your Lips Are Still Red - Nightwish.mp3",
     ];
 
     check_paths(&tempdir, &reference)?;
