@@ -1,6 +1,5 @@
-pub use super::mp3::MP3;
-pub use super::ogg::OGG;
 use crate::cli::helpers::sleep;
+use crate::file::{MP3, OGG};
 use anyhow::Result;
 use indicatif::ProgressBar;
 use std::convert::TryFrom;

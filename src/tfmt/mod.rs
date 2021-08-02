@@ -16,3 +16,11 @@ pub mod token;
 pub mod visitor;
 /// AST Dot Generator
 pub mod visualizer;
+
+pub use interpreter::Interpreter;
+pub use lexer::{Lexer, LexerResult};
+pub use parser::Parser;
+pub use semantic::{SemanticAnalyzer, SymbolTable};
+pub use token::{Token, TokenType};
+pub use visitor::Visitor;
+pub use visualizer::Visualizer;

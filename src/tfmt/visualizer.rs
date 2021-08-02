@@ -1,7 +1,6 @@
-use super::ast::{self, Expression, Node};
-use super::visitor::Visitor;
 use crate::error::DotError;
-use crate::tfmt::token::Token;
+use crate::tfmt::ast::{self, Expression, Node};
+use crate::tfmt::{Token, Visitor};
 use anyhow::Result;
 use log::{info, trace};
 use std::fs;

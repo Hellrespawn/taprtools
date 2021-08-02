@@ -1,7 +1,7 @@
 use anyhow::Result;
-use tfmttools::cli::tfmttools;
+use tfmttools::cli::tfmt;
 
 fn main() -> Result<()> {
     // TODO? Type annotation is completely inconsequential here.
-    tfmttools::main::<&str>(None)
+    tfmt::main::<&str>(None)
 }

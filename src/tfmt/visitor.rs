@@ -1,5 +1,5 @@
-use super::ast::*;
-use super::token::Token;
+use crate::tfmt::ast::*;
+use crate::tfmt::Token;
 
 /// [Visitor] visits [Node]s and returns `T`.
 pub trait Visitor<T> {

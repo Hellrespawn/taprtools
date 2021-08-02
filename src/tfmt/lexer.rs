@@ -1,9 +1,9 @@
-use super::token::{self, Token, TokenType};
 use crate::error::LexerError;
-use log::{error, trace};
-use std::convert::{TryFrom, TryInto};
+use crate::tfmt::{token, Token, TokenType};
+use log::{debug, error, trace};
+use std::convert::TryInto;
 use std::iter::Iterator;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::str::FromStr;
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -14,15 +14,10 @@ pub type LexerResult = std::result::Result<Token, LexerError>;
 
 /// Lexer takes a string and returns [Token]s
 pub struct Lexer {
-    /// Text to analyze, separated into Unicode Graphemes
     text: Vec<String>,
-    /// Current index into `text`
     index: usize,
-    /// Current line number of `text`
     line_no: u64,
-    /// Current column number of `text`
     col_no: u64,
-    /// [Lexer] status
     ended: bool,
 }
 
@@ -37,7 +32,7 @@ impl FromStr for Lexer {
                 "Text provided to lexer was empty!".to_string(),
             ))
         } else {
-            trace!("Creating lexer:\n{}", normalized_text);
+            debug!("Creating lexer:\n{}", normalized_text);
 
             Ok(Lexer {
                 text: normalized_text
@@ -53,10 +48,18 @@ impl FromStr for Lexer {
     }
 }
 
-impl TryFrom<&Path> for Lexer {
-    type Error = LexerError;
+impl Lexer {
+    // pub fn reset(&mut self) {
+    //     self.index = 0;
+    //     self.line_no = 1;
+    //     self.col_no = 1;
+    //     self.ended = false;
+    //     trace!("Resetting lexer:\n{}", self.text.join(""));
+    // }
 
-    fn try_from(path: &Path) -> Result<Self> {
+    /// Constructor to read directly from path.
+    pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self> {
+        let path = path.as_ref();
         Lexer::from_str(match &std::fs::read_to_string(path) {
             Ok(string) => string,
             Err(err) => {
@@ -67,24 +70,6 @@ impl TryFrom<&Path> for Lexer {
             }
         })
     }
-}
-
-impl TryFrom<&PathBuf> for Lexer {
-    type Error = LexerError;
-
-    fn try_from(path: &PathBuf) -> Result<Self> {
-        Lexer::try_from(path.as_path())
-    }
-}
-
-impl Lexer {
-    // pub fn reset(&mut self) {
-    //     self.index = 0;
-    //     self.line_no = 1;
-    //     self.col_no = 1;
-    //     self.ended = false;
-    //     trace!("Resetting lexer:\n{}", self.text.join(""));
-    // }
 
     fn normalize_newlines<S: AsRef<str>>(string: &S) -> String {
         string.as_ref().replace("\r\n", "\n").replace("\r", "\n")

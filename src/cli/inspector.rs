@@ -1,11 +1,8 @@
 use crate::cli::helpers;
 use crate::tfmt::ast::{self, Node, Program};
-use crate::tfmt::parser::Parser;
-use crate::tfmt::token::Token;
-use crate::tfmt::visitor::Visitor;
-use crate::tfmt::visualizer::Visualizer;
+use crate::tfmt::{Lexer, Parser, Token, Visitor, Visualizer};
+
 use log::{debug, info};
-use std::convert::TryFrom;
 use std::fmt::{self, Display};
 use std::path::{Path, PathBuf};
 
@@ -49,8 +46,9 @@ pub struct Inspector<'a> {
 
 impl<'a> Inspector<'a> {
     /// Public function for Inspector
-    pub fn inspect(path: &Path, mode: Mode) -> Result {
-        let program = Parser::try_from(path)?.parse()?;
+    pub fn inspect<P: AsRef<Path>>(path: P, mode: Mode) -> Result {
+        let path = path.as_ref();
+        let program = Parser::<Lexer>::from_path(path)?.parse()?;
 
         let mut inspector = Inspector {
             name: String::new(),

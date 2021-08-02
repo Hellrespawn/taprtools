@@ -1,4 +1,4 @@
-use crate::tfmt::token::TokenType;
+use crate::tfmt::TokenType;
 use thiserror::Error;
 
 #[derive(Error, Debug)]

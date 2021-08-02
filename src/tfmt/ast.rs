@@ -1,5 +1,4 @@
-use super::token::Token;
-use super::visitor::Visitor;
+use crate::tfmt::{Token, Visitor};
 
 /// [Node] accepts a [Visitor], according to the [Visitor pattern].
 ///

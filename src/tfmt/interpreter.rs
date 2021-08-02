@@ -1,12 +1,11 @@
-use super::ast::*;
-use super::function::handle_function;
-use super::semantic::SymbolTable;
-use super::token::{
-    Token, TokenType, DIRECTORY_SEPARATORS, FORBIDDEN_GRAPHEMES,
-};
-use super::visitor::Visitor;
 use crate::error::InterpreterError;
 use crate::file::audio_file::AudioFile;
+use crate::tfmt::ast::*;
+use crate::tfmt::function::handle_function;
+use crate::tfmt::token::{
+    Token, TokenType, DIRECTORY_SEPARATORS, FORBIDDEN_GRAPHEMES,
+};
+use crate::tfmt::{SymbolTable, Visitor};
 use log::trace;
 
 type Result<T> = std::result::Result<T, InterpreterError>;

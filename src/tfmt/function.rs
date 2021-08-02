@@ -1,5 +1,5 @@
-use super::token::FORBIDDEN_GRAPHEMES;
 use crate::error::FunctionError;
+use crate::tfmt::token;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::convert::TryFrom;
@@ -99,7 +99,7 @@ fn function_split(
 fn function_validate(string: &str) -> String {
     let mut out = String::from(string);
 
-    FORBIDDEN_GRAPHEMES
+    token::FORBIDDEN_GRAPHEMES
         .iter()
         .for_each(|g| out = out.replace(g, ""));
 

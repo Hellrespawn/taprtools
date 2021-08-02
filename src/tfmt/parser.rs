@@ -1,10 +1,8 @@
-use super::ast::{self, Expression};
-use super::lexer::{Lexer, LexerResult};
-use super::token::{Token, TokenType};
 use crate::error::ParserError;
+use crate::tfmt::ast::{self, Expression};
+use crate::tfmt::{Lexer, LexerResult, Token, TokenType};
 use log::trace;
-use std::convert::TryFrom;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::str::FromStr;
 
 type Result<T> = std::result::Result<T, ParserError>;
@@ -28,27 +26,11 @@ impl FromStr for Parser<Lexer> {
     }
 }
 
-impl TryFrom<&Path> for Parser<Lexer> {
-    type Error = ParserError;
-
-    fn try_from(path: &Path) -> Result<Self> {
-        Ok(Parser::from_iterator(Lexer::try_from(path)?))
-    }
-}
-
-impl TryFrom<&PathBuf> for Parser<Lexer> {
-    type Error = ParserError;
-
-    fn try_from(path: &PathBuf) -> Result<Self> {
-        Parser::try_from(path.as_path())
-    }
-}
-
 impl<I> Parser<I>
 where
     I: Iterator<Item = LexerResult>,
 {
-    /// Create parser from Iterator<Item = [LexerResult]>.
+    /// Create [Parser] from Iterator<Item = [LexerResult]>.
     pub fn from_iterator(iterator: I) -> Parser<I> {
         Parser {
             iterator,
@@ -59,6 +41,11 @@ where
             previous_token: Token::new(0, 0, TokenType::Uninitialized, None)
                 .unwrap(),
         }
+    }
+
+    /// Create [Parser] from path.
+    pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Parser<Lexer>> {
+        Ok(Parser::from_iterator(Lexer::from_path(path)?))
     }
 
     /// Wrapper function for starting [Parser].

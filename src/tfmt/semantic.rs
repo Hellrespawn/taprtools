@@ -1,7 +1,6 @@
-use super::ast::{self, Node};
-use super::token::Token;
-use super::visitor::Visitor;
 use crate::error::SemanticError;
+use crate::tfmt::ast::{self, Node};
+use crate::tfmt::{Token, Visitor};
 use log::info;
 use std::collections::HashMap;
 

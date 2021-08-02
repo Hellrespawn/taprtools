@@ -5,15 +5,13 @@ use super::validate::validate;
 use crate::error::InterpreterError;
 use crate::file::audio_file::{self, AudioFile};
 use crate::tfmt::ast::Program;
-use crate::tfmt::interpreter::Interpreter;
-use crate::tfmt::parser::Parser;
-use crate::tfmt::semantic::SemanticAnalyzer;
+use crate::tfmt::{Interpreter, Lexer, Parser, SemanticAnalyzer};
 use anyhow::{bail, Result};
 use indicatif::{
     ProgressBar, ProgressDrawTarget, ProgressFinish, ProgressStyle,
 };
 use log::warn;
-use std::convert::{TryFrom, TryInto};
+use std::convert::TryInto;
 use std::path::{Path, PathBuf};
 
 #[cfg(feature = "rayon")]
@@ -44,7 +42,7 @@ impl<'a> Rename<'a> {
         // TODO? Explicitly concat cwd and relative path?
         let path = helpers::get_script(script_name, &self.args.config_folder)?;
 
-        let program = Parser::try_from(&path)?.parse()?;
+        let program = Parser::<Lexer>::from_path(&path)?.parse()?;
 
         // TODO Get recursion depth from somewhere.
         let audio_files = Self::get_audio_files(

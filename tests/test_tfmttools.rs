@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use std::path::{Path, PathBuf};
 use tempfile::{Builder, TempDir};
-use tfmttools::cli::tfmttools;
+use tfmttools::cli::tfmt;
 
 const CONFIG_FOLDER: &str = "config";
 const ORIGIN_FOLDER: &str = "origin";
@@ -129,7 +129,7 @@ fn test_rename<P: AsRef<Path>>(
         args
     );
 
-    tfmttools::main(Some(&args.split_whitespace().collect::<Vec<&str>>()))?;
+    tfmt::main(Some(&args.split_whitespace().collect::<Vec<&str>>()))?;
 
     check_paths(&tempdir, &reference)?;
 
@@ -149,7 +149,7 @@ fn test_undo<P: AsRef<Path>>(
         tempdir.path().join(CONFIG_FOLDER).to_string_lossy(),
     );
 
-    tfmttools::main(Some(&args.split_whitespace().collect::<Vec<&str>>()))?;
+    tfmt::main(Some(&args.split_whitespace().collect::<Vec<&str>>()))?;
 
     let reference = [
         "origin/Dune - MASTER BOOT RECORD.mp3",
@@ -177,7 +177,7 @@ fn test_redo<P: AsRef<Path>>(
         tempdir.path().join(CONFIG_FOLDER).to_string_lossy(),
     );
 
-    tfmttools::main(Some(&args.split_whitespace().collect::<Vec<&str>>()))?;
+    tfmt::main(Some(&args.split_whitespace().collect::<Vec<&str>>()))?;
 
     check_paths(&tempdir, &reference)?;
 
