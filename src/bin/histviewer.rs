@@ -3,8 +3,10 @@ use clap::{
     app_from_crate, crate_authors, crate_description, crate_name,
     crate_version, Arg,
 };
-use tfmttools::cli::history::History;
 use std::path::Path;
+use tfmttools::cli::history::{History, Stack};
+
+// TODO? Specify ActionGroup to verbose print?
 
 fn main() -> Result<()> {
     let app = app_from_crate!()
@@ -12,13 +14,13 @@ fn main() -> Result<()> {
             Arg::with_name("history-file")
                 .help("Sets the input file to use")
                 .required(true)
-                .index(1)
+                .index(1),
         )
         .arg(
             Arg::with_name("verbose")
                 .help("Print everything.")
                 .short("v")
-                .long("verbose")
+                .long("verbose"),
         );
 
     let matches = app.get_matches();
@@ -27,7 +29,7 @@ fn main() -> Result<()> {
 
     let string = histviewer(&histfile, verbose)?;
 
-    println!("{}", string);
+    print!("{}", string);
 
     Ok(())
 }
@@ -37,22 +39,33 @@ fn histviewer<P: AsRef<Path>>(path: &P, verbose: bool) -> Result<String> {
 
     let mut string = String::new();
 
-    if !verbose {
-        string += "Done actions:\n";
+    string += &stack_to_string(history.done_stack, "Done", verbose);
+    string += &stack_to_string(history.undone_stack, "Undone", verbose);
+
+    Ok(string)
+}
+
+fn stack_to_string(stack: Stack, name: &str, verbose: bool) -> String {
+    let mut string = String::new();
+
+    if !verbose & !stack.is_empty() {
+        string += &format!("{} actions:\n", name);
     }
 
-    for (i, action_group) in history.done_stack.iter().enumerate() {
+    for (i, action_group) in stack.iter().enumerate() {
         if verbose {
-            string += &format!("Done actions: [{}/{}]:\n", i + 1, history.done_stack.len());
+            string +=
+                &format!("{} actions: [{}/{}]:\n", name, i + 1, stack.len());
             for (i, action) in action_group.iter().enumerate() {
-                string += &format!("[{}/{}] {}\n", i + 1, action_group.len(), action)
+                string +=
+                    &format!("[{}/{}] {}\n", i + 1, action_group.len(), action)
             }
         } else {
-            string += &format!("[{}/{}] {}\n", i + 1, history.done_stack.len(), action_group)
+            string += &format!("[{}/{}] {}\n", i + 1, stack.len(), action_group)
         }
     }
 
-    Ok(string)
+    string
 }
 
 #[cfg(test)]
@@ -63,9 +76,15 @@ mod test {
     #[test]
     fn histviewer_verbose_test() -> Result<()> {
         let string = histviewer(&"testdata/history/test.hist", true)?;
-        let reference = std::fs::read_to_string("testdata/history/verbose.hist.txt")?;
+        let reference =
+            std::fs::read_to_string("testdata/history/verbose.hist.txt")?;
 
-        assert_eq!(normalize_newlines(&string).trim(), normalize_newlines(&reference).trim());
+        println!("{}", string);
+
+        assert_eq!(
+            normalize_newlines(&string).trim(),
+            normalize_newlines(&reference).trim()
+        );
 
         Ok(())
     }
@@ -73,11 +92,16 @@ mod test {
     #[test]
     fn histviewer_normal_test() -> Result<()> {
         let string = histviewer(&"testdata/history/test.hist", false)?;
-        let reference = std::fs::read_to_string("testdata/history/ref.hist.txt")?;
+        let reference =
+            std::fs::read_to_string("testdata/history/ref.hist.txt")?;
 
-        assert_eq!(normalize_newlines(&string).trim(), normalize_newlines(&reference).trim());
+        println!("{}", string);
+
+        assert_eq!(
+            normalize_newlines(&string).trim(),
+            normalize_newlines(&reference).trim()
+        );
 
         Ok(())
-
     }
 }

@@ -1,4 +1,5 @@
 use crate::error::LexerError;
+use crate::helpers::normalize_newlines;
 use crate::tfmt::{token, Token, TokenType};
 use log::{debug, error, trace};
 use std::convert::TryInto;
@@ -6,7 +7,6 @@ use std::iter::Iterator;
 use std::path::Path;
 use std::str::FromStr;
 use unicode_segmentation::UnicodeSegmentation;
-use crate::helpers::normalize_newlines;
 
 type Result<T> = std::result::Result<T, LexerError>;
 

@@ -1,9 +1,9 @@
 use super::argparse::Args;
-use crate::helpers;
 use super::history::{Action, ActionGroup, History};
 use super::validate::validate;
 use crate::error::InterpreterError;
 use crate::file::audio_file::{self, AudioFile};
+use crate::helpers;
 use crate::tfmt::ast::Program;
 use crate::tfmt::{Interpreter, Lexer, Parser, SemanticAnalyzer};
 use anyhow::{bail, Result};

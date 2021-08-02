@@ -192,3 +192,197 @@ to: destination/Carpenter Brut/2020 - Blood Machines - Original Motion Picture S
 [103/105] RemoveDir: .\new\Carpenter Brut\2015 - TRILOGY
 [104/105] RemoveDir: .\new\Carpenter Brut\2020 - Blood Machines - Original Motion Picture Soundtrack
 [105/105] RemoveDir: .\new\Carpenter Brut
+Undone actions: [1/1]:
+[1/105] CreateDir: other
+[2/105] CreateDir: other/At The Gates
+[3/105] CreateDir: other/At The Gates/1992 - The Red In The Sky Is Ours
+[4/105] Rename: .\destination\At The Gates\1992 - The Red In The Sky Is Ours\01 - The Red In The Sky Is Ours  The Season To Come.mp3
+to: other/At The Gates/1992 - The Red In The Sky Is Ours/01 - The Red In The Sky Is Ours  The Season To Come.mp3
+[5/105] Rename: .\destination\At The Gates\1992 - The Red In The Sky Is Ours\02 - Kingdom Gone.mp3
+to: other/At The Gates/1992 - The Red In The Sky Is Ours/02 - Kingdom Gone.mp3
+[6/105] Rename: .\destination\At The Gates\1992 - The Red In The Sky Is Ours\03 - Through Gardens Of Grief.mp3
+to: other/At The Gates/1992 - The Red In The Sky Is Ours/03 - Through Gardens Of Grief.mp3
+[7/105] Rename: .\destination\At The Gates\1992 - The Red In The Sky Is Ours\04 - Within.mp3
+to: other/At The Gates/1992 - The Red In The Sky Is Ours/04 - Within.mp3
+[8/105] Rename: .\destination\At The Gates\1992 - The Red In The Sky Is Ours\05 - Windows.mp3
+to: other/At The Gates/1992 - The Red In The Sky Is Ours/05 - Windows.mp3
+[9/105] Rename: .\destination\At The Gates\1992 - The Red In The Sky Is Ours\06 - Claws Of Laughter Dead.mp3
+to: other/At The Gates/1992 - The Red In The Sky Is Ours/06 - Claws Of Laughter Dead.mp3
+[10/105] Rename: .\destination\At The Gates\1992 - The Red In The Sky Is Ours\07 - Neverwhere.mp3
+to: other/At The Gates/1992 - The Red In The Sky Is Ours/07 - Neverwhere.mp3
+[11/105] Rename: .\destination\At The Gates\1992 - The Red In The Sky Is Ours\08 - The Scar.mp3
+to: other/At The Gates/1992 - The Red In The Sky Is Ours/08 - The Scar.mp3
+[12/105] Rename: .\destination\At The Gates\1992 - The Red In The Sky Is Ours\09 - Night Comes, Blood Black.mp3
+to: other/At The Gates/1992 - The Red In The Sky Is Ours/09 - Night Comes, Blood Black.mp3
+[13/105] Rename: .\destination\At The Gates\1992 - The Red In The Sky Is Ours\10 - City Of Screaming Statues.mp3
+to: other/At The Gates/1992 - The Red In The Sky Is Ours/10 - City Of Screaming Statues.mp3
+[14/105] Rename: .\destination\At The Gates\1992 - The Red In The Sky Is Ours\11 - All Life Ends (Live).mp3
+to: other/At The Gates/1992 - The Red In The Sky Is Ours/11 - All Life Ends (Live).mp3
+[15/105] Rename: .\destination\At The Gates\1992 - The Red In The Sky Is Ours\12 - Kingdom Gone (Live).mp3
+to: other/At The Gates/1992 - The Red In The Sky Is Ours/12 - Kingdom Gone (Live).mp3
+[16/105] Rename: .\destination\At The Gates\1992 - The Red In The Sky Is Ours\13 - Ever-Opening Flower (Demo).mp3
+to: other/At The Gates/1992 - The Red In The Sky Is Ours/13 - Ever-Opening Flower (Demo).mp3
+[17/105] CreateDir: other/At The Gates/1993 - With Fear I Kiss The Burning Darkness
+[18/105] Rename: .\destination\At The Gates\1993 - With Fear I Kiss The Burning Darkness\01 - Beyond Good And Evil.mp3
+to: other/At The Gates/1993 - With Fear I Kiss The Burning Darkness/01 - Beyond Good And Evil.mp3
+[19/105] Rename: .\destination\At The Gates\1993 - With Fear I Kiss The Burning Darkness\02 - Raped By The Light Of Christ.mp3
+to: other/At The Gates/1993 - With Fear I Kiss The Burning Darkness/02 - Raped By The Light Of Christ.mp3
+[20/105] Rename: .\destination\At The Gates\1993 - With Fear I Kiss The Burning Darkness\03 - The Break Of Autumn.mp3
+to: other/At The Gates/1993 - With Fear I Kiss The Burning Darkness/03 - The Break Of Autumn.mp3
+[21/105] Rename: .\destination\At The Gates\1993 - With Fear I Kiss The Burning Darkness\04 - Non-Divine.mp3
+to: other/At The Gates/1993 - With Fear I Kiss The Burning Darkness/04 - Non-Divine.mp3
+[22/105] Rename: .\destination\At The Gates\1993 - With Fear I Kiss The Burning Darkness\05 - Primal Breath.mp3
+to: other/At The Gates/1993 - With Fear I Kiss The Burning Darkness/05 - Primal Breath.mp3
+[23/105] Rename: .\destination\At The Gates\1993 - With Fear I Kiss The Burning Darkness\06 - The Architects.mp3
+to: other/At The Gates/1993 - With Fear I Kiss The Burning Darkness/06 - The Architects.mp3
+[24/105] Rename: .\destination\At The Gates\1993 - With Fear I Kiss The Burning Darkness\07 - Stardrowned.mp3
+to: other/At The Gates/1993 - With Fear I Kiss The Burning Darkness/07 - Stardrowned.mp3
+[25/105] Rename: .\destination\At The Gates\1993 - With Fear I Kiss The Burning Darkness\08 - Blood Of The Sunsets.mp3
+to: other/At The Gates/1993 - With Fear I Kiss The Burning Darkness/08 - Blood Of The Sunsets.mp3
+[26/105] Rename: .\destination\At The Gates\1993 - With Fear I Kiss The Burning Darkness\09 - The Burning Darkness.mp3
+to: other/At The Gates/1993 - With Fear I Kiss The Burning Darkness/09 - The Burning Darkness.mp3
+[27/105] Rename: .\destination\At The Gates\1993 - With Fear I Kiss The Burning Darkness\10 - Ever-Opening Flower.mp3
+to: other/At The Gates/1993 - With Fear I Kiss The Burning Darkness/10 - Ever-Opening Flower.mp3
+[28/105] Rename: .\destination\At The Gates\1993 - With Fear I Kiss The Burning Darkness\11 - Through The Red  The Nightmare Continues (Discharge cover).mp3
+to: other/At The Gates/1993 - With Fear I Kiss The Burning Darkness/11 - Through The Red  The Nightmare Continues (Discharge cover).mp3
+[29/105] Rename: .\destination\At The Gates\1993 - With Fear I Kiss The Burning Darkness\12 - Neverwhere (Live).mp3
+to: other/At The Gates/1993 - With Fear I Kiss The Burning Darkness/12 - Neverwhere (Live).mp3
+[30/105] Rename: .\destination\At The Gates\1993 - With Fear I Kiss The Burning Darkness\13 - Beyond Good And Evil (Live).mp3
+to: other/At The Gates/1993 - With Fear I Kiss The Burning Darkness/13 - Beyond Good And Evil (Live).mp3
+[31/105] Rename: .\destination\At The Gates\1993 - With Fear I Kiss The Burning Darkness\14 - The Architects (Demo).mp3
+to: other/At The Gates/1993 - With Fear I Kiss The Burning Darkness/14 - The Architects (Demo).mp3
+[32/105] CreateDir: other/At The Gates/1994 - Terminal Spirit Disease
+[33/105] Rename: .\destination\At The Gates\1994 - Terminal Spirit Disease\01 - The Swarm.mp3
+to: other/At The Gates/1994 - Terminal Spirit Disease/01 - The Swarm.mp3
+[34/105] Rename: .\destination\At The Gates\1994 - Terminal Spirit Disease\02 - Terminal Spirit Disease.mp3
+to: other/At The Gates/1994 - Terminal Spirit Disease/02 - Terminal Spirit Disease.mp3
+[35/105] Rename: .\destination\At The Gates\1994 - Terminal Spirit Disease\03 - And The World Returned.mp3
+to: other/At The Gates/1994 - Terminal Spirit Disease/03 - And The World Returned.mp3
+[36/105] Rename: .\destination\At The Gates\1994 - Terminal Spirit Disease\04 - Forever Blind.mp3
+to: other/At The Gates/1994 - Terminal Spirit Disease/04 - Forever Blind.mp3
+[37/105] Rename: .\destination\At The Gates\1994 - Terminal Spirit Disease\05 - The Fevered Circle.mp3
+to: other/At The Gates/1994 - Terminal Spirit Disease/05 - The Fevered Circle.mp3
+[38/105] Rename: .\destination\At The Gates\1994 - Terminal Spirit Disease\06 - The Beautiful Wound.mp3
+to: other/At The Gates/1994 - Terminal Spirit Disease/06 - The Beautiful Wound.mp3
+[39/105] Rename: .\destination\At The Gates\1994 - Terminal Spirit Disease\07 - All Life Ends (Live).mp3
+to: other/At The Gates/1994 - Terminal Spirit Disease/07 - All Life Ends (Live).mp3
+[40/105] Rename: .\destination\At The Gates\1994 - Terminal Spirit Disease\08 - The Burning Darkness (Live).mp3
+to: other/At The Gates/1994 - Terminal Spirit Disease/08 - The Burning Darkness (Live).mp3
+[41/105] Rename: .\destination\At The Gates\1994 - Terminal Spirit Disease\09 - Kingdom Gone (Live).mp3
+to: other/At The Gates/1994 - Terminal Spirit Disease/09 - Kingdom Gone (Live).mp3
+[42/105] Rename: .\destination\At The Gates\1994 - Terminal Spirit Disease\10 - Windows (Live).mp3
+to: other/At The Gates/1994 - Terminal Spirit Disease/10 - Windows (Live).mp3
+[43/105] Rename: .\destination\At The Gates\1994 - Terminal Spirit Disease\11 - The Red In The Sky Is Ours  The Season To Come (Live).mp3
+to: other/At The Gates/1994 - Terminal Spirit Disease/11 - The Red In The Sky Is Ours  The Season To Come (Live).mp3
+[44/105] Rename: .\destination\At The Gates\1994 - Terminal Spirit Disease\12 - The Burning Darkness (Live).mp3
+to: other/At The Gates/1994 - Terminal Spirit Disease/12 - The Burning Darkness (Live).mp3
+[45/105] CreateDir: other/At The Gates/2018 - To Drink From the Night Itself
+[46/105] Rename: .\destination\At The Gates\2018 - To Drink From the Night Itself\101 - At The Gates - Der Widerstand.mp3
+to: other/At The Gates/2018 - To Drink From the Night Itself/101 - At The Gates - Der Widerstand.mp3
+[47/105] Rename: .\destination\At The Gates\2018 - To Drink From the Night Itself\102 - At The Gates - To Drink From the Night Itself.mp3
+to: other/At The Gates/2018 - To Drink From the Night Itself/102 - At The Gates - To Drink From the Night Itself.mp3
+[48/105] Rename: .\destination\At The Gates\2018 - To Drink From the Night Itself\103 - At The Gates - A Stare Bound in Stone.mp3
+to: other/At The Gates/2018 - To Drink From the Night Itself/103 - At The Gates - A Stare Bound in Stone.mp3
+[49/105] Rename: .\destination\At The Gates\2018 - To Drink From the Night Itself\104 - At The Gates - Palace of Lepers.mp3
+to: other/At The Gates/2018 - To Drink From the Night Itself/104 - At The Gates - Palace of Lepers.mp3
+[50/105] Rename: .\destination\At The Gates\2018 - To Drink From the Night Itself\105 - At The Gates - Daggers of Black Haze.mp3
+to: other/At The Gates/2018 - To Drink From the Night Itself/105 - At The Gates - Daggers of Black Haze.mp3
+[51/105] Rename: .\destination\At The Gates\2018 - To Drink From the Night Itself\106 - At The Gates - The Chasm.mp3
+to: other/At The Gates/2018 - To Drink From the Night Itself/106 - At The Gates - The Chasm.mp3
+[52/105] Rename: .\destination\At The Gates\2018 - To Drink From the Night Itself\107 - At The Gates - In Nameless Sleep.mp3
+to: other/At The Gates/2018 - To Drink From the Night Itself/107 - At The Gates - In Nameless Sleep.mp3
+[53/105] Rename: .\destination\At The Gates\2018 - To Drink From the Night Itself\108 - At The Gates - The Colours of the Beast.mp3
+to: other/At The Gates/2018 - To Drink From the Night Itself/108 - At The Gates - The Colours of the Beast.mp3
+[54/105] Rename: .\destination\At The Gates\2018 - To Drink From the Night Itself\109 - At The Gates - A Labyrinth of Tombs.mp3
+to: other/At The Gates/2018 - To Drink From the Night Itself/109 - At The Gates - A Labyrinth of Tombs.mp3
+[55/105] Rename: .\destination\At The Gates\2018 - To Drink From the Night Itself\110 - At The Gates - Seas of Starvation.mp3
+to: other/At The Gates/2018 - To Drink From the Night Itself/110 - At The Gates - Seas of Starvation.mp3
+[56/105] Rename: .\destination\At The Gates\2018 - To Drink From the Night Itself\111 - At The Gates - In Death They Shall Burn.mp3
+to: other/At The Gates/2018 - To Drink From the Night Itself/111 - At The Gates - In Death They Shall Burn.mp3
+[57/105] Rename: .\destination\At The Gates\2018 - To Drink From the Night Itself\112 - At The Gates - The Mirror Black.mp3
+to: other/At The Gates/2018 - To Drink From the Night Itself/112 - At The Gates - The Mirror Black.mp3
+[58/105] Rename: .\destination\At The Gates\2018 - To Drink From the Night Itself\201 - At The Gates feat. Rob Miller - Daggers of Black Haze.mp3
+to: other/At The Gates/2018 - To Drink From the Night Itself/201 - At The Gates feat. Rob Miller - Daggers of Black Haze.mp3
+[59/105] Rename: .\destination\At The Gates\2018 - To Drink From the Night Itself\202 - At The Gates feat. Per Boder - The Chasm.mp3
+to: other/At The Gates/2018 - To Drink From the Night Itself/202 - At The Gates feat. Per Boder - The Chasm.mp3
+[60/105] Rename: .\destination\At The Gates\2018 - To Drink From the Night Itself\203 - At The Gates feat. Mikael Nox Pettersson - A Labyrinth of Tombs.mp3
+to: other/At The Gates/2018 - To Drink From the Night Itself/203 - At The Gates feat. Mikael Nox Pettersson - A Labyrinth of Tombs.mp3
+[61/105] Rename: .\destination\At The Gates\2018 - To Drink From the Night Itself\204 - At The Gates - Raped by the Light of Christ (2018).mp3
+to: other/At The Gates/2018 - To Drink From the Night Itself/204 - At The Gates - Raped by the Light of Christ (2018).mp3
+[62/105] Rename: .\destination\At The Gates\2018 - To Drink From the Night Itself\205 - At The Gates - The Chasm (Demo Version).mp3
+to: other/At The Gates/2018 - To Drink From the Night Itself/205 - At The Gates - The Chasm (Demo Version).mp3
+[63/105] Rename: .\destination\At The Gates\2018 - To Drink From the Night Itself\206 - At The Gates feat. Rob Miller - The Mirror Black.mp3
+to: other/At The Gates/2018 - To Drink From the Night Itself/206 - At The Gates feat. Rob Miller - The Mirror Black.mp3
+[64/105] CreateDir: other/Carpenter Brut
+[65/105] CreateDir: other/Carpenter Brut/2015 - TRILOGY
+[66/105] Rename: .\destination\Carpenter Brut\2015 - TRILOGY\01 - Escape From Midwich Valley.mp3
+to: other/Carpenter Brut/2015 - TRILOGY/01 - Escape From Midwich Valley.mp3
+[67/105] Rename: .\destination\Carpenter Brut\2015 - TRILOGY\02 - Disco Zombi Italia.mp3
+to: other/Carpenter Brut/2015 - TRILOGY/02 - Disco Zombi Italia.mp3
+[68/105] Rename: .\destination\Carpenter Brut\2015 - TRILOGY\03 - L.A Venice Bitch 80's.mp3
+to: other/Carpenter Brut/2015 - TRILOGY/03 - L.A Venice Bitch 80's.mp3
+[69/105] Rename: .\destination\Carpenter Brut\2015 - TRILOGY\04 - Wake Up The President.mp3
+to: other/Carpenter Brut/2015 - TRILOGY/04 - Wake Up The President.mp3
+[70/105] Rename: .\destination\Carpenter Brut\2015 - TRILOGY\05 - 347 Midnight Demons.mp3
+to: other/Carpenter Brut/2015 - TRILOGY/05 - 347 Midnight Demons.mp3
+[71/105] Rename: .\destination\Carpenter Brut\2015 - TRILOGY\06 - Le perv.mp3
+to: other/Carpenter Brut/2015 - TRILOGY/06 - Le perv.mp3
+[72/105] Rename: .\destination\Carpenter Brut\2015 - TRILOGY\07 - Roller Mobster.mp3
+to: other/Carpenter Brut/2015 - TRILOGY/07 - Roller Mobster.mp3
+[73/105] Rename: .\destination\Carpenter Brut\2015 - TRILOGY\08 - Meet Matt Stryker.mp3
+to: other/Carpenter Brut/2015 - TRILOGY/08 - Meet Matt Stryker.mp3
+[74/105] Rename: .\destination\Carpenter Brut\2015 - TRILOGY\09 - Obituary.mp3
+to: other/Carpenter Brut/2015 - TRILOGY/09 - Obituary.mp3
+[75/105] Rename: .\destination\Carpenter Brut\2015 - TRILOGY\10 - Looking For Tracy Tzu.mp3
+to: other/Carpenter Brut/2015 - TRILOGY/10 - Looking For Tracy Tzu.mp3
+[76/105] Rename: .\destination\Carpenter Brut\2015 - TRILOGY\11 - Sexkiller On The Loose.mp3
+to: other/Carpenter Brut/2015 - TRILOGY/11 - Sexkiller On The Loose.mp3
+[77/105] Rename: .\destination\Carpenter Brut\2015 - TRILOGY\12 - Hang'em All.mp3
+to: other/Carpenter Brut/2015 - TRILOGY/12 - Hang'em All.mp3
+[78/105] Rename: .\destination\Carpenter Brut\2015 - TRILOGY\13 - Division Ruine.mp3
+to: other/Carpenter Brut/2015 - TRILOGY/13 - Division Ruine.mp3
+[79/105] Rename: .\destination\Carpenter Brut\2015 - TRILOGY\14 - Paradise Warfare.mp3
+to: other/Carpenter Brut/2015 - TRILOGY/14 - Paradise Warfare.mp3
+[80/105] Rename: .\destination\Carpenter Brut\2015 - TRILOGY\15 - Run, Sally, Run!.mp3
+to: other/Carpenter Brut/2015 - TRILOGY/15 - Run, Sally, Run!.mp3
+[81/105] Rename: .\destination\Carpenter Brut\2015 - TRILOGY\16 - Turbo Killer.mp3
+to: other/Carpenter Brut/2015 - TRILOGY/16 - Turbo Killer.mp3
+[82/105] Rename: .\destination\Carpenter Brut\2015 - TRILOGY\17 - Anarchy Road.mp3
+to: other/Carpenter Brut/2015 - TRILOGY/17 - Anarchy Road.mp3
+[83/105] Rename: .\destination\Carpenter Brut\2015 - TRILOGY\18 - Invasion A.D.mp3
+to: other/Carpenter Brut/2015 - TRILOGY/18 - Invasion A.D.mp3
+[84/105] CreateDir: other/Carpenter Brut/2020 - Blood Machines - Original Motion Picture Soundtrack
+[85/105] Rename: .\destination\Carpenter Brut\2020 - Blood Machines - Original Motion Picture Soundtrack\01 - Carpenter Brut - Intro.mp3
+to: other/Carpenter Brut/2020 - Blood Machines - Original Motion Picture Soundtrack/01 - Carpenter Brut - Intro.mp3
+[86/105] Rename: .\destination\Carpenter Brut\2020 - Blood Machines - Original Motion Picture Soundtrack\02 - Carpenter Brut - Blood Machines Theme.mp3
+to: other/Carpenter Brut/2020 - Blood Machines - Original Motion Picture Soundtrack/02 - Carpenter Brut - Blood Machines Theme.mp3
+[87/105] Rename: .\destination\Carpenter Brut\2020 - Blood Machines - Original Motion Picture Soundtrack\03 - Carpenter Brut - Attack Of The Amazons.mp3
+to: other/Carpenter Brut/2020 - Blood Machines - Original Motion Picture Soundtrack/03 - Carpenter Brut - Attack Of The Amazons.mp3
+[88/105] Rename: .\destination\Carpenter Brut\2020 - Blood Machines - Original Motion Picture Soundtrack\04 - Carpenter Brut - The Ceremony.mp3
+to: other/Carpenter Brut/2020 - Blood Machines - Original Motion Picture Soundtrack/04 - Carpenter Brut - The Ceremony.mp3
+[89/105] Rename: .\destination\Carpenter Brut\2020 - Blood Machines - Original Motion Picture Soundtrack\05 - Carpenter Brut - Mima.mp3
+to: other/Carpenter Brut/2020 - Blood Machines - Original Motion Picture Soundtrack/05 - Carpenter Brut - Mima.mp3
+[90/105] Rename: .\destination\Carpenter Brut\2020 - Blood Machines - Original Motion Picture Soundtrack\06 - Carpenter Brut - Souls Wreck.mp3
+to: other/Carpenter Brut/2020 - Blood Machines - Original Motion Picture Soundtrack/06 - Carpenter Brut - Souls Wreck.mp3
+[91/105] Rename: .\destination\Carpenter Brut\2020 - Blood Machines - Original Motion Picture Soundtrack\07 - Carpenter Brut - Touchdown.mp3
+to: other/Carpenter Brut/2020 - Blood Machines - Original Motion Picture Soundtrack/07 - Carpenter Brut - Touchdown.mp3
+[92/105] Rename: .\destination\Carpenter Brut\2020 - Blood Machines - Original Motion Picture Soundtrack\08 - Carpenter Brut - Heart Ship.mp3
+to: other/Carpenter Brut/2020 - Blood Machines - Original Motion Picture Soundtrack/08 - Carpenter Brut - Heart Ship.mp3
+[93/105] Rename: .\destination\Carpenter Brut\2020 - Blood Machines - Original Motion Picture Soundtrack\09 - Carpenter Brut - The Last Ceremony.mp3
+to: other/Carpenter Brut/2020 - Blood Machines - Original Motion Picture Soundtrack/09 - Carpenter Brut - The Last Ceremony.mp3
+[94/105] Rename: .\destination\Carpenter Brut\2020 - Blood Machines - Original Motion Picture Soundtrack\10 - Carpenter Brut - Bloody Kisses - The Swift.mp3
+to: other/Carpenter Brut/2020 - Blood Machines - Original Motion Picture Soundtrack/10 - Carpenter Brut - Bloody Kisses - The Swift.mp3
+[95/105] Rename: .\destination\Carpenter Brut\2020 - Blood Machines - Original Motion Picture Soundtrack\11 - Carpenter Brut - Lago's Sleep.mp3
+to: other/Carpenter Brut/2020 - Blood Machines - Original Motion Picture Soundtrack/11 - Carpenter Brut - Lago's Sleep.mp3
+[96/105] Rename: .\destination\Carpenter Brut\2020 - Blood Machines - Original Motion Picture Soundtrack\12 - Carpenter Brut - Grand Final.mp3
+to: other/Carpenter Brut/2020 - Blood Machines - Original Motion Picture Soundtrack/12 - Carpenter Brut - Grand Final.mp3
+[97/105] Rename: .\destination\Carpenter Brut\2020 - Blood Machines - Original Motion Picture Soundtrack\13 - Carpenter BrutPencey Sloe - Gone Now.mp3
+to: other/Carpenter Brut/2020 - Blood Machines - Original Motion Picture Soundtrack/13 - Carpenter BrutPencey Sloe - Gone Now.mp3
+[98/105] RemoveDir: .\destination\At The Gates\1992 - The Red In The Sky Is Ours
+[99/105] RemoveDir: .\destination\At The Gates\1993 - With Fear I Kiss The Burning Darkness
+[100/105] RemoveDir: .\destination\At The Gates\1994 - Terminal Spirit Disease
+[101/105] RemoveDir: .\destination\At The Gates\2018 - To Drink From the Night Itself
+[102/105] RemoveDir: .\destination\At The Gates
+[103/105] RemoveDir: .\destination\Carpenter Brut\2015 - TRILOGY
+[104/105] RemoveDir: .\destination\Carpenter Brut\2020 - Blood Machines - Original Motion Picture Soundtrack
+[105/105] RemoveDir: .\destination\Carpenter Brut

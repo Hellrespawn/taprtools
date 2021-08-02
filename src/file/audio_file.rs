@@ -1,5 +1,5 @@
-use crate::helpers::sleep;
 use crate::file::{MP3, OGG};
+use crate::helpers::sleep;
 use anyhow::Result;
 use indicatif::ProgressBar;
 use std::convert::TryFrom;

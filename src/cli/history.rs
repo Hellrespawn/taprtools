@@ -8,7 +8,7 @@ use std::io::Write;
 use std::iter::Iterator;
 use std::path::{Path, PathBuf};
 
-type Stack = Vec<ActionGroup>;
+pub type Stack = Vec<ActionGroup>;
 
 const HISTORY_FILENAME: &str = "tfmttools.hist";
 
@@ -117,7 +117,8 @@ impl History {
 
         info!("Saving history to {}", path.to_string_lossy());
 
-        let serialized = bincode::serialize(&(&self.done_stack, &self.undone_stack))?;
+        let serialized =
+            bincode::serialize(&(&self.done_stack, &self.undone_stack))?;
 
         if !self.dry_run {
             let mut filehandle = std::fs::OpenOptions::new()
@@ -256,7 +257,6 @@ impl History {
     }
 }
 
-
 /// Group of [Action]s corresponding to one execution of the program.
 #[derive(Default, Deserialize, Serialize)]
 pub struct ActionGroup(pub Vec<Action>);
@@ -267,31 +267,42 @@ impl Display for ActionGroup {
 
         for action in &self.0 {
             match action {
-                Action::CreateDir{..} => create += 1,
-                Action::RemoveDir{..} => remove += 1,
-                Action::Rename{..} => rename += 1,
+                Action::CreateDir { .. } => create += 1,
+                Action::RemoveDir { .. } => remove += 1,
+                Action::Rename { .. } => rename += 1,
             }
         }
 
-        write!(f, "ActionGroup: [{}: {} cr, {} rn, {} rm]", self.len(), create, rename , remove)
+        write!(
+            f,
+            "ActionGroup: [{}: {} cr, {} rn, {} rm]",
+            self.len(),
+            create,
+            rename,
+            remove
+        )
     }
 }
 
 impl ActionGroup {
     pub fn new() -> Self {
-        ActionGroup (Vec::new() )
+        ActionGroup(Vec::new())
     }
 
-    pub fn extend(&mut self, action_group: ActionGroup)  {
+    pub fn extend(&mut self, action_group: ActionGroup) {
         self.0.extend(action_group.0)
     }
 
-    pub fn push(&mut self,action: Action){
+    pub fn push(&mut self, action: Action) {
         self.0.push(action)
     }
 
     pub fn len(&self) -> usize {
         self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 
     pub fn iter(&self) -> std::slice::Iter<Action> {
@@ -399,4 +410,3 @@ impl Action {
         self.apply(dry_run)
     }
 }
-
