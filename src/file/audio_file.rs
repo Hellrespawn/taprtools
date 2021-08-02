@@ -1,4 +1,4 @@
-use crate::cli::helpers::sleep;
+use crate::helpers::sleep;
 use crate::file::{MP3, OGG};
 use anyhow::Result;
 use indicatif::ProgressBar;

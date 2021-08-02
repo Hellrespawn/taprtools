@@ -85,6 +85,11 @@ pub fn titlecase(string: &str) -> String {
     }
 }
 
+/// Normalizes newlines
+pub fn normalize_newlines<S: AsRef<str>>(string: &S) -> String {
+    string.as_ref().replace("\r\n", "\n").replace("\r", "\n")
+}
+
 #[cfg(feature = "slow-progress-bars")]
 /// Slows progress bars for testing.
 pub fn sleep() {

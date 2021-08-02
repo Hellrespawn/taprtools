@@ -6,6 +6,7 @@ use std::iter::Iterator;
 use std::path::Path;
 use std::str::FromStr;
 use unicode_segmentation::UnicodeSegmentation;
+use crate::helpers::normalize_newlines;
 
 type Result<T> = std::result::Result<T, LexerError>;
 
@@ -25,7 +26,7 @@ impl FromStr for Lexer {
     type Err = LexerError;
 
     fn from_str(text: &str) -> Result<Self> {
-        let normalized_text = Lexer::normalize_newlines(&text.trim());
+        let normalized_text = normalize_newlines(&text.trim());
 
         if normalized_text.is_empty() {
             Err(LexerError::Generic(
@@ -69,10 +70,6 @@ impl Lexer {
                 )))
             }
         })
-    }
-
-    fn normalize_newlines<S: AsRef<str>>(string: &S) -> String {
-        string.as_ref().replace("\r\n", "\n").replace("\r", "\n")
     }
 
     /// Returns [UnicodeSegmentation::Grapheme] pointed to by [Lexer.index]
@@ -380,7 +377,7 @@ mod tests {
         let input =
             "This \n string \r has \r\n CRs and \r\r\n\n LFs mixed together!";
         assert_eq!(
-            Lexer::normalize_newlines(&input),
+            normalize_newlines(&input),
             "This \n string \n has \n CRs and \n\n\n LFs mixed together!"
         );
     }

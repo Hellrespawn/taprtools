@@ -1,5 +1,5 @@
 use super::argparse::Args;
-use super::helpers;
+use crate::helpers;
 use super::history::{Action, ActionGroup, History};
 use super::validate::validate;
 use crate::error::InterpreterError;
@@ -39,7 +39,6 @@ impl<'a> Rename<'a> {
         output_folder: &Option<P>,
         recursive: bool,
     ) -> Result<()> {
-        // FIXME Check that there are actually files to move
         // TODO? Explicitly concat cwd and relative path?
         let path = helpers::get_script(script_name, &self.args.config_folder)?;
 
@@ -176,7 +175,7 @@ impl<'a> Rename<'a> {
         let path = path.as_ref();
 
         if path.is_dir() | (path == Path::new("")) {
-            Ok(Vec::new())
+            Ok(ActionGroup::new())
         } else if path.exists() {
             bail!(
                 "Path {} exists, but isn't a directory!",
@@ -205,7 +204,7 @@ impl<'a> Rename<'a> {
         depth: u64,
     ) -> Result<ActionGroup> {
         if depth == 0 {
-            return Ok(Vec::new());
+            return Ok(ActionGroup::new());
         }
 
         let mut action_group = ActionGroup::new();
@@ -293,7 +292,7 @@ impl<'a> Rename<'a> {
 
         println!("Done.");
 
-        let mut history = History::load_from_path(
+        let mut history = History::load_from_config(
             self.args.dry_run,
             &self.args.config_folder,
         )

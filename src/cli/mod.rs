@@ -1,7 +1,5 @@
 /// Argument Parsing
 pub mod argparse;
-/// Helpers
-pub mod helpers;
 /// History
 pub mod history;
 /// Inspector

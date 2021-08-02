@@ -2,7 +2,8 @@ use super::argparse::{Args, Subcommand};
 use super::history::History;
 use super::inspector::{Inspector, Mode};
 use super::rename::Rename;
-use super::{argparse, helpers, logging};
+use super::{argparse, logging};
+use crate::helpers;
 use anyhow::Result;
 use log::{info, warn};
 use std::convert::TryInto;
@@ -76,7 +77,7 @@ impl<'a> TFMTTools<'a> {
     }
 
     fn clear_history(&self) -> Result<()> {
-        match History::load_from_path(
+        match History::load_from_config(
             self.args.dry_run,
             &self.args.config_folder,
         ) {
@@ -126,7 +127,7 @@ impl<'a> TFMTTools<'a> {
         // Creating a new history will make history.history_action() return
         // without doing anything, thus never setting history.changed.
         // We run history.save() purely for the side effects.
-        let mut history = History::load_from_path(
+        let mut history = History::load_from_config(
             self.args.dry_run,
             &self.args.config_folder,
         )
@@ -142,7 +143,7 @@ impl<'a> TFMTTools<'a> {
     }
 
     fn undo(&mut self, amount: u64) -> Result<()> {
-        let mut history = History::load_from_path(
+        let mut history = History::load_from_config(
             self.args.dry_run,
             &self.args.config_folder,
         )

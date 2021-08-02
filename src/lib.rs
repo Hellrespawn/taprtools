@@ -10,5 +10,7 @@ pub mod cli;
 pub mod error;
 /// File handling modules.
 pub mod file;
+/// Helpers
+pub mod helpers;
 /// TagFormat-related modules.
 pub mod tfmt;

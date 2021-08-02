@@ -1,4 +1,4 @@
-use crate::cli::helpers;
+use crate::helpers;
 use crate::tfmt::ast::{self, Node, Program};
 use crate::tfmt::{Lexer, Parser, Token, Visitor, Visualizer};
 
