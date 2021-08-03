@@ -1,4 +1,4 @@
-use crate::helpers;
+use crate::helpers::{self, pp};
 use anyhow::{anyhow, bail, Result};
 use log::{info, trace};
 use serde::{Deserialize, Serialize};
@@ -16,9 +16,8 @@ const HISTORY_FILENAME: &str = "tfmttools.hist";
 // FIXME something wrong with undoing when there's nothing to undo.
 
 /// Stores a history of action for the purpose of undoing them.
-#[derive(Default)]
 pub struct History {
-    dry_run: bool,
+    preview: bool,
     pub done_stack: Stack,
     pub undone_stack: Stack,
     pub path: Option<PathBuf>,
@@ -32,15 +31,18 @@ enum Mode {
 
 impl History {
     /// Create new [History]
-    pub fn new(dry_run: bool) -> History {
+    pub fn new(preview: bool) -> History {
         History {
-            dry_run,
-            ..Default::default()
+            preview,
+            done_stack: Stack::new(),
+            undone_stack: Stack::new(),
+            path: None,
+            changed: false,
         }
     }
 
     pub fn load_from_path<P: AsRef<Path>>(
-        dry_run: bool,
+        preview: bool,
         path: &P,
     ) -> Result<History> {
         // These were selected through path.is_file(), file_name.unwrap()
@@ -53,7 +55,7 @@ impl History {
         let (undo_stack, redo_stack) = bincode::deserialize(&serialized)?;
 
         Ok(History {
-            dry_run,
+            preview,
             done_stack: undo_stack,
             undone_stack: redo_stack,
             path: Some(PathBuf::from(path)),
@@ -63,7 +65,7 @@ impl History {
 
     /// Load [History] from `config_folder`.
     pub fn load_from_config<P: AsRef<Path>>(
-        dry_run: bool,
+        preview: bool,
         config_folder: &P,
     ) -> Result<History> {
         // These were selected through path.is_file(), file_name.unwrap()
@@ -82,7 +84,7 @@ impl History {
             anyhow!("Unable to load history from {}", HISTORY_FILENAME)
         })?;
 
-        History::load_from_path(dry_run, &path)
+        History::load_from_path(preview, &path)
     }
 
     /// Save [History] to `self.path`
@@ -120,7 +122,7 @@ impl History {
         let serialized =
             bincode::serialize(&(&self.done_stack, &self.undone_stack))?;
 
-        if !self.dry_run {
+        if !self.preview {
             let mut filehandle = std::fs::OpenOptions::new()
                 .write(true)
                 .create(true)
@@ -135,7 +137,7 @@ impl History {
 
     /// Deletes the history file.
     pub fn delete(&mut self) -> Result<()> {
-        if !self.dry_run {
+        if !self.preview {
             // This function is only called after History::load_history has
             // succeeded. Unwrap should be safe.
             debug_assert!(self.path.is_some());
@@ -143,8 +145,11 @@ impl History {
 
             std::fs::remove_file(path)?;
 
-            let s =
-                format!("Deleted history file at {}", path.to_string_lossy());
+            let s = format!(
+                "{}Deleted history file at {}",
+                pp(self.preview),
+                path.to_string_lossy()
+            );
             println!("{}", s);
             info!("{}", s);
 
@@ -158,7 +163,7 @@ impl History {
 
     /// Inserts action group without applying it.
     pub fn insert(&mut self, action_group: ActionGroup) -> Result<()> {
-        if !self.dry_run {
+        if !self.preview {
             self.done_stack.push(action_group);
             self.changed = true;
         }
@@ -185,7 +190,8 @@ impl History {
             return Ok(());
         } else if min != amount {
             format!(
-                "There {} only {} action{} to {}.",
+                "{}There {} only {} action{} to {}.",
+                pp(self.preview),
                 if min > 1 { "are" } else { "is" },
                 min,
                 if min > 1 { "s" } else { "" },
@@ -193,7 +199,8 @@ impl History {
             )
         } else {
             format!(
-                "{}ing {} time{}:",
+                "{}{}ing {} time{}:",
+                pp(self.preview),
                 helpers::titlecase(name),
                 min,
                 if min > 1 { "s" } else { "" }
@@ -209,7 +216,7 @@ impl History {
             debug_assert!(from.last().is_some());
 
             let action_group = from.pop().unwrap();
-            let dry_run = self.dry_run;
+            let preview = self.preview;
 
             let s = format!(
                 "{}: {}ing {} action{}...",
@@ -225,21 +232,21 @@ impl History {
                 Mode::Undo => action_group
                     .iter()
                     .rev()
-                    .try_for_each(|a| a.undo(dry_run))?,
+                    .try_for_each(|a| a.undo(preview))?,
 
                 Mode::Redo => {
-                    action_group.iter().try_for_each(|a| a.redo(dry_run))?
+                    action_group.iter().try_for_each(|a| a.redo(preview))?
                 }
             }
 
             println!(" Done.");
 
-            if !self.dry_run {
+            if !self.preview {
                 to.push(action_group);
             }
         }
 
-        if !self.dry_run {
+        if !self.preview {
             self.changed = true;
         }
 
@@ -342,7 +349,7 @@ impl Display for Action {
 
 impl Action {
     /// Applies or "does" the action.
-    pub fn apply(&self, dry_run: bool) -> Result<()> {
+    pub fn apply(&self, preview: bool) -> Result<()> {
         match self {
             Action::Rename { source, target } => {
                 trace!(
@@ -351,21 +358,21 @@ impl Action {
                     &target.to_string_lossy()
                 );
 
-                if !dry_run {
+                if !preview {
                     std::fs::rename(source, target)?
                 }
             }
 
             Action::CreateDir { path } => {
                 trace!("Creating directory {}", path.to_string_lossy());
-                if !dry_run {
+                if !preview {
                     std::fs::create_dir(path)?;
                 }
             }
 
             Action::RemoveDir { path } => {
                 trace!("Removing directory {}", path.to_string_lossy());
-                if !dry_run {
+                if !preview {
                     std::fs::remove_dir(path)?;
                 }
             }
@@ -374,7 +381,7 @@ impl Action {
     }
 
     /// Undoes the action.
-    pub fn undo(&self, dry_run: bool) -> Result<()> {
+    pub fn undo(&self, preview: bool) -> Result<()> {
         match self {
             Action::Rename { source, target } => {
                 trace!(
@@ -383,21 +390,21 @@ impl Action {
                     &source.to_string_lossy(),
                 );
 
-                if !dry_run {
+                if !preview {
                     std::fs::rename(target, source)?
                 }
             }
 
             Action::CreateDir { path } => {
                 trace!("Undoing directory {}", path.to_string_lossy());
-                if !dry_run {
+                if !preview {
                     std::fs::remove_dir(path)?;
                 }
             }
 
             Action::RemoveDir { path } => {
                 trace!("Recreating directory {}", path.to_string_lossy());
-                if !dry_run {
+                if !preview {
                     std::fs::create_dir(path)?;
                 }
             }
@@ -406,7 +413,7 @@ impl Action {
     }
 
     /// Redoes the action. Currently only delegates to `self.apply`.
-    pub fn redo(&self, dry_run: bool) -> Result<()> {
-        self.apply(dry_run)
+    pub fn redo(&self, preview: bool) -> Result<()> {
+        self.apply(preview)
     }
 }

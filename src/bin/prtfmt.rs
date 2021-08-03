@@ -8,8 +8,7 @@ fn intercept_args() -> Vec<OsString> {
     let name = args
         .next()
         .expect("std::env::args_os() has no elements, not even a name!");
-    [vec![name, OsString::from("--dry-run")], args.collect()].concat()
-
+    [vec![name, OsString::from("--preview")], args.collect()].concat()
 }
 
 fn main() -> Result<()> {

@@ -90,6 +90,15 @@ pub fn normalize_newlines<S: AsRef<str>>(string: &S) -> String {
     string.as_ref().replace("\r\n", "\n").replace("\r", "\n")
 }
 
+/// Preview Prefix
+pub fn pp<'a>(preview: bool) -> &'a str {
+    if preview {
+        "[D] "
+    } else {
+        ""
+    }
+}
+
 #[cfg(feature = "slow-progress-bars")]
 /// Slows progress bars for testing.
 pub fn sleep() {

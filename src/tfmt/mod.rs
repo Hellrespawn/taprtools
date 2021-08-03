@@ -10,7 +10,7 @@ pub mod lexer;
 pub mod parser;
 /// Semantic Analysis
 pub mod semantic;
-/// Token & TokenType
+/// Token and TokenType
 pub mod token;
 /// Visitor Trait
 pub mod visitor;

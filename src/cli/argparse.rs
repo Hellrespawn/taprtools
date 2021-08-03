@@ -1,3 +1,4 @@
+use crate::helpers::pp;
 use anyhow::{anyhow, bail, Result};
 use clap::{load_yaml, App, ArgMatches};
 use log::info;
@@ -10,8 +11,7 @@ pub struct Args {
     /// Verbosity
     pub verbosity: u64,
     /// Whether or not to actually rename files.
-    /// FIXME Add visible indicators when doing a dry run
-    pub dry_run: bool,
+    pub preview: bool,
     /// Folder to read/write configuration to.
     pub config_folder: PathBuf,
     /// Arguments specific to chosen subcommand.
@@ -23,11 +23,11 @@ impl Args {
     pub fn accumulate_arg_matches(
         matches: &ArgMatches,
         verbosity: &mut u64,
-        dry_run: &mut bool,
+        preview: &mut bool,
         config_folder: &mut Option<PathBuf>,
     ) {
         *verbosity += matches.occurrences_of("verbose");
-        *dry_run |= matches.is_present("dry-run");
+        *preview |= matches.is_present("preview");
         //TODO? Error on double config-folder?
         if let Some(folder) = matches.value_of("config-folder") {
             *config_folder = Some(PathBuf::from(folder));
@@ -124,35 +124,36 @@ pub fn parse_args<S: AsRef<OsStr>>(args: &[S]) -> Result<Args> {
     let submatches = submatches.unwrap();
 
     let mut verbosity = 0;
-    let mut dry_run = false;
+    let mut preview = false;
     let mut config_folder = None;
 
     Args::accumulate_arg_matches(
         &matches,
         &mut verbosity,
-        &mut dry_run,
+        &mut preview,
         &mut config_folder,
     );
     Args::accumulate_arg_matches(
         submatches,
         &mut verbosity,
-        &mut dry_run,
+        &mut preview,
         &mut config_folder,
     );
 
     let args = Args {
         verbosity,
-        dry_run,
-        config_folder: get_config_folder(config_folder.as_ref(), dry_run)?,
+        preview,
+        config_folder: get_config_folder(config_folder.as_ref(), preview)?,
         subcommand: Subcommand::from_str(name, submatches)?,
     };
 
     Ok(args)
 }
 
+// TODO? Move creation of folder away from determination of folder?
 fn get_config_folder<P: AsRef<Path>>(
     config_folder: Option<&P>,
-    dry_run: bool,
+    preview: bool,
 ) -> Result<PathBuf> {
     let dir = if let Some(config_folder) = config_folder {
         Ok(PathBuf::from(config_folder.as_ref()))
@@ -166,11 +167,12 @@ fn get_config_folder<P: AsRef<Path>>(
     }?;
 
     if !dir.exists() {
-        if !dry_run {
+        if !preview {
             std::fs::create_dir_all(&dir)?;
 
             let s = format!(
-                "Creating configuration directory at \"{}\"",
+                "{} Creating configuration directory at \"{}\"",
+                pp(preview),
                 dir.to_string_lossy()
             );
 
@@ -192,10 +194,10 @@ mod test {
     fn argparse_test() -> Result<()> {
         // Don't forget program name!
         let cli_args =
-            "argparse.exe -vv --dry-run rename -vv Sync -- these are arguments";
+            "argparse.exe -vv --preview rename -vv Sync -- these are arguments";
         let test_args = Args {
             verbosity: 4,
-            dry_run: true,
+            preview: true,
             config_folder: PathBuf::new(),
             subcommand: Subcommand::Rename {
                 script_name: "Sync".to_string(),

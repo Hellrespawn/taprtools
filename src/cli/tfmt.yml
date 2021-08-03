@@ -14,8 +14,8 @@ args:
         multiple: true
         help: Sets the level of verbosity.
 
-    - dry-run:
-        long: dry-run
+    - preview:
+        long: preview
         help: Simulate file actions only.
 
     - config-folder:
@@ -35,8 +35,8 @@ subcommands:
                 multiple: true
                 help: Sets the level of verbosity.
 
-            - dry-run:
-                long: dry-run
+            - preview:
+                long: preview
                 help: Simulate file actions only.
 
             - config-folder:
@@ -54,8 +54,8 @@ subcommands:
     #             multiple: true
     #             help: Sets the level of verbosity.
 
-    #         - dry-run:
-    #             long: dry-run
+    #         - preview:
+    #             long: preview
     #             help: Simulate file actions only.
 
     - list-scripts:
@@ -67,8 +67,8 @@ subcommands:
                 multiple: true
                 help: Sets the level of verbosity.
 
-            - dry-run:
-                long: dry-run
+            - preview:
+                long: preview
                 help: Simulate file actions only.
 
             - config-folder:
@@ -87,8 +87,8 @@ subcommands:
                 multiple: true
                 help: Sets the level of verbosity.
 
-            - dry-run:
-                long: dry-run
+            - preview:
+                long: preview
                 help: Simulate file actions only.
 
             - config-folder:
@@ -112,8 +112,8 @@ subcommands:
                 multiple: true
                 help: Sets the level of verbosity.
 
-            - dry-run:
-                long: dry-run
+            - preview:
+                long: preview
                 help: Simulate file actions only.
 
             - config-folder:
@@ -137,8 +137,8 @@ subcommands:
                 multiple: true
                 help: Sets the level of verbosity.
 
-            - dry-run:
-                long: dry-run
+            - preview:
+                long: preview
                 help: Simulate file actions only.
 
             - config-folder:
@@ -168,8 +168,8 @@ subcommands:
                 multiple: true
                 help: Sets the level of verbosity.
 
-            - dry-run:
-                long: dry-run
+            - preview:
+                long: preview
                 help: Simulate file actions only.
 
             - config-folder:

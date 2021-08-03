@@ -3,14 +3,14 @@ use super::history::{Action, ActionGroup, History};
 use super::validate::validate;
 use crate::error::InterpreterError;
 use crate::file::audio_file::{self, AudioFile};
-use crate::helpers;
+use crate::helpers::{self, pp};
 use crate::tfmt::ast::Program;
 use crate::tfmt::{Interpreter, Lexer, Parser, SemanticAnalyzer};
 use anyhow::{bail, Result};
 use indicatif::{
     ProgressBar, ProgressDrawTarget, ProgressFinish, ProgressStyle,
 };
-use log::warn;
+use log::{debug, warn};
 use std::convert::TryInto;
 use std::path::{Path, PathBuf};
 
@@ -45,10 +45,8 @@ impl<'a> Rename<'a> {
         let program = Parser::<Lexer>::from_path(&path)?.parse()?;
 
         // TODO Get recursion depth from somewhere.
-        let audio_files = Self::get_audio_files(
-            &input_folder,
-            if recursive { 4 } else { 1 },
-        )?;
+        let audio_files =
+            self.get_audio_files(&input_folder, if recursive { 4 } else { 1 })?;
 
         if audio_files.is_empty() {
             let s = format!(
@@ -66,7 +64,7 @@ impl<'a> Rename<'a> {
         let (to_move, _no_move) = validate(&paths)?;
 
         if to_move.is_empty() {
-            let s = "All files are already in the requested position.";
+            let s = "All files are already in the requested location.";
             println!("{}", s);
             warn!("{}", s);
             return Ok(());
@@ -74,18 +72,23 @@ impl<'a> Rename<'a> {
 
         Self::preview_audio_files(&to_move, 8);
 
-        self.rename_audio_files(&to_move, input_folder, output_folder)
+        self.rename_audio_files(&to_move, output_folder)
     }
 
     pub fn get_audio_files<P: AsRef<Path>>(
+        &self,
         dir: &P,
         depth: u64,
     ) -> Result<Vec<Box<dyn AudioFile>>> {
         let bar = ProgressBar::new(0);
 
+        let mut template =
+            "[{pos}/{len} audio files/total files] {spinner}".to_string();
+        template.insert_str(0, pp(self.args.preview));
+
         bar.set_style(
             ProgressStyle::default_spinner()
-                .template("[{pos}/{len} audio files/total files] {spinner}")
+                .template(&template)
                 .on_finish(ProgressFinish::AtCurrentPos),
         );
         //bar.set_length(0);
@@ -113,12 +116,15 @@ impl<'a> Rename<'a> {
 
         let bar = ProgressBar::new(audio_files.len().try_into()?);
 
+        let mut template = "[{pos}/{len}] {msg:<21} {wide_bar}".to_string();
+        template.insert_str(0, pp(self.args.preview));
+
         bar.set_style(
-            ProgressStyle::default_bar()
-                .template("[{pos}/{len}] {msg:<21} {wide_bar}")
-                .on_finish(ProgressFinish::WithMessage(
-                    std::borrow::Cow::Borrowed("Interpreted."),
+            ProgressStyle::default_bar().template(&template).on_finish(
+                ProgressFinish::WithMessage(std::borrow::Cow::Borrowed(
+                    "Interpreted.",
                 )),
+            ),
         );
         bar.set_draw_target(ProgressDrawTarget::stdout());
         bar.set_message("Interpreting files...");
@@ -191,7 +197,7 @@ impl<'a> Rename<'a> {
             let action = Action::CreateDir {
                 path: PathBuf::from(path),
             };
-            action.apply(self.args.dry_run)?;
+            action.apply(self.args.preview)?;
             action_group.push(action);
 
             Ok(action_group)
@@ -217,7 +223,7 @@ impl<'a> Rename<'a> {
                     .extend(self.remove_dir_recursive(&path, depth - 1)?);
 
                 let action = Action::RemoveDir { path };
-                if let Ok(()) = action.apply(self.args.dry_run) {
+                if let Ok(()) = action.apply(self.args.preview) {
                     action_group.push(action);
                 }
             }
@@ -226,10 +232,33 @@ impl<'a> Rename<'a> {
         Ok(action_group)
     }
 
+    fn get_common_path(paths: &[(PathBuf, PathBuf)]) -> PathBuf {
+        debug_assert!(!paths.is_empty());
+
+        // We have already returned if no files were found, so this index
+        // should be safe.
+        let (mut common_path, _) = paths[0].clone();
+
+        for (path, _) in paths {
+            let mut new_common_path = PathBuf::new();
+
+            for (a, b) in path.components().zip(common_path.components()) {
+                if a == b {
+                    new_common_path.push(a)
+                } else {
+                    break;
+                }
+            }
+            common_path = new_common_path;
+        }
+
+        debug!("Common path of input: {}", common_path.to_string_lossy());
+        common_path
+    }
+
     fn rename_audio_files<P: AsRef<Path>>(
         &self,
         paths: &[(PathBuf, PathBuf)],
-        input_folder: &P,
         output_folder: &Option<P>,
     ) -> Result<()> {
         // Absolute paths clobber existing paths when joined/pushed.
@@ -252,12 +281,15 @@ impl<'a> Rename<'a> {
 
         let bar = ProgressBar::new(paths.len().try_into()?);
 
+        let mut template = "[{pos}/{len}] {msg:<21} {wide_bar}".to_string();
+        template.insert_str(0, pp(self.args.preview));
+
         bar.set_style(
-            ProgressStyle::default_bar()
-                .template("[{pos}/{len}] {msg:<21} {wide_bar}")
-                .on_finish(ProgressFinish::WithMessage(
-                    std::borrow::Cow::Borrowed("Renamed."),
+            ProgressStyle::default_bar().template(&template).on_finish(
+                ProgressFinish::WithMessage(std::borrow::Cow::Borrowed(
+                    "Renamed.",
                 )),
+            ),
         );
         bar.set_draw_target(ProgressDrawTarget::stdout());
         bar.set_message("Renaming files...");
@@ -278,7 +310,7 @@ impl<'a> Rename<'a> {
                 target,
             };
 
-            action.apply(self.args.dry_run)?;
+            action.apply(self.args.preview)?;
             action_group.push(action);
 
             bar.inc(1);
@@ -286,17 +318,19 @@ impl<'a> Rename<'a> {
 
         bar.finish();
 
-        print!("Removing empty directories... ");
+        print!("{}Removing empty directories... ", pp(self.args.preview));
 
-        action_group.extend(self.remove_dir_recursive(input_folder, 4)?);
+        action_group.extend(
+            self.remove_dir_recursive(&Rename::get_common_path(paths), 4)?,
+        );
 
         println!("Done.");
 
         let mut history = History::load_from_config(
-            self.args.dry_run,
+            self.args.preview,
             &self.args.config_folder,
         )
-        .unwrap_or_default();
+        .unwrap_or_else(|_| History::new(self.args.preview));
 
         history.insert(action_group)?;
 

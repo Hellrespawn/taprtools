@@ -71,7 +71,7 @@ impl<'a> TFMTTools<'a> {
 
     fn clear_history(&self) -> Result<()> {
         match History::load_from_config(
-            self.args.dry_run,
+            self.args.preview,
             &self.args.config_folder,
         ) {
             Ok(mut history) => {
@@ -121,10 +121,10 @@ impl<'a> TFMTTools<'a> {
         // without doing anything, thus never setting history.changed.
         // We run history.save() purely for the side effects.
         let mut history = History::load_from_config(
-            self.args.dry_run,
+            self.args.preview,
             &self.args.config_folder,
         )
-        .unwrap_or_default();
+        .unwrap_or_else(|_| History::new(self.args.preview));
 
         history.redo(amount)?;
 
@@ -137,10 +137,10 @@ impl<'a> TFMTTools<'a> {
 
     fn undo(&mut self, amount: u64) -> Result<()> {
         let mut history = History::load_from_config(
-            self.args.dry_run,
+            self.args.preview,
             &self.args.config_folder,
         )
-        .unwrap_or_default();
+        .unwrap_or_else(|_| History::new(self.args.preview));
 
         history.undo(amount)?;
 

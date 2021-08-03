@@ -14,26 +14,11 @@ fn setup_environment(suffix: &str) -> Result<TempDir> {
 
     let path = tempdir.as_ref();
 
+    std::fs::create_dir_all(path.join("0"))?;
+
     println!("Temporary directory at \"{}\"", path.to_string_lossy());
 
-    let audio_file_paths: Vec<PathBuf> = std::fs::read_dir("testdata/music")?
-        .flat_map(|r| r.map(|d| d.path()))
-        .collect();
-
-    std::fs::create_dir_all(path.join(SOURCE_FOLDER))?;
-    for audio_file_path in &audio_file_paths {
-        // Audio files are selected by is_file, should always have a filename so
-        // path.file_name().unwrap() should be safe.
-
-        assert!(audio_file_path.file_name().is_some());
-
-        std::fs::copy(
-            audio_file_path,
-            path.join(SOURCE_FOLDER)
-                .join(audio_file_path.file_name().unwrap()),
-        )?;
-    }
-
+    // Create script files
     let script_paths: Vec<PathBuf> = std::fs::read_dir("testdata/script")?
         .flat_map(|r| r.map(|d| d.path()))
         .collect();
@@ -52,19 +37,43 @@ fn setup_environment(suffix: &str) -> Result<TempDir> {
         )?;
     }
 
+    std::fs::create_dir_all(path.join(CONFIG_FOLDER).join("1"))?;
+
+    let audio_file_paths: Vec<PathBuf> = std::fs::read_dir("testdata/music")?
+        .flat_map(|r| r.map(|d| d.path()))
+        .collect();
+
+    // Create audio files
+    std::fs::create_dir_all(path.join(SOURCE_FOLDER))?;
+    for audio_file_path in &audio_file_paths {
+        // Audio files are selected by is_file, should always have a filename so
+        // path.file_name().unwrap() should be safe.
+
+        assert!(audio_file_path.file_name().is_some());
+
+        std::fs::copy(
+            audio_file_path,
+            path.join(SOURCE_FOLDER)
+                .join(audio_file_path.file_name().unwrap()),
+        )?;
+    }
+
     Ok(tempdir)
 }
 
+fn test_unrelated_dirs(path: &Path) {
+    assert!(path.join("0").is_dir());
+    assert!(path.join(CONFIG_FOLDER).join("1").is_dir());
+}
+
 fn teardown_environment(tempdir: TempDir) -> Result<()> {
+    test_unrelated_dirs(tempdir.path());
     tempdir.close()?;
 
     Ok(())
 }
 
 fn print_filetree(path: &Path, depth: u64) {
-    if depth > 3 {
-        return;
-    }
     println!(
         "{}{}{}",
         std::iter::repeat(' ')
