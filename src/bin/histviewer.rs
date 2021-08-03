@@ -48,7 +48,7 @@ fn histviewer<P: AsRef<Path>>(path: &P, verbose: bool) -> Result<String> {
 fn stack_to_string(stack: Stack, name: &str, verbose: bool) -> String {
     let mut string = String::new();
 
-    if !verbose & !stack.is_empty() {
+    if !verbose && !stack.is_empty() {
         string += &format!("{} actions:\n", name);
     }
 

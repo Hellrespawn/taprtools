@@ -23,7 +23,7 @@ pub fn search_path<P: AsRef<Path>>(
         for entry in iter.flatten() {
             let entry_path = entry.path();
 
-            if entry_path.is_file() & condition(&entry_path) {
+            if entry_path.is_file() && condition(&entry_path) {
                 found_paths.push(entry_path)
             } else if entry_path.is_dir() {
                 found_paths.extend(search_path(
