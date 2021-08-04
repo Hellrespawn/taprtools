@@ -66,7 +66,8 @@ impl Lexer {
             Err(err) => {
                 return Err(LexerError::Generic(format!(
                     r#"Unable to read from path "{}": {}"#,
-                    path.to_string_lossy(), err
+                    path.to_string_lossy(),
+                    err
                 )))
             }
         })

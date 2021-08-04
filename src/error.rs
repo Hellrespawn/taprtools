@@ -139,10 +139,10 @@ pub enum SemanticError {
 
     /// Too many arguments for program.
     #[error(r#"Too many arguments ({found}) for program "{name}", expected {expected}!"#)]
-    TooManyArguments{
+    TooManyArguments {
         found: usize,
         expected: usize,
-        name: String
+        name: String,
     },
 
     /// Argument is required in program.

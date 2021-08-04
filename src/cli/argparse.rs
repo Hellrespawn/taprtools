@@ -2,7 +2,7 @@ use crate::helpers::pp;
 use anyhow::{anyhow, bail, Result};
 use clap::{load_yaml, App, ArgMatches};
 use log::info;
-use std::ffi::OsStr;
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
 /// Contains the collected and parsed command line arguments.
@@ -108,14 +108,18 @@ impl Subcommand {
 }
 
 /// Parse arguments.
-pub fn parse_args<S: AsRef<OsStr>>(args: &[S]) -> Result<Args> {
+pub fn parse_args<I, O>(args: I) -> Result<Args>
+where
+    I: IntoIterator<Item = O>,
+    O: Into<OsString> + Clone,
+{
     let yaml = load_yaml!("tfmt.yml");
     let matches = App::from_yaml(yaml)
         .name(clap::crate_name!())
         .version(clap::crate_version!())
         .author(clap::crate_authors!())
         .about(clap::crate_description!())
-        .get_matches_from(args.iter());
+        .get_matches_from(args);
 
     let (name, submatches) = matches.subcommand();
 

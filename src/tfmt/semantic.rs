@@ -35,7 +35,7 @@ impl SemanticAnalyzer {
 
         // Check that we have the right amount of arguments
         if arguments.len() > sa.symbols.len() {
-            return Err(SemanticError::TooManyArguments{
+            return Err(SemanticError::TooManyArguments {
                 found: arguments.len(),
                 expected: sa.symbols.len(),
                 name: sa.name,
