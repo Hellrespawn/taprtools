@@ -65,8 +65,8 @@ impl Lexer {
             Ok(string) => string,
             Err(err) => {
                 return Err(LexerError::Generic(format!(
-                    "Unable to read from path \"{:?}\": {}",
-                    path, err
+                    r#"Unable to read from path "{}": {}"#,
+                    path.to_string_lossy(), err
                 )))
             }
         })
@@ -166,7 +166,7 @@ impl Lexer {
             }
         }
 
-        trace!("crawl() produced \"{}\"", string);
+        trace!(r#"crawl() produced "{}""#, string);
         Ok(string)
     }
 
@@ -352,12 +352,12 @@ mod tests {
 
     use std::str::FromStr;
 
-    static DOUBLE_QUOTED_STRING: &str = "\"This is a double-quoted string\"";
+    static DOUBLE_QUOTED_STRING: &str = r#""This is a double-quoted string""#;
     static SINGLE_QUOTED_STRING: &str = "'This is a single-quoted string'";
     static MULTILINE_STRING: &str = "'''This is a \n multiline string'''";
     static STRING_WITH_FORBIDDEN_GRAPHEMES: &str =
-        "\"This | is ? a string ~ with * forbidden graphemes.\"";
-    static UNTERMINATED_STRING: &str = "\"This is an unterminated string";
+        r#""This | is ? a string ~ with * forbidden graphemes.""#;
+    static UNTERMINATED_STRING: &str = r#""This is an unterminated string"#;
     static UNTERMINATED_MULTILINE_STRING: &str =
         "'''This is an unterminated \n multiline string'";
     static SINGLE_LINE_COMMENT: &str = "# This is a single line comment!\n";

@@ -81,7 +81,7 @@ impl Visualizer {
             if hidden {
                 "[shape=point]".to_owned()
             } else {
-                format!("[label=\"{}\"]", label.replace("\n", "\\n"))
+                format!(r#"[label="{}"]"#, label.replace("\n", "\\n"))
             }
         };
 
@@ -111,7 +111,7 @@ impl Visualizer {
         let mut args: Vec<String> = Vec::new();
 
         if let Some(label) = label {
-            args.push(format!("label=\"{}\"", label.replace("\n", "\\n")));
+            args.push(format!(r#"label="{}""#, label.replace("\n", "\\n")));
         }
 
         if !directed {

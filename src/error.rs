@@ -6,11 +6,11 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 /// Error from the [token] module.
 pub enum TokenError {
-    #[error("\"{0}\" is not a valid TokenType!")]
+    #[error(r#""{0}" is not a valid TokenType!"#)]
     /// Invalid [TokenType].
     InvalidType(String),
 
-    #[error("TokenType::{0:?} does not require a value, got \"{1}\"!")]
+    #[error(r#"TokenType::{0:?} does not require a value, got "{1}"!"#)]
     /// [TokenType] does not require a value
     HasValue(TokenType, String),
 
@@ -35,11 +35,11 @@ pub enum LexerError {
     CrawlerEOF(String),
 
     /// String contains forbidden grapheme.
-    #[error("String contains forbidden grapheme \"{0}\"!")]
+    #[error(r#"String contains forbidden grapheme "{0}"!"#)]
     ForbiddenGrapheme(String),
 
     /// Unable to convert string to [Token].
-    #[error("Unable to convert \"{0}\" to Token!")]
+    #[error(r#"Unable to convert "{0}" to Token!"#)]
     Tokenize(String),
 
     #[error("")]
@@ -105,7 +105,7 @@ pub enum DotError {
 #[derive(Error, Debug)]
 pub enum FunctionError {
     /// Error from the [function] module.
-    #[error("Wrong number of arguments ({found}) for function \"{name}\", expected {expected}!")]
+    #[error(r#"Wrong number of arguments ({found}) for function "{name}", expected {expected}!"#)]
     /// Wrong number of arguments for function
     WrongArguments {
         name: String,
@@ -113,7 +113,7 @@ pub enum FunctionError {
         found: usize,
     },
 
-    #[error("Unknown function \"{0}\"!")]
+    #[error(r#"Unknown function "{0}"!"#)]
     /// Wrong number of arguments for function
     UnknownFunction(String),
 
@@ -134,15 +134,19 @@ pub enum FunctionError {
 /// Error from the [genastdot] module.
 pub enum SemanticError {
     /// "Symbol never occurs in program."
-    #[error("Symbol \"{0}\" never occurs in program \"{1}\"!")]
+    #[error(r#"Symbol "{0}" never occurs in program "{1}"!"#)]
     SymbolNotUsed(String, String),
 
     /// Too many arguments for program.
-    #[error("Too many arguments ({0}) for program \"{2}\", expected {1}!")]
-    TooManyArguments(usize, usize, String),
+    #[error(r#"Too many arguments ({found}) for program "{name}", expected {expected}!"#)]
+    TooManyArguments{
+        found: usize,
+        expected: usize,
+        name: String
+    },
 
     /// Argument is required in program.
-    #[error("Argument \"{0}\" is required in program \"{1}\"!")]
+    #[error(r#"Argument "{0}" is required in program "{1}"!"#)]
     ArgumentRequired(String, String),
 }
 
@@ -182,10 +186,10 @@ pub enum InterpreterError {
     },
 
     /// Forbidden grapheme in ID.
-    #[error("Encountered forbidden grapheme \"{0}\" in tag!")]
+    #[error(r#"Encountered forbidden grapheme "{0}" in tag!"#)]
     TagForbidden(String),
 
     /// Directory separator in ID.
-    #[error("Encountered directory separator \"{0}\" in tag!")]
+    #[error(r#"Encountered directory separator "{0}" in tag!"#)]
     TagDirSep(String),
 }

@@ -171,7 +171,7 @@ fn get_config_folder<P: AsRef<Path>>(
             std::fs::create_dir_all(&dir)?;
 
             let s = format!(
-                "{} Creating configuration directory at \"{}\"",
+                r#"{} Creating configuration directory at "{}""#,
                 pp(preview),
                 dir.to_string_lossy()
             );

@@ -35,11 +35,11 @@ impl SemanticAnalyzer {
 
         // Check that we have the right amount of arguments
         if arguments.len() > sa.symbols.len() {
-            return Err(SemanticError::TooManyArguments(
-                arguments.len(),
-                sa.symbols.len(),
-                sa.name,
-            ));
+            return Err(SemanticError::TooManyArguments{
+                found: arguments.len(),
+                expected: sa.symbols.len(),
+                name: sa.name,
+            });
         }
 
         let mut output = HashMap::new();

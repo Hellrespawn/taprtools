@@ -62,7 +62,7 @@ impl<'a> Inspector<'a> {
 
         inspector.program.accept(&mut inspector);
 
-        info!("Inspected script \"{}\"", inspector.name);
+        info!(r#"Inspected script "{}""#, inspector.name);
 
         let s = inspector.to_string();
         println!("{}", s);
@@ -75,7 +75,7 @@ impl<'a> Inspector<'a> {
         write!(f, "{}", self.name)?;
 
         if !self.description.is_empty() {
-            write!(f, ": \"{}\"", self.description)?;
+            write!(f, r#": "{}""#, self.description)?;
         }
 
         Ok(())
@@ -89,7 +89,7 @@ impl<'a> Inspector<'a> {
             for param in &self.parameters {
                 write!(f, "\n\t{}", param.0)?;
                 if let Some(default) = &param.1 {
-                    write!(f, ": \"{}\"", default)?
+                    write!(f, r#": "{}""#, default)?
                 }
             }
         }

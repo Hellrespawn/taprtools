@@ -101,7 +101,8 @@ where
         Ok(self.previous_token.clone())
     }
 
-    fn d(&mut self) -> String {
+    /// Depth Prefix
+    fn dp(&mut self) -> String {
         (0..self.depth).map(|i| (i % 10).to_string()).collect()
     }
 
@@ -112,7 +113,7 @@ where
 
         let name = self.consume(TokenType::ID)?;
 
-        trace!("{} Program: \"{}\"", self.d(), name.get_value_unchecked());
+        trace!(r#"{} Program: "{}""#, self.dp(), name.get_value_unchecked());
 
         self.consume(TokenType::ParenthesisLeft)?;
 
@@ -141,7 +142,7 @@ where
         // ( Parameter ( "," Parameter )* )?
         self.depth += 1;
 
-        trace!("{} Parameters", self.d());
+        trace!("{} Parameters", self.dp());
 
         let mut parameters = Vec::new();
 
@@ -164,8 +165,8 @@ where
         self.depth += 1;
         let identifier = self.consume(TokenType::ID)?;
         trace!(
-            "{} Parameter: \"{}\"",
-            self.d(),
+            r#"{} Parameter: "{}""#,
+            self.dp(),
             identifier.get_value_unchecked()
         );
 
@@ -195,7 +196,7 @@ where
     fn block(&mut self) -> Result<ast::Block> {
         // ( DriveLetter )? Expression*
         self.depth += 1;
-        trace!("{} Block", self.d());
+        trace!("{} Block", self.dp());
 
         let expressions: Vec<Expression> =
             self.expressions(&[TokenType::CurlyBraceRight])?;
@@ -213,7 +214,7 @@ where
         while !terminators.contains(&self.current_token.ttype) {
             trace!(
                 "{} Gathering expressions until {:?}",
-                self.d(),
+                self.dp(),
                 terminators
                     .iter()
                     .map(|tt| tt.as_str())
@@ -232,7 +233,7 @@ where
     fn expression(&mut self) -> Result<Expression> {
         // Ternary ( "?" Ternary ":" Ternary )*
         self.depth += 1;
-        trace!("{} Expression", self.d());
+        trace!("{} Expression", self.dp());
         let mut expression = self.ternary()?;
 
         while self.current_token.ttype == TokenType::QuestionMark {
@@ -255,7 +256,7 @@ where
     fn ternary(&mut self) -> Result<Expression> {
         // Disjunct ( ( "||" | "|" ) Disjunct )*
         self.depth += 1;
-        trace!("{} Ternary", self.d());
+        trace!("{} Ternary", self.dp());
 
         let mut ternary = self.disjunct()?;
 
@@ -281,7 +282,7 @@ where
     fn disjunct(&mut self) -> Result<Expression> {
         // Conjunct ( ( "&&" | "&" ) Conjunct )*
         self.depth += 1;
-        trace!("{} Disjunct", self.d());
+        trace!("{} Disjunct", self.dp());
 
         let mut disjunct = self.conjunct()?;
 
@@ -307,7 +308,7 @@ where
     fn conjunct(&mut self) -> Result<Expression> {
         // Term ( ( "+" | "-" ) Term )*
         self.depth += 1;
-        trace!("{} Conjunct", self.d());
+        trace!("{} Conjunct", self.dp());
         let mut conjunct = self.term()?;
 
         loop {
@@ -332,7 +333,7 @@ where
     fn term(&mut self) -> Result<Expression> {
         // Factor ( ( "*" | "/" | "%" ) Factor )*
         self.depth += 1;
-        trace!("{} Term", self.d());
+        trace!("{} Term", self.dp());
 
         let mut term = self.factor()?;
 
@@ -359,7 +360,7 @@ where
     fn factor(&mut self) -> Result<Expression> {
         // Exponent ( ( "**" | "^" ) Exponent )*
         self.depth += 1;
-        trace!("{} Factor", self.d());
+        trace!("{} Factor", self.dp());
 
         let mut factor = self.exponent()?;
 
@@ -385,7 +386,7 @@ where
     fn exponent(&mut self) -> Result<Expression> {
         // "+" Exponent | "-" Exponent | "(" Expression+ ")" | Statement
         self.depth += 1;
-        trace!("{} Exponent", self.d());
+        trace!("{} Exponent", self.dp());
 
         let ttype = self.current_token.ttype;
 
@@ -422,7 +423,7 @@ where
     fn statement(&mut self) -> Result<Expression> {
         // Comment | Function | Integer | String | Substitution | Tag
         self.depth += 1;
-        trace!("{} Statement", self.d());
+        trace!("{} Statement", self.dp());
 
         let ttype = self.current_token.ttype;
 
@@ -452,7 +453,7 @@ where
 
     fn function(&mut self) -> Result<Expression> {
         self.depth += 1;
-        trace!("{} Function", self.d());
+        trace!("{} Function", self.dp());
 
         let identifier = self.consume(TokenType::ID)?;
 
@@ -480,7 +481,7 @@ where
 
     fn tag(&mut self) -> Result<Expression> {
         self.depth += 1;
-        trace!("{} Tag", self.d());
+        trace!("{} Tag", self.dp());
 
         let start_token = self.consume(TokenType::AngleBracketLeft)?;
 

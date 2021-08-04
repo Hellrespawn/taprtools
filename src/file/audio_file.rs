@@ -199,7 +199,7 @@ mod tests {
                     assert_eq!(file.year(), None);
                     assert_eq!(file.date(), file.year());
                 }
-                Some(unknown) => bail!("Unknown track \"{}\" found!", unknown),
+                Some(unknown) => bail!(r#"Unknown track "{}" found!"#, unknown),
                 _ => bail!("Unknown track without title found!"),
             }
         }

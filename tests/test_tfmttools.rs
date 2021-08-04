@@ -16,7 +16,7 @@ fn setup_environment(suffix: &str) -> Result<TempDir> {
 
     std::fs::create_dir_all(path.join("0"))?;
 
-    println!("Temporary directory at \"{}\"", path.to_string_lossy());
+    println!(r#"Temporary directory at "{}""#, path.to_string_lossy());
 
     // Create script files
     let script_paths: Vec<PathBuf> = std::fs::read_dir("testdata/script")?

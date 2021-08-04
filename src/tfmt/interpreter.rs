@@ -33,10 +33,10 @@ impl<'a> Interpreter<'a> {
 
     /// Public function for interpreter.
     pub fn interpret(&mut self) -> Result<String> {
-        trace!("In:  \"{}\"", self.audio_file.path().to_string_lossy());
+        trace!(r#"In:  "{}""#, self.audio_file.path().to_string_lossy());
         let path =
             self.program.accept(self)? + "." + self.audio_file.extension();
-        trace!("Out: \"{}\"", path);
+        trace!(r#"Out: "{}""#, path);
 
         Ok(path)
     }
