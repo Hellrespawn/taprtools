@@ -91,9 +91,9 @@ pub fn normalize_newlines<S: AsRef<str>>(string: &S) -> String {
 }
 
 /// Preview Prefix
-pub fn pp<'a>(preview: bool) -> &'a str {
+pub fn pp(preview: bool) -> &'static str {
     if preview {
-        "[D] "
+        "[P] "
     } else {
         ""
     }

@@ -58,7 +58,7 @@ pub enum Subcommand {
         script_name: String,
         arguments: Vec<String>,
         input_folder: PathBuf,
-        output_folder: Option<PathBuf>,
+        output_folder: PathBuf,
         recursive: bool,
     },
 }
@@ -99,7 +99,8 @@ impl Subcommand {
                     .unwrap_or(std::env::current_dir()?),
                 output_folder: submatches
                     .value_of("output-folder")
-                    .map(PathBuf::from),
+                    .map(PathBuf::from)
+                    .unwrap_or_else(PathBuf::new),
                 recursive: submatches.is_present("recursive"),
             }),
             other => bail!("Unknown subcommand name: {}", other),
@@ -211,7 +212,7 @@ mod test {
                     "arguments".to_string(),
                 ],
                 input_folder: std::env::current_dir()?,
-                output_folder: None,
+                output_folder: PathBuf::new(),
                 recursive: false,
             },
         };

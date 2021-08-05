@@ -4,6 +4,9 @@ use log::warn;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+// TODO Get this value from somewhere
+const PREVIEW_AMOUNT: usize = 8;
+
 /// Returns (to_move, no_move)
 pub fn validate<P: AsRef<Path>>(
     paths: &[(P, P)],
@@ -12,6 +15,51 @@ pub fn validate<P: AsRef<Path>>(
     validate_collisions(paths)?;
     validate_existing_files(paths)?;
     validate_movement(paths)
+}
+
+// FIXME Get dirseps all the right way around.
+
+fn format_collisions(collisions: &HashMap<&Path, Vec<&Path>>) -> String {
+    let length = collisions.len();
+    let mut string = format!(
+        "{} collision{} {} detected{}:\n",
+        length,
+        if length > 1 { "s" } else { "" },
+        if length > 1 { "were" } else { "was" },
+        if length > PREVIEW_AMOUNT {
+            format!("! Showing {}", PREVIEW_AMOUNT)
+        } else {
+            String::new()
+        },
+    );
+
+    for (i, (path, collisions)) in collisions.iter().enumerate() {
+        if i >= PREVIEW_AMOUNT {
+            break;
+        }
+        let length = collisions.len();
+        string += &format!(
+            "{} is pointed to by {} file{}{}:\n",
+            path.to_string_lossy(),
+            length,
+            if length > 1 { "s" } else { "" },
+            if length > PREVIEW_AMOUNT {
+                format!("! Showing {}", PREVIEW_AMOUNT)
+            } else {
+                String::new()
+            },
+        );
+
+        for (i, path) in collisions.iter().enumerate() {
+            if i >= PREVIEW_AMOUNT {
+                break;
+            }
+            string += &format!("{}\n", path.to_string_lossy());
+        }
+        string += "\n"
+    }
+
+    string
 }
 
 fn validate_collisions<P: AsRef<Path>>(paths: &[(P, P)]) -> Result<()> {
@@ -27,11 +75,10 @@ fn validate_collisions<P: AsRef<Path>>(paths: &[(P, P)]) -> Result<()> {
         map.into_iter().filter(|(_, v)| v.len() > 1).collect();
 
     if !collisions.is_empty() {
-        //FIXME More extensive print
-        let s = format!("{} collisions were detected!", collisions.len());
-        //println!("{}", s);
-        warn!("{}", s);
-        bail!("{}", s)
+        let string = format_collisions(&collisions);
+
+        warn!("{}", string);
+        bail!("{}", string)
     } else {
         Ok(())
     }
@@ -42,16 +89,28 @@ fn validate_existing_files<P: AsRef<Path>>(paths: &[(P, P)]) -> Result<()> {
         .iter()
         .filter_map(|(_, dest)| dest.as_ref().exists().then(|| dest.as_ref()))
         .collect();
+
+    let length = existing.len();
+
     if !existing.is_empty() {
-        //FIXME yeah shorten this
         let s = format!(
-            "The following file already exist:\n{}",
+            "{} file{} already exist{}{}:\n{}",
+            length,
+            if length > 1 { "s" } else { "" },
+            if length > 1 { "" } else { "s" },
+            if length > PREVIEW_AMOUNT {
+                format!("! Showing {}", PREVIEW_AMOUNT)
+            } else {
+                String::new()
+            },
             existing
                 .iter()
+                .take(PREVIEW_AMOUNT)
                 .map(|p| p.to_string_lossy().to_string())
                 .collect::<Vec<String>>()
                 .join("\n")
         );
+
         warn!("{}", s);
         bail!("{}", s);
     }

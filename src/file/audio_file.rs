@@ -50,7 +50,7 @@ pub trait AudioFile: std::fmt::Debug + Send + Sync {
 pub fn get_audio_files(
     dir: &Path,
     depth: u64,
-    bar: Option<&ProgressBar>,
+    progress_bar: Option<&ProgressBar>,
 ) -> Result<Vec<Box<dyn AudioFile>>> {
     if depth == 0 {
         return Ok(Vec::new());
@@ -64,8 +64,8 @@ pub fn get_audio_files(
             if let Ok(file_type) = entry.file_type() {
                 if file_type.is_file() {
                     if let Some(extension) = path.extension() {
-                        if let Some(bar) = bar {
-                            bar.inc_length(1)
+                        if let Some(progress_bar) = progress_bar {
+                            progress_bar.inc_length(1)
                         };
 
                         if extension == "mp3" {
@@ -76,14 +76,18 @@ pub fn get_audio_files(
                             continue;
                         }
 
-                        if let Some(bar) = bar {
-                            bar.inc(1)
+                        if let Some(progress_bar) = progress_bar {
+                            progress_bar.inc(1)
                         };
 
                         sleep();
                     }
                 } else if file_type.is_dir() {
-                    audio_files.extend(get_audio_files(&path, depth - 1, bar)?)
+                    audio_files.extend(get_audio_files(
+                        &path,
+                        depth - 1,
+                        progress_bar,
+                    )?)
                 }
             }
         }

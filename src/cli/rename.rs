@@ -13,6 +13,7 @@ use indicatif::{
 use log::{debug, warn};
 use std::convert::TryInto;
 use std::path::{Path, PathBuf};
+use std::sync::Once;
 
 #[cfg(feature = "rayon")]
 use indicatif::ParallelProgressIterator;
@@ -36,7 +37,7 @@ impl<'a> Rename<'a> {
         script_name: &str,
         arguments: &[&str],
         input_folder: &P,
-        output_folder: &Option<P>,
+        output_folder: &P,
         recursive: bool,
     ) -> Result<()> {
         // TODO? Explicitly concat cwd and relative path?
@@ -58,8 +59,12 @@ impl<'a> Rename<'a> {
             return Ok(());
         }
 
-        let paths =
-            self.interpret_audio_files(&audio_files, &program, arguments)?;
+        let paths = self.interpret_destinations(
+            &audio_files,
+            output_folder,
+            &program,
+            arguments,
+        )?;
 
         let (to_move, _no_move) = validate(&paths)?;
 
@@ -70,9 +75,10 @@ impl<'a> Rename<'a> {
             return Ok(());
         }
 
+        // TODO Get this value from somewhere
         Self::preview_audio_files(&to_move, 8);
 
-        self.rename_audio_files(&to_move, output_folder)
+        self.rename_audio_files(&to_move)
     }
 
     pub fn get_audio_files<P: AsRef<Path>>(
@@ -80,57 +86,68 @@ impl<'a> Rename<'a> {
         dir: &P,
         depth: u64,
     ) -> Result<Vec<Box<dyn AudioFile>>> {
-        let bar = ProgressBar::new(0);
+        let progress_bar = ProgressBar::new(0);
 
-        let mut template =
-            "[{pos}/{len} audio files/total files] {spinner}".to_string();
-        template.insert_str(0, pp(self.args.preview));
+        let template = format!(
+            "{}[{{pos}}/{{len}} audio files/total files] {{spinner}}",
+            pp(self.args.preview)
+        );
 
-        bar.set_style(
+        progress_bar.set_style(
             ProgressStyle::default_spinner()
                 .template(&template)
                 .on_finish(ProgressFinish::AtCurrentPos),
         );
-        //bar.set_length(0);
-        bar.set_draw_target(ProgressDrawTarget::stdout());
+        progress_bar.set_draw_target(ProgressDrawTarget::stdout());
 
-        let audio_files =
-            audio_file::get_audio_files(dir.as_ref(), depth, Some(&bar))?;
+        let audio_files = audio_file::get_audio_files(
+            dir.as_ref(),
+            depth,
+            Some(&progress_bar),
+        )?;
 
         Ok(audio_files)
     }
 
-    fn interpret_audio_files(
+    fn interpret_destinations<P: AsRef<Path>>(
         &self,
         audio_files: &[Box<dyn AudioFile>],
+        output_folder: &P,
         program: &Program,
         arguments: &[&str],
     ) -> Result<Vec<SrcTgtPair>> {
+        let output_folder = output_folder.as_ref();
+
+        let absolute = Once::new();
+
         let symbol_table = SemanticAnalyzer::analyze(program, arguments)?;
 
-        let bar = ProgressBar::new(audio_files.len().try_into()?);
+        let progress_bar = ProgressBar::new(audio_files.len().try_into()?);
 
-        let mut template = "[{pos}/{len}] {msg:<21} {wide_bar}".to_string();
-        template.insert_str(0, pp(self.args.preview));
+        let template = format!(
+            "{}[{{pos}}/{{len}}] {{msg:<21}} {{wide_bar}}",
+            pp(self.args.preview)
+        );
 
-        bar.set_style(
+        progress_bar.set_style(
             ProgressStyle::default_bar().template(&template).on_finish(
                 ProgressFinish::WithMessage(std::borrow::Cow::Borrowed(
                     "Interpreted.",
                 )),
             ),
         );
-        bar.set_draw_target(ProgressDrawTarget::stdout());
-        bar.set_message("Interpreting files...");
+        progress_bar.set_draw_target(ProgressDrawTarget::stdout());
+        progress_bar.set_message("Interpreting files...");
 
         #[cfg(feature = "rayon")]
-        let path_iter = audio_files.par_iter().progress_with(bar);
+        let path_iter = audio_files.par_iter().progress_with(progress_bar);
 
         #[cfg(not(feature = "rayon"))]
         let paths_iter = audio_files.iter().progress_with(bar);
 
-        let paths: std::result::Result<Vec<SrcTgtPair>, InterpreterError> =
-            path_iter
+        type IResult = std::result::Result<Vec<SrcTgtPair>, InterpreterError>;
+
+        let paths = path_iter
                 .map(|af| {
                     helpers::sleep();
                     let result =
@@ -139,23 +156,35 @@ impl<'a> Rename<'a> {
 
                     match result {
                         Ok(s) => {
-                            Ok((PathBuf::from(af.path()), PathBuf::from(s)))
+                            let p = PathBuf::from(s);
+                            if p.is_absolute() { absolute.call_once(|| {
+                                let s = format!(
+                                    "Absolute path found, ignoring --output-folder {}",
+                                    output_folder.to_string_lossy()
+                                );
+                                println!("{}", s);
+                                warn!("{}", s);
+                            })}
+                            Ok((PathBuf::from(af.path()), output_folder.join(p)))
                         }
                         Err(e) => Err(e),
                     }
                 })
-                .collect();
-
-        let paths = paths?;
+                .collect::<IResult>()?;
 
         Ok(paths)
     }
 
     fn preview_audio_files<P: AsRef<Path>>(paths: &[(P, P)], amount: usize) {
+        let length = paths.len();
+
         println!(
-            "\nPreviewing {}/{} files:",
-            std::cmp::min(amount, paths.len()),
-            paths.len()
+            "\nPreviewing {} files:",
+            if length > amount {
+                format!("{}/{}", std::cmp::min(amount, paths.len()), length)
+            } else {
+                length.to_string()
+            }
         );
 
         for (i, (_, d)) in paths.iter().enumerate() {
@@ -250,48 +279,27 @@ impl<'a> Rename<'a> {
         common_path
     }
 
-    fn rename_audio_files<P: AsRef<Path>>(
-        &self,
-        paths: &[(PathBuf, PathBuf)],
-        output_folder: &Option<P>,
-    ) -> Result<()> {
-        // Absolute paths clobber existing paths when joined/pushed.
-        let prefix = if let Some(folder) = output_folder {
-            let folder = folder.as_ref();
+    fn rename_audio_files(&self, paths: &[(PathBuf, PathBuf)]) -> Result<()> {
+        let progress_bar = ProgressBar::new(paths.len().try_into()?);
 
-            if paths.iter().any(|(_, p)| p.is_absolute()) {
-                let s = format!(
-                    "Absolute path found, ignoring --output-folder {}",
-                    folder.to_string_lossy()
-                );
-                println!("{}", s);
-                warn!("{}", s);
-            }
+        let template = format!(
+            "{}[{{pos}}/{{len}}] {{msg:<21}} {{wide_bar}}",
+            pp(self.args.preview)
+        );
 
-            PathBuf::from(folder)
-        } else {
-            PathBuf::new()
-        };
-
-        let bar = ProgressBar::new(paths.len().try_into()?);
-
-        let mut template = "[{pos}/{len}] {msg:<21} {wide_bar}".to_string();
-        template.insert_str(0, pp(self.args.preview));
-
-        bar.set_style(
+        progress_bar.set_style(
             ProgressStyle::default_bar().template(&template).on_finish(
                 ProgressFinish::WithMessage(std::borrow::Cow::Borrowed(
                     "Renamed.",
                 )),
             ),
         );
-        bar.set_draw_target(ProgressDrawTarget::stdout());
-        bar.set_message("Renaming files...");
+        progress_bar.set_draw_target(ProgressDrawTarget::stdout());
+        progress_bar.set_message("Renaming files...");
 
         let mut action_group = ActionGroup::new();
 
         for (source, target) in paths {
-            let target = prefix.join(target);
             // These paths are all files, so should always have at
             // least one parent.
             debug_assert!(target.parent().is_some());
@@ -301,16 +309,16 @@ impl<'a> Rename<'a> {
 
             let action = Action::Rename {
                 source: PathBuf::from(source),
-                target,
+                target: PathBuf::from(target),
             };
 
             action.apply(self.args.preview)?;
             action_group.push(action);
 
-            bar.inc(1);
+            progress_bar.inc(1);
         }
 
-        bar.finish();
+        progress_bar.finish();
 
         print!("{}Removing empty directories... ", pp(self.args.preview));
 

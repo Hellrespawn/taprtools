@@ -4,9 +4,7 @@ use clap::{
     crate_version, Arg,
 };
 use std::path::Path;
-use tfmttools::cli::history::{History, Stack};
-
-// TODO? Specify ActionGroup to verbose print?
+use tfmttools::cli::history::{Action, History, Stack};
 
 fn main() -> Result<()> {
     let app = app_from_crate!()
@@ -61,11 +59,36 @@ fn stack_to_string(stack: Stack, name: &str, verbose: bool) -> String {
                     &format!("[{}/{}] {}\n", i + 1, action_group.len(), action)
             }
         } else {
-            string += &format!("[{}/{}] {}\n", i + 1, stack.len(), action_group)
+            string += &format!(
+                "[{}/{}] {}\n",
+                i + 1,
+                stack.len(),
+                action_group_to_string(action_group)
+            )
         }
     }
 
     string
+}
+
+fn action_group_to_string(action_group: &[Action]) -> String {
+    let (mut create, mut remove, mut rename) = (0, 0, 0);
+
+    for action in action_group {
+        match action {
+            Action::CreateDir { .. } => create += 1,
+            Action::RemoveDir { .. } => remove += 1,
+            Action::Rename { .. } => rename += 1,
+        }
+    }
+
+    format!(
+        "ActionGroup: [{}: {} cr, {} rn, {} rm]",
+        action_group.len(),
+        create,
+        rename,
+        remove
+    )
 }
 
 #[cfg(test)]
