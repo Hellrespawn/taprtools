@@ -27,14 +27,8 @@ fn file_test(
 
     let symbol_table = SemanticAnalyzer::analyze(&program, arguments)?;
 
-    let mut audio_files = Vec::new();
-
-    get_audio_files(
-        &mut audio_files,
-        &PathBuf::from("testdata/music"),
-        1,
-        None,
-    )?;
+    let audio_files =
+        get_audio_files(&PathBuf::from("testdata/music"), 1, None)?;
 
     #[cfg(feature = "rayon")]
     let iter = audio_files.par_iter();

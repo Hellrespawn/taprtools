@@ -48,14 +48,15 @@ pub trait AudioFile: std::fmt::Debug + Send + Sync {
 
 /// Read [AudioFile]s into buffer.
 pub fn get_audio_files(
-    audio_files: &mut Vec<Box<dyn AudioFile>>,
     dir: &Path,
     depth: u64,
     bar: Option<&ProgressBar>,
-) -> Result<()> {
+) -> Result<Vec<Box<dyn AudioFile>>> {
     if depth == 0 {
-        return Ok(());
+        return Ok(Vec::new());
     }
+
+    let mut audio_files: Vec<Box<dyn AudioFile>> = Vec::new();
 
     if let Ok(read_dir) = std::fs::read_dir(dir) {
         for entry in read_dir.flatten() {
@@ -82,13 +83,13 @@ pub fn get_audio_files(
                         sleep();
                     }
                 } else if file_type.is_dir() {
-                    get_audio_files(audio_files, &path, depth - 1, bar)?
+                    audio_files.extend(get_audio_files(&path, depth - 1, bar)?)
                 }
             }
         }
     }
 
-    Ok(())
+    Ok(audio_files)
 }
 
 #[cfg(test)]
@@ -99,8 +100,7 @@ mod tests {
 
     #[test]
     fn audio_file_test() -> Result<()> {
-        let mut files = Vec::new();
-        get_audio_files(&mut files, &PathBuf::from("testdata/music"), 1, None)?;
+        let files = get_audio_files(&PathBuf::from("testdata/music"), 1, None)?;
 
         assert_eq!(files.len(), 5);
 

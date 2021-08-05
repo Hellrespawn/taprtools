@@ -9,13 +9,9 @@ default-run = "tfmt"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-# [[bin]]
-# name = "tfmt"
-# path = "src/bin/tfmt.rs"
-
-# [[bin]]
-# name = "tfmt-histviewer"
-# path = "src/bin/tfmt-histviewer.rs"
+[profile.release]
+lto = true
+panic = "abort"
 
 [features]
 default = ["rayon"]

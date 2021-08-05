@@ -94,14 +94,8 @@ impl<'a> Rename<'a> {
         //bar.set_length(0);
         bar.set_draw_target(ProgressDrawTarget::stdout());
 
-        let mut audio_files = Vec::new();
-
-        audio_file::get_audio_files(
-            &mut audio_files,
-            dir.as_ref(),
-            depth,
-            Some(&bar),
-        )?;
+        let audio_files =
+            audio_file::get_audio_files(dir.as_ref(), depth, Some(&bar))?;
 
         Ok(audio_files)
     }
