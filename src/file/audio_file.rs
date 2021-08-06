@@ -1,5 +1,4 @@
 use crate::file::{MP3, OGG};
-use crate::helpers::sleep;
 use anyhow::Result;
 use indicatif::ProgressBar;
 use std::convert::TryFrom;
@@ -79,8 +78,6 @@ pub fn get_audio_files(
                         if let Some(progress_bar) = progress_bar {
                             progress_bar.inc(1)
                         };
-
-                        sleep();
                     }
                 } else if file_type.is_dir() {
                     audio_files.extend(get_audio_files(

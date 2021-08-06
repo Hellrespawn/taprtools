@@ -262,12 +262,27 @@ impl History {
     }
 }
 
+/// Rename can't cross filesystems/mountpoints.
+#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
+pub enum MoveMode {
+    CopyRemove,
+    Rename,
+}
+
 /// Represents a single, undoable [Action].
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Action {
-    Move { source: PathBuf, target: PathBuf },
-    CreateDir { path: PathBuf },
-    RemoveDir { path: PathBuf },
+    Move {
+        source: PathBuf,
+        target: PathBuf,
+        mode: MoveMode,
+    },
+    CreateDir {
+        path: PathBuf,
+    },
+    RemoveDir {
+        path: PathBuf,
+    },
 }
 
 impl Display for Action {
@@ -284,34 +299,40 @@ impl Display for Action {
             Self::CreateDir { path } | Self::RemoveDir { path } => {
                 write!(f, ": {}", path.display())
             }
-            Self::Move { source, target } => {
-                write!(f, ": {}\nto: {}", source.display(), target.display())
+            Self::Move {
+                source,
+                target,
+                mode,
+            } => {
+                write!(
+                    f,
+                    " ({}): {}\nto: {}",
+                    match mode {
+                        MoveMode::CopyRemove => "cp",
+                        MoveMode::Rename => "rn",
+                    },
+                    source.display(),
+                    target.display()
+                )
             }
         }
     }
 }
 
 impl Action {
-    fn move_file<P, Q>(from: P, to: Q) -> Result<()>
+    fn move_file<P, Q>(from: P, to: Q, mode: MoveMode) -> Result<()>
     where
         P: AsRef<Path>,
         Q: AsRef<Path>,
     {
-        // Rename can't cross filesystems/mountpoints. These error codes
-        // are correct on Windows 10 20H2 and Arch Linux.
-        // TODO? Determine move/copy+remove beforehand?
-        if let Err(err) = std::fs::rename(&from, &to) {
-            #[cfg(windows)]
-            let condition = err.to_string().contains("os error 17");
-
-            #[cfg(unix)]
-            let condition = err.to_string().contains("os error 18");
-
-            if condition {
+        match mode {
+            MoveMode::CopyRemove => {
                 std::fs::copy(&from, &to)?;
                 std::fs::remove_file(&from)?;
-            } else {
-                bail!(err)
+            }
+
+            MoveMode::Rename => {
+                std::fs::rename(&from, &to)?;
             }
         }
 
@@ -321,7 +342,11 @@ impl Action {
     /// Applies or "does" the action.
     pub fn apply(&self, preview: bool) -> Result<()> {
         match self {
-            Action::Move { source, target } => {
+            Action::Move {
+                source,
+                target,
+                mode,
+            } => {
                 trace!(
                     "Renaming:\n\"{}\"\n\"{}\"",
                     &source.display(),
@@ -329,10 +354,11 @@ impl Action {
                 );
 
                 if !preview {
-                    Action::move_file(source, target)?;
+                    Action::move_file(source, target, *mode)?;
                 }
             }
 
+            // TODO? Fail silently if dir already exists?
             Action::CreateDir { path } => {
                 trace!("Creating directory {}", path.display());
                 if !preview {
@@ -353,7 +379,11 @@ impl Action {
     /// Undoes the action.
     pub fn undo(&self, preview: bool) -> Result<()> {
         match self {
-            Action::Move { source, target } => {
+            Action::Move {
+                source,
+                target,
+                mode,
+            } => {
                 trace!(
                     "Undoing:\n\"{}\"\n\"{}\"",
                     &target.display(),
@@ -361,7 +391,7 @@ impl Action {
                 );
 
                 if !preview {
-                    Action::move_file(target, source)?;
+                    Action::move_file(target, source, *mode)?;
                 }
             }
 
@@ -372,6 +402,7 @@ impl Action {
                 }
             }
 
+            // TODO? Fail silently if dir already exists?
             Action::RemoveDir { path } => {
                 trace!("Recreating directory {}", path.display());
                 if !preview {

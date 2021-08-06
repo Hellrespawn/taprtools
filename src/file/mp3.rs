@@ -15,10 +15,9 @@ impl TryFrom<&Path> for MP3 {
     type Error = anyhow::Error;
 
     fn try_from(path: &Path) -> Result<Self> {
-        Ok(Self {
-            path: PathBuf::from(path),
-            tags: Tag::read_from_path(path)?,
-        })
+        let path = dunce::canonicalize(path)?;
+        let tags = Tag::read_from_path(&path)?;
+        Ok(Self { path, tags })
     }
 }
 

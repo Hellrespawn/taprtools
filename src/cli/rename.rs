@@ -1,5 +1,5 @@
 use super::argparse::Args;
-use super::history::{Action, ActionGroup, History};
+use super::history::{Action, ActionGroup, History, MoveMode};
 use super::validate::validate;
 use crate::error::InterpreterError;
 use crate::file::audio_file::{self, AudioFile};
@@ -11,7 +11,7 @@ use anyhow::{bail, Result};
 use indicatif::{
     ProgressBar, ProgressDrawTarget, ProgressFinish, ProgressStyle,
 };
-use log::{debug, warn};
+use log::{debug, info, warn};
 use std::convert::TryInto;
 use std::path::{Path, PathBuf};
 use std::sync::Once;
@@ -153,29 +153,32 @@ impl<'a> Rename<'a> {
         // it entirely. Therefore we can join output_folder unconditionally.
 
         let paths = path_iter
-                .map(|af| {
-                    helpers::sleep();
-                    let result =
-                        Interpreter::new(program, &symbol_table, af.as_ref())
-                            .interpret();
+            .map(|af| {
+                let result =
+                    Interpreter::new(program, &symbol_table, af.as_ref())
+                        .interpret();
 
-                    match result {
-                        Ok(s) => {
-                            let p = PathBuf::from(s);
-                            if p.is_absolute() { absolute.call_once(|| {
-                                let s = format!(
-                                    "Absolute path found, ignoring --output-folder {}",
-                                    output_folder.display()
-                                );
-                                println!("{}", s);
-                                warn!("{}", s);
-                            })}
-                            Ok((PathBuf::from(af.path()), output_folder.join(p)))
+                match result {
+                    Ok(s) => {
+                        let p = PathBuf::from(s);
+                        if p.is_absolute() {
+                            absolute.call_once(|| {})
                         }
-                        Err(e) => Err(e),
+                        Ok((PathBuf::from(af.path()), output_folder.join(p)))
                     }
-                })
-                .collect::<IResult>()?;
+                    Err(e) => Err(e),
+                }
+            })
+            .collect::<IResult>()?;
+
+        if absolute.is_completed() {
+            let s = format!(
+                "Absolute path found, ignoring --output-folder {}",
+                output_folder.display()
+            );
+            println!("{}", s);
+            warn!("{}", s);
+        }
 
         Ok(paths)
     }
@@ -301,9 +304,34 @@ impl<'a> Rename<'a> {
 
         let mut action_group = ActionGroup::new();
 
+        // TODO Test this somehow?
+        // These paths are all files, so should always have at least one
+        // component, making unwrap() safe.
+        debug_assert!(
+            paths.iter().next().is_some()
+                && paths.iter().next().unwrap().0.components().next().is_some()
+        );
+        debug_assert!(
+            paths.iter().next().is_some()
+                && paths.iter().next().unwrap().1.components().next().is_some()
+        );
+
+        // At this point, source is canonicalized by {MP3, OGG}::try_from
+        // and target is canonicalized by rename::interpret_destinations.
+        // FIXME fix this
+        let move_mode = if paths.iter().any(|(src, tgt)| {
+            src.components().next().unwrap() == tgt.components().next().unwrap()
+        }) {
+            info!("Renaming files.");
+            MoveMode::Rename
+        } else {
+            info!("Copying and removing files.");
+            MoveMode::CopyRemove
+        };
+
         for (source, target) in paths {
             // These paths are all files, so should always have at
-            // least one parent.
+            // least one parent, making unwrap() safe.
             debug_assert!(target.parent().is_some());
 
             action_group
@@ -312,6 +340,7 @@ impl<'a> Rename<'a> {
             let action = Action::Move {
                 source: PathBuf::from(source),
                 target: PathBuf::from(target),
+                mode: move_mode,
             };
 
             action.apply(self.args.preview)?;

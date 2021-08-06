@@ -53,7 +53,7 @@ impl<'a> Inspector<'a> {
 
         let mut inspector = Inspector {
             name: String::new(),
-            path: path.canonicalize()?,
+            path: dunce::canonicalize(path)?,
             description: String::new(),
             parameters: Vec::new(),
             program: &program,

@@ -38,6 +38,7 @@ fn histviewer<P: AsRef<Path>>(path: &P, verbose: bool) -> Result<String> {
     let mut string = String::new();
 
     string += &stack_to_string(history.done_stack, "Done", verbose);
+    string += "\n";
     string += &stack_to_string(history.undone_stack, "Undone", verbose);
 
     Ok(string)

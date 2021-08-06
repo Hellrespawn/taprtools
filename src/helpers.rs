@@ -106,13 +106,3 @@ pub fn pp(preview: bool) -> &'static str {
         ""
     }
 }
-
-#[cfg(feature = "slow-progress-bars")]
-/// Slows progress bars for testing.
-pub fn sleep() {
-    std::thread::sleep(std::time::Duration::from_millis(200));
-}
-
-#[cfg(not(feature = "slow-progress-bars"))]
-/// No-op
-pub fn sleep() {}

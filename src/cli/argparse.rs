@@ -100,7 +100,7 @@ impl Subcommand {
                 output_folder: submatches
                     .value_of("output-folder")
                     .map(PathBuf::from)
-                    .unwrap_or_else(PathBuf::new),
+                    .unwrap_or(std::env::current_dir()?),
                 recursive: submatches.is_present("recursive"),
             }),
             other => bail!("Unknown subcommand name: {}", other),
@@ -212,7 +212,7 @@ mod test {
                     "arguments".to_string(),
                 ],
                 input_folder: std::env::current_dir()?,
-                output_folder: PathBuf::new(),
+                output_folder: std::env::current_dir()?,
                 recursive: false,
             },
         };

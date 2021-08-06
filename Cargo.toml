@@ -10,13 +10,12 @@ default-run = "tfmt"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [profile.release]
-lto = true
 panic = "abort"
 
 [features]
 default = ["rayon"]
+# TODO? Make history a feature?
 # default = ["history", "rayon"]
-slow-progress-bars = []
 # history = []
 
 [dependencies]
@@ -27,6 +26,7 @@ clap = {version = "2", features = ["yaml"]}
 chrono = "0.4"
 # colored = "2"
 dirs = "3.0.2"
+dunce = "1.0.2"
 fern = "0.6.0"
 id3 = "0.6.4"
 indicatif = {version = "0.16.2", features = ["rayon"]}

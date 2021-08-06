@@ -16,6 +16,7 @@ impl TryFrom<&Path> for OGG {
     type Error = anyhow::Error;
 
     fn try_from(path: &Path) -> Result<Self> {
+        let path = dunce::canonicalize(path)?;
         let stream_reader = OggStreamReader::new(std::fs::File::open(&path)?)?;
 
         let tags = stream_reader
@@ -27,10 +28,7 @@ impl TryFrom<&Path> for OGG {
             // FIXME Multiple tags with same value are allowed by Ogg/Vorbis
             .collect();
 
-        Ok(OGG {
-            path: PathBuf::from(&path),
-            tags,
-        })
+        Ok(OGG { path, tags })
     }
 }
 
