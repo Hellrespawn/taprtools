@@ -40,7 +40,7 @@ fn format_collisions(collisions: &HashMap<&Path, Vec<&Path>>) -> String {
         let length = collisions.len();
         string += &format!(
             "{} is pointed to by {} file{}{}:\n",
-            path.to_string_lossy(),
+            path.display(),
             length,
             if length > 1 { "s" } else { "" },
             if length > PREVIEW_AMOUNT {
@@ -54,7 +54,7 @@ fn format_collisions(collisions: &HashMap<&Path, Vec<&Path>>) -> String {
             if i >= PREVIEW_AMOUNT {
                 break;
             }
-            string += &format!("{}\n", path.to_string_lossy());
+            string += &format!("{}\n", path.display());
         }
         string += "\n"
     }
@@ -106,7 +106,7 @@ fn validate_existing_files<P: AsRef<Path>>(paths: &[(P, P)]) -> Result<()> {
             existing
                 .iter()
                 .take(PREVIEW_AMOUNT)
-                .map(|p| p.to_string_lossy().to_string())
+                .map(|p| p.display().to_string())
                 .collect::<Vec<String>>()
                 .join("\n")
         );

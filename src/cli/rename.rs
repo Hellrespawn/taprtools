@@ -52,7 +52,7 @@ impl<'a> Rename<'a> {
         if audio_files.is_empty() {
             let s = format!(
                 "Couldn't find any files at {}.",
-                input_folder.as_ref().to_string_lossy()
+                input_folder.as_ref().display()
             );
             println!("{}", s);
             warn!("{}", s);
@@ -160,7 +160,7 @@ impl<'a> Rename<'a> {
                             if p.is_absolute() { absolute.call_once(|| {
                                 let s = format!(
                                     "Absolute path found, ignoring --output-folder {}",
-                                    output_folder.to_string_lossy()
+                                    output_folder.display()
                                 );
                                 println!("{}", s);
                                 warn!("{}", s);
@@ -191,7 +191,7 @@ impl<'a> Rename<'a> {
             if i >= amount {
                 break;
             }
-            println!("{}", d.as_ref().to_string_lossy())
+            println!("{}", d.as_ref().display())
         }
 
         println!();
@@ -208,7 +208,7 @@ impl<'a> Rename<'a> {
         } else if path.exists() {
             bail!(
                 "Path {} exists, but isn't a directory!",
-                path.to_string_lossy()
+                path.display()
             )
         } else {
             let mut action_group = ActionGroup::new();
@@ -275,7 +275,7 @@ impl<'a> Rename<'a> {
             common_path = new_common_path;
         }
 
-        debug!("Common path of input: {}", common_path.to_string_lossy());
+        debug!("Common path of input: {}", common_path.display());
         common_path
     }
 

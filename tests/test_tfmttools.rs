@@ -16,7 +16,7 @@ fn setup_environment(suffix: &str) -> Result<TempDir> {
 
     std::fs::create_dir_all(path.join("0"))?;
 
-    println!(r#"Temporary directory at "{}""#, path.to_string_lossy());
+    println!(r#"Temporary directory at "{}""#, path.display());
 
     // Create script files
     let script_paths: Vec<PathBuf> = std::fs::read_dir("testdata/script")?
@@ -116,7 +116,7 @@ fn check_paths<P: AsRef<Path>>(
 
         if !path.is_file() {
             print_filetree(&tempdir.as_ref(), 0);
-            bail!("File {} not in expected place!", path.to_string_lossy())
+            bail!("File {} not in expected place!", path.display())
         }
     }
 
@@ -131,10 +131,10 @@ fn test_rename<P: AsRef<Path>>(
 ) -> Result<()> {
     let args = format!(
         "tfmttools_test --config-folder {} rename {} --input-folder {} --output-folder {} -r {}",
-        tempdir.path().join(CONFIG_FOLDER).to_string_lossy(),
+        tempdir.path().join(CONFIG_FOLDER).display(),
         name,
-        tempdir.path().join(SOURCE_FOLDER).to_string_lossy(),
-        tempdir.path().to_string_lossy(),
+        tempdir.path().join(SOURCE_FOLDER).display(),
+        tempdir.path().display(),
         args
     );
 
@@ -155,7 +155,7 @@ fn test_undo<P: AsRef<Path>>(
 
     let args = format!(
         "tfmttools_test --config-folder {} undo",
-        tempdir.path().join(CONFIG_FOLDER).to_string_lossy(),
+        tempdir.path().join(CONFIG_FOLDER).display(),
     );
 
     tfmt::main(&args.split_whitespace().collect::<Vec<&str>>())?;
@@ -183,7 +183,7 @@ fn test_redo<P: AsRef<Path>>(
 
     let args = format!(
         "tfmttools_test --config-folder {} redo",
-        tempdir.path().join(CONFIG_FOLDER).to_string_lossy(),
+        tempdir.path().join(CONFIG_FOLDER).display(),
     );
 
     tfmt::main(&args.split_whitespace().collect::<Vec<&str>>())?;

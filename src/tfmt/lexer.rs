@@ -66,7 +66,7 @@ impl Lexer {
             Err(err) => {
                 return Err(LexerError::Generic(format!(
                     r#"Unable to read from path "{}": {}"#,
-                    path.to_string_lossy(),
+                    path.display(),
                     err
                 )))
             }
@@ -81,15 +81,12 @@ impl Lexer {
         }
     }
 
-    /// Returns `length`-character [String] from [Lexer.index]
-    fn current_string(&self, length: usize) -> Option<String> {
-        let bound = std::cmp::min(self.text.len(), self.index + length);
-        self.text.get(self.index..bound).map(|s| s.join(""))
-    }
+    /// Returns [true] if the lookahead matches string
+    fn teast_lookahead(&self, string: &str) -> bool {
+        let bound = std::cmp::min(self.text.len(), self.index + string.len());
+        let lookahead = self.text.get(self.index..bound).map(|s| s.join(""));
 
-    /// Returns [true] if [current_string(string.len())] matches string
-    fn test_current_string(&self, string: &str) -> bool {
-        match self.current_string(string.len()) {
+        match lookahead {
             Some(current) => current == string,
             None => false,
         }
@@ -139,7 +136,7 @@ impl Lexer {
             match self.current_grapheme() {
                 Ok(grapheme) => {
                     for terminator in terminators {
-                        if self.test_current_string(terminator) {
+                        if self.teast_lookahead(terminator) {
                             if discard_terminator {
                                 // "test_current_string(terminator) == true,
                                 // so unwrap() should always succeed!"
@@ -210,8 +207,8 @@ impl Lexer {
         // so unwrap should never fail.
 
         if quotes.contains(current_grapheme) {
-            let multiline = self
-                .test_current_string(&format!("{0}{0}{0}", current_grapheme));
+            let multiline =
+                self.teast_lookahead(&format!("{0}{0}{0}", current_grapheme));
 
             Ok(Some(Token::new(
                 self.line_no,
@@ -229,7 +226,7 @@ impl Lexer {
                 TokenType::Comment,
                 Some(self.crawl(&["\n"], true, true)?),
             )?))
-        } else if self.test_current_string(multiline_comment_start) {
+        } else if self.teast_lookahead(multiline_comment_start) {
             self.advance_times(multiline_comment_start.len().try_into()?)
                 .unwrap();
 
@@ -247,7 +244,7 @@ impl Lexer {
     /// Handle [Token]s involving reserved strings
     fn handle_reserved(&mut self) -> Result<Option<Token>> {
         for string in TokenType::reserved_strings() {
-            if self.test_current_string(string) {
+            if self.teast_lookahead(string) {
                 // Uses string from TokenType::string_map(), unwrap should
                 // always be safe.
                 let token = Token::new_type_from_string(

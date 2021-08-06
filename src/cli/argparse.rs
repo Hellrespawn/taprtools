@@ -178,14 +178,14 @@ fn get_config_folder<P: AsRef<Path>>(
             let s = format!(
                 r#"{} Creating configuration directory at "{}""#,
                 pp(preview),
-                dir.to_string_lossy()
+                dir.display()
             );
 
             println!("{}", s);
             info!("{}", s);
         }
     } else if !dir.is_dir() {
-        bail!("{} exists but is not a folder!", dir.to_string_lossy())
+        bail!("{} exists but is not a folder!", dir.display())
     }
 
     Ok(dir)

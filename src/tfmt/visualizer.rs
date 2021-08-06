@@ -65,7 +65,7 @@ impl Visualizer {
 
         info!(
             "Rendered Abstract Syntax Tree to {}",
-            &path.with_extension("png").to_string_lossy()
+            &path.with_extension("png").display()
         );
 
         Ok(())

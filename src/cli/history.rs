@@ -47,7 +47,7 @@ impl History {
         // should be safe.
         let path = path.as_ref();
 
-        info!("Loading history from {}.", path.to_string_lossy());
+        info!("Loading history from {}.", path.display());
         let serialized = std::fs::read(&path)?;
 
         let (undo_stack, redo_stack) = bincode::deserialize(&serialized)?;
@@ -115,7 +115,7 @@ impl History {
     fn _save<P: AsRef<Path>>(&self, path: &P) -> Result<()> {
         let path = path.as_ref();
 
-        info!("Saving history to {}", path.to_string_lossy());
+        info!("Saving history to {}", path.display());
 
         let serialized =
             bincode::serialize(&(&self.done_stack, &self.undone_stack))?;
@@ -146,7 +146,7 @@ impl History {
             let s = format!(
                 "{}Deleted history file at {}",
                 pp(self.preview),
-                path.to_string_lossy()
+                path.display()
             );
             println!("{}", s);
             info!("{}", s);
@@ -280,13 +280,13 @@ impl Display for Action {
         )?;
         match self {
             Self::CreateDir { path } | Self::RemoveDir { path } => {
-                write!(f, ": {}", path.to_string_lossy())
+                write!(f, ": {}", path.display())
             }
             Self::Rename { source, target } => write!(
                 f,
                 ": {}\nto: {}",
-                source.to_string_lossy(),
-                target.to_string_lossy()
+                source.display(),
+                target.display()
             ),
         }
     }
@@ -299,8 +299,8 @@ impl Action {
             Action::Rename { source, target } => {
                 trace!(
                     "Renaming:\n\"{}\"\n\"{}\"",
-                    &source.to_string_lossy(),
-                    &target.to_string_lossy()
+                    &source.display(),
+                    &target.display()
                 );
 
                 if !preview {
@@ -309,14 +309,14 @@ impl Action {
             }
 
             Action::CreateDir { path } => {
-                trace!("Creating directory {}", path.to_string_lossy());
+                trace!("Creating directory {}", path.display());
                 if !preview {
                     std::fs::create_dir(path)?;
                 }
             }
 
             Action::RemoveDir { path } => {
-                trace!("Removing directory {}", path.to_string_lossy());
+                trace!("Removing directory {}", path.display());
                 if !preview {
                     std::fs::remove_dir(path)?;
                 }
@@ -331,8 +331,8 @@ impl Action {
             Action::Rename { source, target } => {
                 trace!(
                     "Undoing:\n\"{}\"\n\"{}\"",
-                    &target.to_string_lossy(),
-                    &source.to_string_lossy(),
+                    &target.display(),
+                    &source.display(),
                 );
 
                 if !preview {
@@ -341,14 +341,14 @@ impl Action {
             }
 
             Action::CreateDir { path } => {
-                trace!("Undoing directory {}", path.to_string_lossy());
+                trace!("Undoing directory {}", path.display());
                 if !preview {
                     std::fs::remove_dir(path)?;
                 }
             }
 
             Action::RemoveDir { path } => {
-                trace!("Recreating directory {}", path.to_string_lossy());
+                trace!("Recreating directory {}", path.display());
                 if !preview {
                     std::fs::create_dir(path)?;
                 }

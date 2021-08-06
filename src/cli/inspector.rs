@@ -83,7 +83,7 @@ impl<'a> Inspector<'a> {
 
     fn fmt_long(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.fmt_short(f)?;
-        write!(f, "\n\npath: {}\n", self.path.to_string_lossy())?;
+        write!(f, "\n\npath: {}\n", self.path.display())?;
         if !self.parameters.is_empty() {
             write!(f, "\nparameters:")?;
             for param in &self.parameters {
@@ -108,7 +108,7 @@ impl<'a> Inspector<'a> {
             Ok(()) => write!(
                 f,
                 "\n\nRendered Abstract Syntax Tree to {}",
-                path.join(&format!("{}.png", self.name)).to_string_lossy()
+                path.join(&format!("{}.png", self.name)).display()
             ),
             Err(err) => write!(f, "\n\n{}", err),
         }?;
