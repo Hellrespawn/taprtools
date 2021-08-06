@@ -2,6 +2,7 @@ use anyhow::{bail, Result};
 use std::path::{Path, PathBuf};
 use tempfile::{Builder, TempDir};
 use tfmttools::cli::tfmt;
+use tfmttools::RECURSION_DEPTH;
 
 const CONFIG_FOLDER: &str = "config";
 const SOURCE_FOLDER: &str = "source";
@@ -83,6 +84,10 @@ fn print_filetree(path: &Path, depth: u64) {
         std::path::MAIN_SEPARATOR
     );
 
+    if depth == 0 {
+        return;
+    }
+
     if let Ok(rd) = std::fs::read_dir(path) {
         for d in rd {
             match d {
@@ -91,7 +96,7 @@ fn print_filetree(path: &Path, depth: u64) {
                     let p = d.path();
 
                     if p.is_dir() {
-                        print_filetree(&p, depth + 1);
+                        print_filetree(&p, depth - 1);
                     } else if p.is_file() {
                         println!(
                             "{}{}",
@@ -115,7 +120,7 @@ fn check_paths<P: AsRef<Path>>(
         let path = tempdir.path().join(r);
 
         if !path.is_file() {
-            print_filetree(&tempdir.as_ref(), 0);
+            print_filetree(&tempdir.as_ref(), RECURSION_DEPTH);
             bail!("File {} not in expected place!", path.display())
         }
     }
@@ -274,5 +279,23 @@ fn tfmttools_redo_test() -> Result<()> {
     match test_redo(name, args, &reference, &tempdir) {
         Ok(()) => Ok(teardown_environment(tempdir)?),
         Err(err) => bail!("Error in {}:\n{}", name, err),
+    }
+}
+
+#[test]
+fn tfmttools_collision_test() -> Result<()> {
+    let name = "collisions";
+    let tempdir = setup_environment(name)?;
+
+    let args = "";
+
+    let reference = [""];
+
+    match test_rename(name, args, &reference, &tempdir) {
+        Err(err) if err.to_string().contains("collision was detected") => {
+            Ok(teardown_environment(tempdir)?)
+        }
+        Err(err) => bail!("Unexpected error in collision_test: {}", err),
+        Ok(()) => bail!("collision_test did not produce an error!"),
     }
 }

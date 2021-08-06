@@ -6,6 +6,7 @@ use tfmttools::tfmt::interpreter::Interpreter;
 use tfmttools::tfmt::lexer::{Lexer, LexerResult};
 use tfmttools::tfmt::parser::Parser;
 use tfmttools::tfmt::semantic::SemanticAnalyzer;
+use tfmttools::{helpers, RECURSION_DEPTH};
 
 #[cfg(feature = "rayon")]
 use rayon::prelude::*;
@@ -27,8 +28,11 @@ fn file_test(
 
     let symbol_table = SemanticAnalyzer::analyze(&program, arguments)?;
 
-    let audio_files =
-        get_audio_files(&PathBuf::from("testdata/music"), 1, None)?;
+    let audio_files = get_audio_files(
+        &PathBuf::from("testdata/music"),
+        RECURSION_DEPTH,
+        None,
+    )?;
 
     #[cfg(feature = "rayon")]
     let iter = audio_files.par_iter();
@@ -45,8 +49,13 @@ fn file_test(
         })
         .collect();
 
+    let reference: Vec<String> = reference
+        .iter()
+        .map(helpers::normalize_separators)
+        .collect();
+
     for string in output? {
-        assert!(reference.contains(&string.as_str()))
+        assert!(reference.contains(&string))
     }
 
     Ok(())

@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use log::debug;
-use std::path::{Path, PathBuf};
+use std::path::{Path, PathBuf, MAIN_SEPARATOR};
 
 /// Get the default logging directory.
 pub fn get_log_dir() -> PathBuf {
@@ -88,6 +88,14 @@ pub fn titlecase(string: &str) -> String {
 /// Normalizes newlines
 pub fn normalize_newlines<S: AsRef<str>>(string: &S) -> String {
     string.as_ref().replace("\r\n", "\n").replace("\r", "\n")
+}
+
+/// Normalizes separators
+pub fn normalize_separators<S: AsRef<str>>(string: &S) -> String {
+    string.as_ref().replace(
+        if MAIN_SEPARATOR == '/' { '\\' } else { '/' },
+        &MAIN_SEPARATOR.to_string(),
+    )
 }
 
 /// Preview Prefix

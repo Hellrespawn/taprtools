@@ -6,6 +6,7 @@ use crate::file::audio_file::{self, AudioFile};
 use crate::helpers::{self, pp};
 use crate::tfmt::ast::Program;
 use crate::tfmt::{Interpreter, Lexer, Parser, SemanticAnalyzer};
+use crate::{PREVIEW_AMOUNT, RECURSION_DEPTH};
 use anyhow::{bail, Result};
 use indicatif::{
     ProgressBar, ProgressDrawTarget, ProgressFinish, ProgressStyle,
@@ -40,14 +41,14 @@ impl<'a> Rename<'a> {
         output_folder: &P,
         recursive: bool,
     ) -> Result<()> {
-        // TODO? Explicitly concat cwd and relative path?
         let path = helpers::get_script(script_name, &self.args.config_folder)?;
 
         let program = Parser::<Lexer>::from_path(&path)?.parse()?;
 
-        // TODO Get recursion depth from somewhere.
-        let audio_files =
-            self.get_audio_files(&input_folder, if recursive { 4 } else { 1 })?;
+        let audio_files = self.get_audio_files(
+            &input_folder,
+            if recursive { RECURSION_DEPTH } else { 1 },
+        )?;
 
         if audio_files.is_empty() {
             let s = format!(
@@ -75,8 +76,7 @@ impl<'a> Rename<'a> {
             return Ok(());
         }
 
-        // TODO Get this value from somewhere
-        Self::preview_audio_files(&to_move, 8);
+        Self::preview_audio_files(&to_move, PREVIEW_AMOUNT);
 
         self.rename_audio_files(&to_move)
     }
@@ -147,6 +147,10 @@ impl<'a> Rename<'a> {
 
         type IResult = std::result::Result<Vec<SrcTgtPair>, InterpreterError>;
 
+        // Pushing/joining an absolute path onto another path clobbers that
+        // path. Pushing/joining a relative path onto an empty path overwrites
+        // it entirely. Therefore we can join output_folder unconditionally.
+
         let paths = path_iter
                 .map(|af| {
                     helpers::sleep();
@@ -206,10 +210,7 @@ impl<'a> Rename<'a> {
         if path.is_dir() | (path == Path::new("")) {
             Ok(ActionGroup::new())
         } else if path.exists() {
-            bail!(
-                "Path {} exists, but isn't a directory!",
-                path.display()
-            )
+            bail!("Path {} exists, but isn't a directory!", path.display())
         } else {
             let mut action_group = ActionGroup::new();
 
@@ -322,9 +323,10 @@ impl<'a> Rename<'a> {
 
         print!("{}Removing empty directories... ", pp(self.args.preview));
 
-        action_group.extend(
-            self.remove_dir_recursive(&Rename::get_common_path(paths), 4)?,
-        );
+        action_group.extend(self.remove_dir_recursive(
+            &Rename::get_common_path(paths),
+            RECURSION_DEPTH,
+        )?);
 
         println!("Done.");
 

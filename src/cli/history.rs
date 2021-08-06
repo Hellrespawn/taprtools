@@ -272,22 +272,21 @@ pub enum Action {
 
 impl Display for Action {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // TODO? Check this unwrap.
-        write!(
-            f,
-            "{}",
-            format!("{:?}", self).split_once("{").unwrap().0.trim()
-        )?;
+        // Printing a custom struct/enum seems to always include a curly brace
+        // after the name, so this unwrap should be safe.
+        let string = format!("{:?}", self);
+        let split = string.split_once("{");
+
+        debug_assert!(split.is_some());
+
+        write!(f, "{}", split.unwrap().0.trim())?;
         match self {
             Self::CreateDir { path } | Self::RemoveDir { path } => {
                 write!(f, ": {}", path.display())
             }
-            Self::Rename { source, target } => write!(
-                f,
-                ": {}\nto: {}",
-                source.display(),
-                target.display()
-            ),
+            Self::Rename { source, target } => {
+                write!(f, ": {}\nto: {}", source.display(), target.display())
+            }
         }
     }
 }

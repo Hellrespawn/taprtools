@@ -99,12 +99,17 @@ pub fn get_audio_files(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::RECURSION_DEPTH;
     use anyhow::{bail, Result};
     use std::path::PathBuf;
 
     #[test]
     fn audio_file_test() -> Result<()> {
-        let files = get_audio_files(&PathBuf::from("testdata/music"), 1, None)?;
+        let files = get_audio_files(
+            &PathBuf::from("testdata/music"),
+            RECURSION_DEPTH,
+            None,
+        )?;
 
         assert_eq!(files.len(), 5);
 

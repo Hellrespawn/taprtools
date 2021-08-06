@@ -1,5 +1,6 @@
 use crate::error::InterpreterError;
 use crate::file::audio_file::AudioFile;
+use crate::helpers;
 use crate::tfmt::ast::*;
 use crate::tfmt::function::handle_function;
 use crate::tfmt::token::{
@@ -34,11 +35,13 @@ impl<'a> Interpreter<'a> {
     /// Public function for interpreter.
     pub fn interpret(&mut self) -> Result<String> {
         trace!(r#"In:  "{}""#, self.audio_file.path().display());
-        let path =
-            self.program.accept(self)? + "." + self.audio_file.extension();
-        trace!(r#"Out: "{}""#, path);
 
-        Ok(path)
+        let string = helpers::normalize_separators(&self.program.accept(self)?)
+            + "."
+            + self.audio_file.extension();
+        trace!(r#"Out: "{}""#, string);
+
+        Ok(string)
     }
 
     fn strip_leading_zeroes(number: &str) -> &str {

@@ -1,23 +1,18 @@
 use super::rename::SrcTgtPair;
+use crate::PREVIEW_AMOUNT;
 use anyhow::{bail, Result};
 use log::warn;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-// TODO Get this value from somewhere
-const PREVIEW_AMOUNT: usize = 8;
-
 /// Returns (to_move, no_move)
 pub fn validate<P: AsRef<Path>>(
     paths: &[(P, P)],
 ) -> Result<(Vec<SrcTgtPair>, Vec<SrcTgtPair>)> {
-    // TODO? Extended print output
     validate_collisions(paths)?;
     validate_existing_files(paths)?;
     validate_movement(paths)
 }
-
-// FIXME Get dirseps all the right way around.
 
 fn format_collisions(collisions: &HashMap<&Path, Vec<&Path>>) -> String {
     let length = collisions.len();
@@ -120,6 +115,7 @@ fn validate_existing_files<P: AsRef<Path>>(paths: &[(P, P)]) -> Result<()> {
 fn validate_movement<P: AsRef<Path>>(
     paths: &[(P, P)],
 ) -> Result<(Vec<SrcTgtPair>, Vec<SrcTgtPair>)> {
+    // TODO Print something if there are no files to move.
     let (no_move, to_move): (Vec<SrcTgtPair>, Vec<SrcTgtPair>) = paths
         .iter()
         .map(|(src, tgt)| {
