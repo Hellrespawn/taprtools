@@ -78,7 +78,7 @@ fn action_group_to_string(action_group: &[Action]) -> String {
         match action {
             Action::CreateDir { .. } => create += 1,
             Action::RemoveDir { .. } => remove += 1,
-            Action::Rename { .. } => rename += 1,
+            Action::Move { .. } => rename += 1,
         }
     }
 

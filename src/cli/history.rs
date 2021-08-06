@@ -265,7 +265,7 @@ impl History {
 /// Represents a single, undoable [Action].
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Action {
-    Rename { source: PathBuf, target: PathBuf },
+    Move { source: PathBuf, target: PathBuf },
     CreateDir { path: PathBuf },
     RemoveDir { path: PathBuf },
 }
@@ -284,7 +284,7 @@ impl Display for Action {
             Self::CreateDir { path } | Self::RemoveDir { path } => {
                 write!(f, ": {}", path.display())
             }
-            Self::Rename { source, target } => {
+            Self::Move { source, target } => {
                 write!(f, ": {}\nto: {}", source.display(), target.display())
             }
         }
@@ -292,10 +292,36 @@ impl Display for Action {
 }
 
 impl Action {
+    fn move_file<P, Q>(from: P, to: Q) -> Result<()>
+    where
+        P: AsRef<Path>,
+        Q: AsRef<Path>,
+    {
+        // Rename can't cross filesystems/mountpoints. These error codes
+        // are correct on Windows 10 20H2 and Arch Linux.
+        // TODO? Determine move/copy+remove beforehand?
+        if let Err(err) = std::fs::rename(&from, &to) {
+            #[cfg(windows)]
+            let condition = err.to_string().contains("os error 17");
+
+            #[cfg(unix)]
+            let condition = err.to_string().contains("os error 18");
+
+            if condition {
+                std::fs::copy(&from, &to)?;
+                std::fs::remove_file(&from)?;
+            } else {
+                bail!(err)
+            }
+        }
+
+        Ok(())
+    }
+
     /// Applies or "does" the action.
     pub fn apply(&self, preview: bool) -> Result<()> {
         match self {
-            Action::Rename { source, target } => {
+            Action::Move { source, target } => {
                 trace!(
                     "Renaming:\n\"{}\"\n\"{}\"",
                     &source.display(),
@@ -303,15 +329,7 @@ impl Action {
                 );
 
                 if !preview {
-                    // Rename can't cross filesystems/mountpoints. This error code is correct on Windows.
-                    if let Err(err) = std::fs::rename(source, target) {
-                        if err.to_string().contains("os error 17") {
-                            std::fs::copy(source, target)?;
-                            std::fs::remove_file(source)?;
-                        } else {
-                            bail!(err)
-                        }
-                    }
+                    Action::move_file(source, target)?;
                 }
             }
 
@@ -335,7 +353,7 @@ impl Action {
     /// Undoes the action.
     pub fn undo(&self, preview: bool) -> Result<()> {
         match self {
-            Action::Rename { source, target } => {
+            Action::Move { source, target } => {
                 trace!(
                     "Undoing:\n\"{}\"\n\"{}\"",
                     &target.display(),
@@ -343,14 +361,7 @@ impl Action {
                 );
 
                 if !preview {
-                    if let Err(err) = std::fs::rename(target, source) {
-                        if err.to_string().contains("os error 17") {
-                            std::fs::copy(target, source)?;
-                            std::fs::remove_file(target)?;
-                        } else {
-                            bail!(err)
-                        }
-                    }
+                    Action::move_file(target, source)?;
                 }
             }
 

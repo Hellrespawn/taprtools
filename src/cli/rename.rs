@@ -309,7 +309,7 @@ impl<'a> Rename<'a> {
             action_group
                 .extend(self.create_dir_recursive(&target.parent().unwrap())?);
 
-            let action = Action::Rename {
+            let action = Action::Move {
                 source: PathBuf::from(source),
                 target: PathBuf::from(target),
             };
