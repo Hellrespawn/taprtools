@@ -109,6 +109,7 @@ impl<'a> Rename<'a> {
         Ok(audio_files)
     }
 
+    // FIXME Interpreting bar prints double
     fn interpret_destinations<P: AsRef<Path>>(
         &self,
         audio_files: &[Box<dyn AudioFile>],

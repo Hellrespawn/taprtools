@@ -303,7 +303,15 @@ impl Action {
                 );
 
                 if !preview {
-                    std::fs::rename(source, target)?
+                    // Rename can't cross filesystems/mountpoints. This error code is correct on Windows.
+                    if let Err(err) = std::fs::rename(source, target) {
+                        if err.to_string().contains("os error 17") {
+                            std::fs::copy(source, target)?;
+                            std::fs::remove_file(source)?;
+                        } else {
+                            bail!(err)
+                        }
+                    }
                 }
             }
 
@@ -335,7 +343,14 @@ impl Action {
                 );
 
                 if !preview {
-                    std::fs::rename(target, source)?
+                    if let Err(err) = std::fs::rename(target, source) {
+                        if err.to_string().contains("os error 17") {
+                            std::fs::copy(target, source)?;
+                            std::fs::remove_file(target)?;
+                        } else {
+                            bail!(err)
+                        }
+                    }
                 }
             }
 
