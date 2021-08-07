@@ -343,6 +343,7 @@ impl<'a> Rename<'a> {
                 mode: move_mode,
             };
 
+            // FIXME Handle error here and change mode?
             action.apply(self.args.preview)?;
             action_group.push(action);
 

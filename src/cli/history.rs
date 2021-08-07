@@ -347,30 +347,30 @@ impl Action {
                 target,
                 mode,
             } => {
-                trace!(
-                    "Renaming:\n\"{}\"\n\"{}\"",
-                    &source.display(),
-                    &target.display()
-                );
-
                 if !preview {
                     Action::move_file(source, target, *mode)?;
                 }
+
+                trace!(
+                    "Renamed:\n\"{}\"\n\"{}\"",
+                    &source.display(),
+                    &target.display()
+                );
             }
 
             // TODO? Fail silently if dir already exists?
             Action::CreateDir { path } => {
-                trace!("Creating directory {}", path.display());
                 if !preview {
                     std::fs::create_dir(path)?;
                 }
+                trace!("Created directory {}", path.display());
             }
 
             Action::RemoveDir { path } => {
-                trace!("Removing directory {}", path.display());
                 if !preview {
                     std::fs::remove_dir(path)?;
                 }
+                trace!("Removed directory {}", path.display());
             }
         }
         Ok(())
@@ -384,15 +384,14 @@ impl Action {
                 target,
                 mode,
             } => {
-                trace!(
-                    "Undoing:\n\"{}\"\n\"{}\"",
-                    &target.display(),
-                    &source.display(),
-                );
-
                 if !preview {
                     Action::move_file(target, source, *mode)?;
                 }
+                trace!(
+                    "Undid:\n\"{}\"\n\"{}\"",
+                    &target.display(),
+                    &source.display(),
+                );
             }
 
             Action::CreateDir { path } => {
@@ -400,14 +399,15 @@ impl Action {
                 if !preview {
                     std::fs::remove_dir(path)?;
                 }
+                trace!("Undid directory {}", path.display());
             }
 
             // TODO? Fail silently if dir already exists?
             Action::RemoveDir { path } => {
-                trace!("Recreating directory {}", path.display());
                 if !preview {
                     std::fs::create_dir(path)?;
                 }
+                trace!("Recreated directory {}", path.display());
             }
         }
         Ok(())
