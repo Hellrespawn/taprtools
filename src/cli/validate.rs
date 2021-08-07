@@ -115,7 +115,6 @@ fn validate_existing_files<P: AsRef<Path>>(paths: &[(P, P)]) -> Result<()> {
 fn validate_movement<P: AsRef<Path>>(
     paths: &[(P, P)],
 ) -> Result<(Vec<SrcTgtPair>, Vec<SrcTgtPair>)> {
-    // TODO Print something if there are no files to move.
     let (no_move, to_move): (Vec<SrcTgtPair>, Vec<SrcTgtPair>) = paths
         .iter()
         .map(|(src, tgt)| {

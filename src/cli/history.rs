@@ -275,7 +275,7 @@ pub enum Action {
     Move {
         source: PathBuf,
         target: PathBuf,
-        mode: MoveMode,
+        move_mode: MoveMode,
     },
     CreateDir {
         path: PathBuf,
@@ -302,12 +302,12 @@ impl Display for Action {
             Self::Move {
                 source,
                 target,
-                mode,
+                move_mode,
             } => {
                 write!(
                     f,
                     " ({}): {}\nto: {}",
-                    match mode {
+                    match move_mode {
                         MoveMode::CopyRemove => "cp",
                         MoveMode::Rename => "rn",
                     },
@@ -320,19 +320,31 @@ impl Display for Action {
 }
 
 impl Action {
-    fn move_file<P, Q>(from: P, to: Q, mode: MoveMode) -> Result<()>
+    pub fn new_move<P, Q>(source: P, target: Q, move_mode: MoveMode) -> Self
     where
         P: AsRef<Path>,
         Q: AsRef<Path>,
     {
-        match mode {
+        Action::Move {
+            source: PathBuf::from(source.as_ref()),
+            target: PathBuf::from(target.as_ref()),
+            move_mode,
+        }
+    }
+
+    fn move_file<P, Q>(source: P, target: Q, move_mode: MoveMode) -> Result<()>
+    where
+        P: AsRef<Path>,
+        Q: AsRef<Path>,
+    {
+        match move_mode {
             MoveMode::CopyRemove => {
-                std::fs::copy(&from, &to)?;
-                std::fs::remove_file(&from)?;
+                std::fs::copy(&source, &target)?;
+                std::fs::remove_file(&source)?;
             }
 
             MoveMode::Rename => {
-                std::fs::rename(&from, &to)?;
+                std::fs::rename(&source, &target)?;
             }
         }
 
@@ -345,10 +357,10 @@ impl Action {
             Action::Move {
                 source,
                 target,
-                mode,
+                move_mode,
             } => {
                 if !preview {
-                    Action::move_file(source, target, *mode)?;
+                    Action::move_file(source, target, *move_mode)?;
                 }
 
                 trace!(
@@ -382,10 +394,10 @@ impl Action {
             Action::Move {
                 source,
                 target,
-                mode,
+                move_mode,
             } => {
                 if !preview {
-                    Action::move_file(target, source, *mode)?;
+                    Action::move_file(target, source, *move_mode)?;
                 }
                 trace!(
                     "Undid:\n\"{}\"\n\"{}\"",

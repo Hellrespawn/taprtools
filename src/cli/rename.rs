@@ -88,14 +88,12 @@ impl<'a> Rename<'a> {
     ) -> Result<Vec<Box<dyn AudioFile>>> {
         let progress_bar = ProgressBar::new(0);
 
-        let template = format!(
-            "{}[{{pos}}/{{len}} audio files/total files] {{spinner}}",
-            pp(self.args.preview)
-        );
-
         progress_bar.set_style(
             ProgressStyle::default_spinner()
-                .template(&template)
+                .template(&format!(
+                    "{}[{{pos}}/{{len}} audio files/total files] {{spinner}}",
+                    pp(self.args.preview)
+                ))
                 .on_finish(ProgressFinish::AtCurrentPos),
         );
         progress_bar.set_draw_target(ProgressDrawTarget::stdout());
@@ -125,17 +123,15 @@ impl<'a> Rename<'a> {
 
         let progress_bar = ProgressBar::new(audio_files.len().try_into()?);
 
-        let template = format!(
-            "{}[{{pos}}/{{len}}] {{msg:<21}} {{wide_bar}}",
-            pp(self.args.preview)
-        );
-
         progress_bar.set_style(
-            ProgressStyle::default_bar().template(&template).on_finish(
-                ProgressFinish::WithMessage(std::borrow::Cow::Borrowed(
-                    "Interpreted.",
+            ProgressStyle::default_bar()
+                .template(&format!(
+                    "{}[{{pos}}/{{len}}] {{msg:<21}} {{wide_bar}}",
+                    pp(self.args.preview)
+                ))
+                .on_finish(ProgressFinish::WithMessage(
+                    std::borrow::Cow::Borrowed("Interpreted."),
                 )),
-            ),
         );
         progress_bar.set_draw_target(ProgressDrawTarget::stdout());
         progress_bar.set_message("Interpreting files...");
@@ -287,47 +283,22 @@ impl<'a> Rename<'a> {
     fn rename_audio_files(&self, paths: &[(PathBuf, PathBuf)]) -> Result<()> {
         let progress_bar = ProgressBar::new(paths.len().try_into()?);
 
-        let template = format!(
-            "{}[{{pos}}/{{len}}] {{msg:<21}} {{wide_bar}}",
-            pp(self.args.preview)
-        );
-
         progress_bar.set_style(
-            ProgressStyle::default_bar().template(&template).on_finish(
-                ProgressFinish::WithMessage(std::borrow::Cow::Borrowed(
-                    "Renamed.",
+            ProgressStyle::default_bar()
+                .template(&format!(
+                    "{}[{{pos}}/{{len}}] {{msg:<21}} {{wide_bar}}",
+                    pp(self.args.preview)
+                ))
+                .on_finish(ProgressFinish::WithMessage(
+                    std::borrow::Cow::Borrowed("Renamed."),
                 )),
-            ),
         );
         progress_bar.set_draw_target(ProgressDrawTarget::stdout());
         progress_bar.set_message("Renaming files...");
 
         let mut action_group = ActionGroup::new();
 
-        // TODO Test this somehow?
-        // These paths are all files, so should always have at least one
-        // component, making unwrap() safe.
-        debug_assert!(
-            paths.iter().next().is_some()
-                && paths.iter().next().unwrap().0.components().next().is_some()
-        );
-        debug_assert!(
-            paths.iter().next().is_some()
-                && paths.iter().next().unwrap().1.components().next().is_some()
-        );
-
-        // At this point, source is canonicalized by {MP3, OGG}::try_from
-        // and target is canonicalized by rename::interpret_destinations.
-        // FIXME fix this
-        let move_mode = if paths.iter().any(|(src, tgt)| {
-            src.components().next().unwrap() == tgt.components().next().unwrap()
-        }) {
-            info!("Renaming files.");
-            MoveMode::Rename
-        } else {
-            info!("Copying and removing files.");
-            MoveMode::CopyRemove
-        };
+        let mut move_mode = MoveMode::Rename;
 
         for (source, target) in paths {
             // These paths are all files, so should always have at
@@ -337,15 +308,37 @@ impl<'a> Rename<'a> {
             action_group
                 .extend(self.create_dir_recursive(&target.parent().unwrap())?);
 
-            let action = Action::Move {
-                source: PathBuf::from(source),
-                target: PathBuf::from(target),
-                mode: move_mode,
-            };
+            action_group.push({
+                let action = Action::new_move(source, target, move_mode);
 
-            // FIXME Handle error here and change mode?
-            action.apply(self.args.preview)?;
-            action_group.push(action);
+                if let Err(err) = action.apply(self.args.preview) {
+                    // Can't rename across filesystem boundaries. Checks for
+                    // the appropriate error and changes the mode henceforth.
+                    // Error codes are correct on Windows 10 20H2 and Arch
+                    // Linux.
+
+                    #[cfg(windows)]
+                    let condition = err.to_string().contains("os error 17");
+
+                    #[cfg(unix)]
+                    let condition = err.to_string().contains("os error 18");
+
+                    if condition {
+                        info!("Changing mode to copy/remove");
+                        move_mode = MoveMode::CopyRemove;
+
+                        let action =
+                            Action::new_move(source, target, move_mode);
+
+                        action.apply(self.args.preview)?;
+                        action
+                    } else {
+                        bail!(err)
+                    }
+                } else {
+                    action
+                }
+            });
 
             progress_bar.inc(1);
         }
