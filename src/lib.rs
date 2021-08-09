@@ -18,3 +18,5 @@ pub mod file;
 pub mod helpers;
 /// TagFormat-related modules.
 pub mod tfmt;
+
+pub mod new_error;

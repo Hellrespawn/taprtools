@@ -1,43 +1,26 @@
 use super::buffered_iterator::{Buffered, BufferedIterator};
-use super::new_token::{self, Token, TokenType};
-use crate::error::LexerError;
+use super::new_token::{
+    Token, TokenType, FORBIDDEN_GRAPHEMES, LOOKAHEAD_DEPTH,
+};
+use crate::new_error::LexerError;
 use log::{debug, trace};
 use unicode_segmentation::{Graphemes, UnicodeSegmentation};
 
+/// The [Result] that a [Lexer] returns.
+pub type LexerResult = std::result::Result<Token, LexerError>;
 type Result<T> = std::result::Result<T, LexerError>;
 
-pub struct Lexer<'a, I>
-where
-    I: Iterator<Item = &'a str>,
-{
-    //input_text: String,
-    iterator: BufferedIterator<I>,
+pub struct Lexer<'a> {
+    buffer: BufferedIterator<Graphemes<'a>>,
     line_no: u64,
     col_no: u64,
 }
 
-impl<'a> Lexer<'a, Graphemes<'a>> {
-    pub fn new<S: AsRef<str>>(input_text: &S) -> Lexer<Graphemes> {
-        let input_text = input_text.as_ref();
-        let lexer = Lexer {
-            //input_text: String::from(input_text),
-            iterator: input_text.graphemes(true).buffered(),
-            line_no: 1,
-            col_no: 1,
-        };
-        debug!("Creating lexer:\n{}", input_text);
-        lexer
-    }
-}
-
-impl<'a, I> Iterator for Lexer<'a, I>
-where
-    I: Iterator<Item = &'a str>,
-{
+impl<'a> Iterator for Lexer<'a> {
     type Item = Result<Token>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let grapheme = match self.iterator.peek() {
+        let grapheme = match self.buffer.peek() {
             Some(g) => g,
             None => return None,
         };
@@ -57,17 +40,25 @@ where
     }
 }
 
-impl<'a, I> Lexer<'a, I>
-where
-    I: Iterator<Item = &'a str>,
-{
+impl<'a> Lexer<'a> {
+    pub fn new<S: AsRef<str>>(input_text: &S) -> Lexer {
+        let input_text = input_text.as_ref();
+        let lexer = Lexer {
+            //input_text: String::from(input_text),
+            buffer: input_text.graphemes(true).buffered(),
+            line_no: 1,
+            col_no: 1,
+        };
+        debug!("Creating lexer:\n{}", input_text);
+        lexer
+    }
+
     fn advance(&mut self, amount: usize) {
         for _ in 0..amount {
-            //self.current_grapheme = self.iterator.next();
-            let s = self.iterator.next();
+            let current_grapheme = self.buffer.next();
 
             // FIXME Normalize newlines!
-            if s == Some("\n") {
+            if current_grapheme == Some("\n") {
                 self.line_no += 1;
                 self.col_no = 1;
             } else {
@@ -76,22 +67,13 @@ where
         }
     }
 
-    fn lookahead(&mut self, amount: usize) -> &[&str] {
-        self.iterator.peekn(amount)
-    }
-
-    // fn test_lookahead(&mut self, string: &str) -> bool {
-    //     self.iterator.peekn(string.len()).join("") == string
-    // }
-
     pub fn crawl<P>(&mut self, predicate: P, discard: usize) -> Option<String>
     where
-        P: Fn(&I::Item) -> bool,
+        P: Fn(&&str) -> bool,
     {
-        if let Some(i) = self.iterator.findi(predicate) {
-            let string = self.lookahead(i).join("");
+        if let Some(i) = self.buffer.findi(predicate) {
+            let string = self.buffer.peekn(i).join("");
             trace!(r#"Crawl: {}"#, string);
-            // TODO Why off by one here?
             self.advance(i + discard);
             Some(string)
         } else {
@@ -102,15 +84,11 @@ where
     fn handle_single_line_string(&mut self, quote: &str) -> Result<String> {
         self.advance(1);
         match self.crawl(|s| *s == quote, 1) {
-            None => Err(LexerError::Generic(
-                "Input ran out looking for quote!".to_string(),
-            )),
+            None => Err(LexerError::ExhaustedText(quote.to_string())),
             Some(s) => {
                 // FIXME Normalize newlines!
                 if s.contains('\n') {
-                    Err(LexerError::Generic(
-                        "Encountered newline in string!".to_string(),
-                    ))
+                    Err(LexerError::NewlineInString(s))
                 } else {
                     Ok(s)
                 }
@@ -121,25 +99,24 @@ where
     fn handle_multiline_string(&mut self, quote: &str) -> Result<String> {
         self.advance(3);
 
+        let triple_quote = quote.repeat(3);
+
         let mut string = String::new();
 
         loop {
             match self.crawl(|s| *s == quote, 0) {
-                None => {
-                    return Err(LexerError::Generic(
-                        "Input ran out looking for triple quote!".to_string(),
-                    ))
-                }
+                None => return Err(LexerError::ExhaustedText(triple_quote)),
                 Some(s) => string += &s,
             }
 
-            let peek = self.lookahead(3);
+            let peek = self.buffer.peekn(3);
 
             if peek.len() != 3 {
-                return Err(LexerError::Generic(
-                    "Input ends with single quote!".to_string(),
-                ));
-            } else if peek.join("") == quote.repeat(3) {
+                return Err(LexerError::WrongTerminatorAtEOF {
+                    found: quote.to_string(),
+                    expected: triple_quote,
+                });
+            } else if peek.join("") == triple_quote {
                 break;
             } else {
                 string += quote;
@@ -155,21 +132,23 @@ where
     fn handle_string(&mut self) -> Result<Token> {
         let (line_no, col_no) = (self.line_no, self.col_no);
 
-        let quote = *self.iterator.peek().unwrap();
+        // self.next() already checks for None, so this unwrap should be safe.
+        debug_assert!(self.buffer.peek().is_some());
 
-        let string = if self.lookahead(3).iter().all(|s| *s == quote) {
+        let quote = *self.buffer.peek().unwrap();
+
+        let string = if self.buffer.peekn(3).iter().all(|s| *s == quote) {
             self.handle_multiline_string(quote)
         } else {
             self.handle_single_line_string(quote)
         }?;
 
-        if string
-            .graphemes(true)
-            .any(|s| new_token::FORBIDDEN_GRAPHEMES.contains(&s))
-        {
-            return Err(LexerError::Generic(
-                "Forbidden grapheme in string!".to_string(),
-            ));
+        for grapheme in string.graphemes(true) {
+            if FORBIDDEN_GRAPHEMES.contains(&grapheme) {
+                return Err(LexerError::ForbiddenGrapheme(
+                    grapheme.to_string(),
+                ));
+            }
         }
 
         Ok(Token::new(TokenType::String(string), line_no, col_no))
@@ -184,7 +163,7 @@ where
             None => {
                 // Skips final "/"
                 let mut string = String::new();
-                while let Some(grapheme) = self.iterator.peek() {
+                while let Some(grapheme) = self.buffer.peek() {
                     string += grapheme;
                     self.advance(1)
                 }
@@ -200,19 +179,18 @@ where
         loop {
             match self.crawl(|s| *s == "*", 0) {
                 None => {
-                    return Err(LexerError::Generic(
-                        "Input ran out looking for */!".to_string(),
-                    ))
+                    return Err(LexerError::ExhaustedText("*/".to_string()))
                 }
                 Some(s) => string += &s,
             }
 
-            let peek = self.lookahead(2);
+            let peek = self.buffer.peekn(2);
 
             if peek.len() != 2 {
-                return Err(LexerError::Generic(
-                    "Input ends with *!".to_string(),
-                ));
+                return Err(LexerError::WrongTerminatorAtEOF {
+                    found: "*".to_string(),
+                    expected: "*/".to_string(),
+                });
             } else if peek == ["*", "/"] {
                 break;
             } else {
@@ -229,14 +207,14 @@ where
     fn handle_comment(&mut self) -> Result<Option<Token>> {
         let (line_no, col_no) = (self.line_no, self.col_no);
 
-        if self.lookahead(2) == ["/", "/"] {
+        if self.buffer.peekn(2) == ["/", "/"] {
             self.advance(2);
             Ok(Some(Token::new(
                 TokenType::Comment(self.handle_single_line_comment()?),
                 line_no,
                 col_no,
             )))
-        } else if self.lookahead(2) == ["/", "*"] {
+        } else if self.buffer.peekn(2) == ["/", "*"] {
             self.advance(2);
             Ok(Some(Token::new(
                 TokenType::Comment(self.handle_multiline_comment()?),
@@ -248,36 +226,15 @@ where
         }
     }
 
-    // fn handle_multiline_comment(&mut self) -> Result<Token> {
-    //     let (line_no, col_no) = (self.line_no, self.col_no);
-
-    //     let mut string = String::new();
-
-    //     while self.lookahead(2) != ["*", "/"] {
-    //         match self.crawl(|s| *s == "*", 0) {
-    //             None => {
-    //                 return Err(LexerError::Generic(
-    //                     "Unterminated multiline comment!".to_string(),
-    //                 ))
-    //             }
-    //             Some(s) => string += &s,
-    //         }
-    //     }
-
-    //     self.advance(2);
-
-    //     Ok(Token::new(TokenType::Comment(string), line_no, col_no))
-    // }
-
     fn handle_bounded(&mut self) -> Result<Option<Token>> {
         // self.next() already checks for None, so this unwrap should be safe.
-        debug_assert!(self.iterator.peek().is_some());
+        debug_assert!(self.buffer.peek().is_some());
 
-        let current_grapheme = self.iterator.peek().unwrap();
+        let current_grapheme = self.buffer.peek().unwrap();
 
         if ["\"", "'"].contains(current_grapheme) {
             Ok(Some(self.handle_string()?))
-        } else if self.lookahead(1) == ["/"] {
+        } else if self.buffer.peekn(1) == ["/"] {
             self.handle_comment()
         } else {
             Ok(None)
@@ -286,9 +243,9 @@ where
 
     fn handle_reserved(&mut self) -> Option<Token> {
         // TODO? Better descending range?
-        for i in (0..new_token::LOOKAHEAD).rev() {
+        for i in (0..LOOKAHEAD_DEPTH).rev() {
             // self.next() already checks for None, so this unwrap should be safe.
-            let string = self.lookahead(i + 1).join("");
+            let string = self.buffer.peekn(i + 1).join("");
 
             let result = Token::from_str(&string, self.line_no, self.col_no);
             if let Ok(t) = result {
@@ -309,7 +266,7 @@ where
             .crawl(|s| s.chars().any(|c| !(c.is_alphanumeric() || c == '_')), 0)
             .unwrap_or_else(|| {
                 let mut string = String::new();
-                while let Some(grapheme) = self.iterator.peek() {
+                while let Some(grapheme) = self.buffer.peek() {
                     string += grapheme;
                     self.advance(1);
                 }
@@ -361,25 +318,35 @@ mod tests {
         slice_ends(&string, 1, 1)
     }
 
+    fn generic_test(
+        input: &str,
+        expected_type: TokenType,
+        name: &str,
+        option: Option<Token>,
+    ) -> Result<()> {
+        match option {
+            Some(token) => {
+                assert_eq!(token.token_type, expected_type,);
+                Ok(())
+            }
+            None => {
+                bail!(r#"{}: unable to parse "{}" as Token"#, name, input)
+            }
+        }
+    }
+
     mod handle_reserved {
         use super::*;
 
         fn reserved_test(input: &str, expected_type: TokenType) -> Result<()> {
             let mut lex = Lexer::new(&input);
 
-            match lex.handle_reserved() {
-                Some(token) => {
-                    assert_eq!(
-                        token.token_type, expected_type,
-                        "reserved: got {:?}\texpected {:?}",
-                        token.token_type, expected_type
-                    );
-                    Ok(())
-                }
-                None => {
-                    bail!("reserved: unable to parse {} as Token", input)
-                }
-            }
+            generic_test(
+                input,
+                expected_type,
+                "reserved_test",
+                lex.handle_reserved(),
+            )
         }
 
         #[test]
@@ -400,26 +367,37 @@ mod tests {
     mod handle_bounded {
         use super::*;
 
-        fn bounded_test(
-            input: &str,
-            expected_type: TokenType,
-        ) -> Result<Token> {
+        fn bounded_test(input: &str, expected_type: TokenType) -> Result<()> {
             let mut lex = Lexer::new(&input);
 
-            match lex.handle_bounded()? {
-                Some(token) => {
-                    assert_eq!(
-                        token.token_type,
-                        expected_type,
-                        // "bounded_type: got {:?}, expected {:?}",
-                        // token.token_type, expected_type
-                    );
+            generic_test(
+                input,
+                expected_type,
+                "bounded_test",
+                lex.handle_bounded()?,
+            )
+        }
 
-                    Ok(token)
+        fn error_test(
+            result: Result<()>,
+            expected_error: LexerError,
+            name: &str,
+        ) -> Result<()> {
+            if let Err(err) = result {
+                match err.downcast_ref::<LexerError>() {
+                    Some(err) if *err == expected_error => Ok(()),
+                    Some(err) => {
+                        bail!(
+                            "Unexpected error in {}():\n{}\nExpected:\n{}",
+                            name,
+                            err,
+                            expected_error
+                        )
+                    }
+                    None => bail!("Error in downcasting error!"),
                 }
-                None => {
-                    bail!("bounded: unable to parse {} as Token", input)
-                }
+            } else {
+                bail!("{}() did not return an error as expected!", name)
             }
         }
 
@@ -447,83 +425,64 @@ mod tests {
 
         #[test]
         fn new_lexer_newline_in_string_test() -> Result<()> {
-            if let Err(err) = bounded_test(
-                NEWLINE_IN_STRING,
-                TokenType::String(String::new()),
-            ) {
-                if !err.to_string().contains("Encountered newline in string") {
-                    bail!(
-                        "unterminated string {} did not return expected error!",
-                        NEWLINE_IN_STRING
-                    );
-                }
-            }
-
-            Ok(())
+            error_test(
+                bounded_test(
+                    NEWLINE_IN_STRING,
+                    TokenType::String(String::new()),
+                ),
+                LexerError::NewlineInString(
+                    dequote(NEWLINE_IN_STRING).to_string(),
+                ),
+                "newline_in_string_test",
+            )
         }
 
         #[test]
         fn new_lexer_forbidden_graphemes_test() -> Result<()> {
-            match bounded_test(STRING_WITH_FORBIDDEN_GRAPHEMES, TokenType::String(String::new())) {
-                Ok(token) => bail!("Lexer did not error on forbidden characters, returned {:?}", token),
-                Err(err) => {
-                    if err.to_string().contains("Forbidden grapheme") {
-                        Ok(())
-                    } else {
-                        bail!("Unrelated error {:?}!", err)
-                    }
-                }
-            }
+            error_test(
+                bounded_test(
+                    STRING_WITH_FORBIDDEN_GRAPHEMES,
+                    TokenType::String(String::new()),
+                ),
+                LexerError::ForbiddenGrapheme("|".to_string()),
+                "forbidden_graphemes_test",
+            )
         }
 
         #[test]
         fn new_lexer_unterminated_single_line_string_test() -> Result<()> {
-            if let Err(err) = bounded_test(
-                UNTERMINATED_STRING,
-                TokenType::String(String::new()),
-            ) {
-                if !err.to_string().contains("Input ran out looking for quote")
-                {
-                    bail!(
-                        "unterminated string {} did not return expected error!",
-                        UNTERMINATED_STRING
-                    );
-                }
-            }
-
-            Ok(())
+            error_test(
+                bounded_test(
+                    UNTERMINATED_STRING,
+                    TokenType::String(String::new()),
+                ),
+                LexerError::ExhaustedText("\"".to_string()),
+                "unterminated_single_line_string_test",
+            )
         }
 
         #[test]
         fn new_lexer_unterminated_multiline_string_test() -> Result<()> {
-            if let Err(err) = bounded_test(
-                UNTERMINATED_MULTILINE_STRING,
-                TokenType::String(String::new()),
-            ) {
-                if !err.to_string().contains("Input ends with single quote") {
-                    bail!(
-                        "unterminated string {} did not return expected error!",
-                        UNTERMINATED_MULTILINE_STRING
-                    );
-                }
-            }
+            error_test(
+                bounded_test(
+                    UNTERMINATED_MULTILINE_STRING,
+                    TokenType::String(String::new()),
+                ),
+                LexerError::WrongTerminatorAtEOF {
+                    found: "'".to_string(),
+                    expected: "'''".to_string(),
+                },
+                "unterminated_multiline_string_test",
+            )?;
 
-            if let Err(err) = bounded_test(
-                &(UNTERMINATED_MULTILINE_STRING.to_string() + "abcd"),
-                TokenType::String(String::new()),
-            ) {
-                if !err
-                    .to_string()
-                    .contains("Input ran out looking for triple quote")
-                {
-                    bail!(
-                        "unterminated string {} did not return expected error!",
-                        UNTERMINATED_MULTILINE_STRING
-                    );
-                }
-            }
-
-            Ok(())
+            error_test(
+                bounded_test(
+                    &(UNTERMINATED_MULTILINE_STRING.to_string() + "abcd"),
+                    TokenType::String(String::new()),
+                ),
+                LexerError::ExhaustedText("'''".to_string()),
+                "unterminated_multiline_string_test",
+            )
         }
 
         #[test]
@@ -561,16 +520,14 @@ mod tests {
 
         #[test]
         fn new_lexer_unterminated_comment_test() -> Result<()> {
-            if let Err(err) = bounded_test(
-                UNTERMINATED_COMMENT,
-                TokenType::Comment(String::new()),
-            ) {
-                if !err.to_string().contains("Input ran out looking for */") {
-                    bail!("unterminated_comment {} did not return expected error!", UNTERMINATED_COMMENT);
-                }
-            }
-
-            Ok(())
+            error_test(
+                bounded_test(
+                    UNTERMINATED_COMMENT,
+                    TokenType::Comment(String::new()),
+                ),
+                LexerError::ExhaustedText("*/".to_string()),
+                "unterminated_comment_test",
+            )
         }
     }
 
@@ -580,20 +537,7 @@ mod tests {
         fn misc_test(input: &str, expected_type: TokenType) -> Result<()> {
             let mut lex = Lexer::new(&input);
 
-            match lex.handle_misc() {
-                Some(token) => {
-                    assert_eq!(
-                        token.token_type, expected_type,
-                        "misc_type: got {:?}, expected {:?}",
-                        token.token_type, expected_type
-                    );
-
-                    Ok(())
-                }
-                None => {
-                    bail!("misc: unable to parse {} as Token", input)
-                }
-            }
+            generic_test(input, expected_type, "misc_test", lex.handle_misc())
         }
         #[test]
         fn new_lexer_id_test() -> Result<()> {

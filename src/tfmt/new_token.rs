@@ -1,9 +1,9 @@
-use crate::error::TokenError;
+use crate::new_error::TokenError;
 use std::str::FromStr;
 
 type Result<T> = std::result::Result<T, TokenError>;
 
-pub const LOOKAHEAD: usize = 2;
+pub const LOOKAHEAD_DEPTH: usize = 2;
 
 /// Forbidden graphemes that are part of TFMT.
 pub const FORBIDDEN_GRAPHEMES: [&str; 8] =
@@ -71,23 +71,14 @@ impl FromStr for TokenType {
             "%" => Self::Percent,
             "+" => Self::Plus,
             "?" => Self::QuestionMark,
-            //"\"" => Self::QuoteDouble,
-            //"'" => Self::QuoteSingle,
             "\\" => Self::SlashBack,
             "/" => Self::SlashForward,
             "|" => Self::VerticalBar,
             //
-            //"*/" => Self::AsteriskSlash,
             "&&" => Self::DoubleAmpersand,
             "**" => Self::DoubleAsterisk,
             "||" => Self::DoubleVerticalBar,
-            //"/*" => Self::SlashAsterisk,
-            _ => {
-                return Err(TokenError::Generic(format!(
-                    r#"Unable to parse "{}" as a TokenType!"#,
-                    s
-                )))
-            }
+            s => return Err(TokenError::InvalidType(s.to_string())),
         })
     }
 }
