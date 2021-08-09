@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 #[allow(dead_code)]
 pub fn init_logger() {
-    tfmttools::cli::logging::setup_logger(5, "tfmttools-test")
+    tfmttools::cli::logging::setup_logger(5, "tfmttools")
         .expect("Error in setup_logger");
 }
 

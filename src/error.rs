@@ -6,6 +6,9 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 /// Error from the [token] module.
 pub enum TokenError {
+    #[error("TokenError: {0}")]
+    Generic(String),
+
     #[error(r#""{0}" is not a valid TokenType!"#)]
     /// Invalid [TokenType].
     InvalidType(String),

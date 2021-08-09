@@ -82,7 +82,7 @@ impl Lexer {
     }
 
     /// Returns [true] if the lookahead matches string
-    fn teast_lookahead(&self, string: &str) -> bool {
+    fn test_lookahead(&self, string: &str) -> bool {
         let bound = std::cmp::min(self.text.len(), self.index + string.len());
         let lookahead = self.text.get(self.index..bound).map(|s| s.join(""));
 
@@ -136,7 +136,7 @@ impl Lexer {
             match self.current_grapheme() {
                 Ok(grapheme) => {
                     for terminator in terminators {
-                        if self.teast_lookahead(terminator) {
+                        if self.test_lookahead(terminator) {
                             if discard_terminator {
                                 // "test_current_string(terminator) == true,
                                 // so unwrap() should always succeed!"
@@ -208,7 +208,7 @@ impl Lexer {
 
         if quotes.contains(current_grapheme) {
             let multiline =
-                self.teast_lookahead(&format!("{0}{0}{0}", current_grapheme));
+                self.test_lookahead(&format!("{0}{0}{0}", current_grapheme));
 
             Ok(Some(Token::new(
                 self.line_no,
@@ -226,7 +226,7 @@ impl Lexer {
                 TokenType::Comment,
                 Some(self.crawl(&["\n"], true, true)?),
             )?))
-        } else if self.teast_lookahead(multiline_comment_start) {
+        } else if self.test_lookahead(multiline_comment_start) {
             self.advance_times(multiline_comment_start.len().try_into()?)
                 .unwrap();
 
@@ -244,7 +244,7 @@ impl Lexer {
     /// Handle [Token]s involving reserved strings
     fn handle_reserved(&mut self) -> Result<Option<Token>> {
         for string in TokenType::reserved_strings() {
-            if self.teast_lookahead(string) {
+            if self.test_lookahead(string) {
                 // Uses string from TokenType::string_map(), unwrap should
                 // always be safe.
                 let token = Token::new_type_from_string(
@@ -368,16 +368,6 @@ mod tests {
 
     fn dequote(string: &str) -> &str {
         slice_ends(&string, 1, 1)
-    }
-
-    #[test]
-    fn lexer_normalize_test() {
-        let input =
-            "This \n string \r has \r\n CRs and \r\r\n\n LFs mixed together!";
-        assert_eq!(
-            normalize_newlines(&input),
-            "This \n string \n has \n CRs and \n\n\n LFs mixed together!"
-        );
     }
 
     mod handle_reserved {

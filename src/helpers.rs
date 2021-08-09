@@ -8,11 +8,12 @@ pub fn get_log_dir() -> PathBuf {
 }
 
 /// Search a path
-pub fn search_path<P: AsRef<Path>>(
-    path: &P,
-    condition: fn(&Path) -> bool,
-    depth: u64,
-) -> Vec<PathBuf> {
+pub fn search_path<P, Q>(path: &P, predicate: Q, depth: u64) -> Vec<PathBuf>
+where
+    P: AsRef<Path>,
+    // TODO Find out why Copy is necessary.
+    Q: Copy + Fn(&Path) -> bool,
+{
     if depth == 0 {
         return Vec::new();
     }
@@ -23,12 +24,12 @@ pub fn search_path<P: AsRef<Path>>(
         for entry in iter.flatten() {
             let entry_path = entry.path();
 
-            if entry_path.is_file() && condition(&entry_path) {
+            if entry_path.is_file() && predicate(&entry_path) {
                 found_paths.push(entry_path)
             } else if entry_path.is_dir() {
                 found_paths.extend(search_path(
                     &entry_path,
-                    condition,
+                    predicate,
                     depth - 1,
                 ))
             }
@@ -104,5 +105,20 @@ pub fn pp(preview: bool) -> &'static str {
         "[P] "
     } else {
         ""
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn helpers_normalize_test() {
+        let input =
+            "This \n string \r has \r\n CRs and \r\r\n\n LFs mixed together!";
+        assert_eq!(
+            normalize_newlines(&input),
+            "This \n string \n has \n CRs and \n\n\n LFs mixed together!"
+        );
     }
 }

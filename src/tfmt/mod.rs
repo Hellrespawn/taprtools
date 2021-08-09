@@ -17,6 +17,10 @@ pub mod visitor;
 /// AST Dot Generator
 pub mod visualizer;
 
+pub mod buffered_iterator;
+pub mod new_lexer;
+pub mod new_token;
+
 pub use interpreter::Interpreter;
 pub use lexer::{Lexer, LexerResult};
 pub use parser::Parser;

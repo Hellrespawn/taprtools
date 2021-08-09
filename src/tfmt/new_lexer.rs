@@ -1,8 +1,8 @@
 use super::buffered_iterator::{Buffered, BufferedIterator};
 use super::new_token::{self, Token, TokenType};
 use crate::error::LexerError;
-use unicode_segmentation::{Graphemes, UnicodeSegmentation};
 use log::{debug, trace};
+use unicode_segmentation::{Graphemes, UnicodeSegmentation};
 
 type Result<T> = std::result::Result<T, LexerError>;
 
@@ -12,9 +12,22 @@ where
 {
     //input_text: String,
     iterator: BufferedIterator<I>,
-    current_grapheme: Option<&'a str>,
     line_no: u64,
     col_no: u64,
+}
+
+impl<'a> Lexer<'a, Graphemes<'a>> {
+    pub fn new<S: AsRef<str>>(input_text: &S) -> Lexer<Graphemes> {
+        let input_text = input_text.as_ref();
+        let lexer = Lexer {
+            //input_text: String::from(input_text),
+            iterator: input_text.graphemes(true).buffered(),
+            line_no: 1,
+            col_no: 1,
+        };
+        debug!("Creating lexer:\n{}", input_text);
+        lexer
+    }
 }
 
 impl<'a, I> Iterator for Lexer<'a, I>
@@ -24,44 +37,23 @@ where
     type Item = Result<Token>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let grapheme = match self.current_grapheme {
+        let grapheme = match self.iterator.peek() {
             Some(g) => g,
             None => return None,
         };
 
-        let option = if grapheme.chars().all(|c| c.is_whitespace()) {
+        if grapheme.chars().all(|c| c.is_whitespace()) {
             self.advance(1);
             self.next()
-        } else if let Some(result) = self.handle_bounded().transpose() {
-            Some(result)
-        } else if let Some(token) = self.handle_reserved() {
-            Some(Ok(token))
-        } else if let Some(token) = self.handle_misc() {
-            Some(Ok(token))
         } else {
-            None
-        };
-
-        trace!("{:#?}", option);
-
-        self.advance(1);
-        option
-    }
-}
-
-impl<'a> Lexer<'a, Graphemes<'a>> {
-    pub fn new<S: AsRef<str>>(input_text: &S) -> Lexer<Graphemes> {
-        let input_text = input_text.as_ref();
-        let mut lexer = Lexer {
-            //input_text: String::from(input_text),
-            iterator: input_text.graphemes(true).buffered(),
-            current_grapheme: None,
-            line_no: 0,
-            col_no: 0,
-        };
-        lexer.advance(1);
-        debug!("Creating lexer:\n{}", input_text);
-        lexer
+            let option = self.handle_bounded().transpose().or_else(|| {
+                self.handle_reserved()
+                    .map(Ok)
+                    .or_else(|| self.handle_misc().map(Ok))
+            });
+            trace!("{:#?}", option);
+            option
+        }
     }
 }
 
@@ -71,12 +63,13 @@ where
 {
     fn advance(&mut self, amount: usize) {
         for _ in 0..amount {
-            self.current_grapheme = self.iterator.next();
+            //self.current_grapheme = self.iterator.next();
+            let s = self.iterator.next();
 
             // FIXME Normalize newlines!
-            if self.current_grapheme.unwrap_or("") == "\n" {
-                self.line_no = 0;
-                self.col_no += 1;
+            if s == Some("\n") {
+                self.line_no += 1;
+                self.col_no = 1;
             } else {
                 self.col_no += 1;
             }
@@ -97,8 +90,9 @@ where
     {
         if let Some(i) = self.iterator.findi(predicate) {
             let string = self.lookahead(i).join("");
-            self.advance(i + discard);
             trace!(r#"Crawl: {}"#, string);
+            // TODO Why off by one here?
+            self.advance(i + discard);
             Some(string)
         } else {
             None
@@ -106,27 +100,26 @@ where
     }
 
     fn handle_single_line_string(&mut self, quote: &str) -> Result<String> {
+        self.advance(1);
         match self.crawl(|s| *s == quote, 1) {
-            None => {
-                return Err(LexerError::Generic(
-                    "Input ran out looking for quote!".to_string(),
-                ))
-            }
+            None => Err(LexerError::Generic(
+                "Input ran out looking for quote!".to_string(),
+            )),
             Some(s) => {
                 // FIXME Normalize newlines!
-                if s.contains("\n") {
-                    return Err(LexerError::Generic(
+                if s.contains('\n') {
+                    Err(LexerError::Generic(
                         "Encountered newline in string!".to_string(),
-                    ));
+                    ))
+                } else {
+                    Ok(s)
                 }
-
-                Ok(s)
             }
         }
     }
 
     fn handle_multiline_string(&mut self, quote: &str) -> Result<String> {
-        self.advance(2);
+        self.advance(3);
 
         let mut string = String::new();
 
@@ -146,23 +139,25 @@ where
                 return Err(LexerError::Generic(
                     "Input ends with single quote!".to_string(),
                 ));
+            } else if peek.join("") == quote.repeat(3) {
+                break;
             } else {
-                if peek.join("") == quote.repeat(3) {
-                    break;
-                } else {
-                    string += quote;
-                    self.advance(1)
-                }
+                string += quote;
+                self.advance(1)
             }
         }
+
+        self.advance(3);
 
         Ok(string)
     }
 
-    fn handle_string(&mut self, quote: &str) -> Result<Token> {
+    fn handle_string(&mut self) -> Result<Token> {
         let (line_no, col_no) = (self.line_no, self.col_no);
 
-        let string = if self.lookahead(2).iter().all(|s| *s == quote) {
+        let quote = *self.iterator.peek().unwrap();
+
+        let string = if self.lookahead(3).iter().all(|s| *s == quote) {
             self.handle_multiline_string(quote)
         } else {
             self.handle_single_line_string(quote)
@@ -180,100 +175,129 @@ where
         Ok(Token::new(TokenType::String(string), line_no, col_no))
     }
 
-    fn handle_single_line_comment(&mut self) -> Result<Token> {
-        let (line_no, col_no) = (self.line_no, self.col_no);
-
-        self.advance(1);
-
+    fn handle_single_line_comment(&mut self) -> Result<String> {
         // FIXME Normalize newlines!
         match self.crawl(|s| *s == "\n", 0) {
             // Ends on newline
-            Some(s) => Ok(Token::new(TokenType::Comment(s), line_no, col_no)),
+            Some(s) => Ok(s),
             // Ends on EOF
             None => {
                 // Skips final "/"
-                self.advance(1);
                 let mut string = String::new();
-                while let Some(grapheme) = self.current_grapheme {
+                while let Some(grapheme) = self.iterator.peek() {
                     string += grapheme;
                     self.advance(1)
                 }
 
-                Ok(Token::new(TokenType::Comment(string), line_no, col_no))
+                Ok(string)
             }
         }
     }
 
-    fn handle_multiline_comment(&mut self) -> Result<Token> {
-        let (line_no, col_no) = (self.line_no, self.col_no);
-
-        self.advance(1);
-
+    fn handle_multiline_comment(&mut self) -> Result<String> {
         let mut string = String::new();
 
-        while self.lookahead(2) != ["*", "/"] {
+        loop {
             match self.crawl(|s| *s == "*", 0) {
                 None => {
                     return Err(LexerError::Generic(
-                        "Unterminated multiline comment!".to_string(),
+                        "Input ran out looking for */!".to_string(),
                     ))
                 }
                 Some(s) => string += &s,
+            }
+
+            let peek = self.lookahead(2);
+
+            if peek.len() != 2 {
+                return Err(LexerError::Generic(
+                    "Input ends with *!".to_string(),
+                ));
+            } else if peek == ["*", "/"] {
+                break;
+            } else {
+                string += "*";
+                self.advance(1)
             }
         }
 
         self.advance(2);
 
-        Ok(Token::new(TokenType::Comment(string), line_no, col_no))
+        Ok(string)
     }
 
     fn handle_comment(&mut self) -> Result<Option<Token>> {
-        if self.lookahead(1) == ["/"] {
-            Ok(Some(self.handle_single_line_comment()?))
-        } else if self.lookahead(1) == ["*"] {
-            Ok(Some(self.handle_multiline_comment()?))
+        let (line_no, col_no) = (self.line_no, self.col_no);
+
+        if self.lookahead(2) == ["/", "/"] {
+            self.advance(2);
+            Ok(Some(Token::new(
+                TokenType::Comment(self.handle_single_line_comment()?),
+                line_no,
+                col_no,
+            )))
+        } else if self.lookahead(2) == ["/", "*"] {
+            self.advance(2);
+            Ok(Some(Token::new(
+                TokenType::Comment(self.handle_multiline_comment()?),
+                line_no,
+                col_no,
+            )))
         } else {
             Ok(None)
         }
     }
 
+    // fn handle_multiline_comment(&mut self) -> Result<Token> {
+    //     let (line_no, col_no) = (self.line_no, self.col_no);
+
+    //     let mut string = String::new();
+
+    //     while self.lookahead(2) != ["*", "/"] {
+    //         match self.crawl(|s| *s == "*", 0) {
+    //             None => {
+    //                 return Err(LexerError::Generic(
+    //                     "Unterminated multiline comment!".to_string(),
+    //                 ))
+    //             }
+    //             Some(s) => string += &s,
+    //         }
+    //     }
+
+    //     self.advance(2);
+
+    //     Ok(Token::new(TokenType::Comment(string), line_no, col_no))
+    // }
+
     fn handle_bounded(&mut self) -> Result<Option<Token>> {
         // self.next() already checks for None, so this unwrap should be safe.
-        debug_assert!(self.current_grapheme.is_some());
+        debug_assert!(self.iterator.peek().is_some());
 
-        let current_grapheme = self.current_grapheme.unwrap();
+        let current_grapheme = self.iterator.peek().unwrap();
 
-        if ["\"", "'"].contains(&current_grapheme) {
-            // String
-            Ok(Some(self.handle_string(current_grapheme)?))
-        } else if current_grapheme == "/" {
-            Ok(self.handle_comment()?)
+        if ["\"", "'"].contains(current_grapheme) {
+            Ok(Some(self.handle_string()?))
+        } else if self.lookahead(1) == ["/"] {
+            self.handle_comment()
         } else {
             Ok(None)
         }
     }
 
     fn handle_reserved(&mut self) -> Option<Token> {
-        let mut token = None;
         // TODO? Better descending range?
         for i in (0..new_token::LOOKAHEAD).rev() {
             // self.next() already checks for None, so this unwrap should be safe.
-            let string: String = self.current_grapheme.unwrap().to_string() + &self.lookahead(i).join("");
-            trace!("Checking reserved chars for {}", string);
+            let string = self.lookahead(i + 1).join("");
 
-            let result = Token::from_str(
-                &string,
-                self.line_no,
-                self.col_no,
-            );
+            let result = Token::from_str(&string, self.line_no, self.col_no);
             if let Ok(t) = result {
-                token = Some(t);
-                self.advance(i);
-                break;
+                self.advance(i + 1);
+                return Some(t);
             }
         }
 
-        token
+        None
     }
 
     fn handle_misc(&mut self) -> Option<Token> {
@@ -281,11 +305,11 @@ where
 
         // FIXME Normalize newlines!
         let string = self
-        //.crawl(|s| [" ", "\t", "\n"].contains(s), 0)
-        .crawl(|s| s.chars().any(|c| !(c.is_alphanumeric() || c == '_')), 0)
+            //.crawl(|s| [" ", "\t", "\n"].contains(s), 0)
+            .crawl(|s| s.chars().any(|c| !(c.is_alphanumeric() || c == '_')), 0)
             .unwrap_or_else(|| {
                 let mut string = String::new();
-                while let Some(grapheme) = self.current_grapheme {
+                while let Some(grapheme) = self.iterator.peek() {
                     string += grapheme;
                     self.advance(1);
                 }
@@ -318,15 +342,16 @@ mod tests {
     static SINGLE_QUOTED_STRING: &str = "'This is a single-quoted string'";
     static NEWLINE_IN_STRING: &str =
         "'This is a string \n with a newline in it!'";
-    static MULTILINE_STRING: &str = "'''This is a \n multiline string'''";
+    static MULTILINE_STRING: &str = "'''This is a \n multiline ' string'''";
     static STRING_WITH_FORBIDDEN_GRAPHEMES: &str =
         r#""This | is ? a string ~ with * forbidden graphemes.""#;
     static UNTERMINATED_STRING: &str = r#""This is an unterminated string"#;
     static UNTERMINATED_MULTILINE_STRING: &str =
         "'''This is an unterminated \n multiline string'";
     static SINGLE_LINE_COMMENT: &str = "// This is a single line comment!\n";
-    static MULTILINE_COMMENT: &str = "/* This is a \n multiline comment. */";
-    static UNTERMINATED_COMMENT: &str = "/* This is an unterminated comment";
+    static MULTILINE_COMMENT: &str = "/* This is a \n multiline * comment. */";
+    static UNTERMINATED_COMMENT: &str =
+        "/* This is an * unterminated \n comment";
 
     fn slice_ends(string: &str, left: usize, right: usize) -> &str {
         &string[left..string.len() - right]
@@ -487,7 +512,10 @@ mod tests {
                 &(UNTERMINATED_MULTILINE_STRING.to_string() + "abcd"),
                 TokenType::String(String::new()),
             ) {
-                if !err.to_string().contains("Input ran out looking for triple quote") {
+                if !err
+                    .to_string()
+                    .contains("Input ran out looking for triple quote")
+                {
                     bail!(
                         "unterminated string {} did not return expected error!",
                         UNTERMINATED_MULTILINE_STRING
@@ -537,7 +565,7 @@ mod tests {
                 UNTERMINATED_COMMENT,
                 TokenType::Comment(String::new()),
             ) {
-                if !err.to_string().contains("Unterminated multiline comment") {
+                if !err.to_string().contains("Input ran out looking for */") {
                     bail!("unterminated_comment {} did not return expected error!", UNTERMINATED_COMMENT);
                 }
             }

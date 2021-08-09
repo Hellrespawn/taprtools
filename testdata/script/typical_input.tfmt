@@ -5,7 +5,7 @@ typical_input(folder="destination") "This file is used to test tfmttools."
     "/"
 
     (
-        <date> & ( # This is a single-line comment
+        <date> & ( // This is a single-line comment
             $year_from_date(<date>)
             <albumsort> & ("." $num(<albumsort>, 2) )
             " - "

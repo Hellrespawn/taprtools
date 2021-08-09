@@ -35,7 +35,7 @@ Statement
          ::= Comment | Function | Integer | String | Substitution | Tag
 
 Comment  ::= "/*" PrintableChars* "*/"
-           | "#" PrintableChars* "\n"
+           | "//" PrintableChars* ( "\n" | EOF )
 
 Function ::= "$" ID "(" ( Expression ( "," Expression )* )? ")"
 
