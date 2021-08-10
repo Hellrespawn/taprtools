@@ -3,13 +3,11 @@ use std::str::FromStr;
 
 type Result<T> = std::result::Result<T, TokenError>;
 
-pub const LOOKAHEAD_DEPTH: usize = 2;
-
 /// Forbidden graphemes that are part of TFMT.
 pub const FORBIDDEN_GRAPHEMES: [&str; 8] =
     ["<", ">", ":", "\"", "|", "?", "*", "~"];
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum TokenType {
     Ampersand,
     AngleBracketLeft,
@@ -45,7 +43,7 @@ pub enum TokenType {
     Integer(i64),
     String(String),
 
-    EOF,
+    Uninitialized,
 }
 
 impl FromStr for TokenType {
@@ -83,7 +81,15 @@ impl FromStr for TokenType {
     }
 }
 
-#[derive(Debug, PartialEq)]
+impl TokenType {
+    pub const LOOKAHEAD_DEPTH: usize = 2;
+
+    pub fn is_ignored(&self) -> bool {
+        matches!(self, Self::Comment(..))
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct Token {
     pub token_type: TokenType,
     pub line_no: u64,
@@ -109,5 +115,27 @@ impl Token {
             line_no,
             col_no,
         })
+    }
+
+    pub fn get_string_unchecked(&self) -> String {
+        match &self.token_type {
+            TokenType::Comment(string)
+            | TokenType::ID(string)
+            | TokenType::String(string) => string.clone(),
+            token_type => panic!(
+                "get_string_unchecked was called on TokenType {:?}!",
+                token_type
+            ),
+        }
+    }
+
+    pub fn get_int_unchecked(&self) -> i64 {
+        match &self.token_type {
+            TokenType::Integer(int) => *int,
+            token_type => panic!(
+                "get_int_unchecked was called on TokenType {:?}!",
+                token_type
+            ),
+        }
     }
 }

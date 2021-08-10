@@ -1,7 +1,5 @@
 use super::buffered_iterator::{Buffered, BufferedIterator};
-use super::new_token::{
-    Token, TokenType, FORBIDDEN_GRAPHEMES, LOOKAHEAD_DEPTH,
-};
+use super::new_token::{Token, TokenType, FORBIDDEN_GRAPHEMES};
 use crate::new_error::LexerError;
 use log::{debug, trace};
 use unicode_segmentation::{Graphemes, UnicodeSegmentation};
@@ -243,7 +241,7 @@ impl<'a> Lexer<'a> {
 
     fn handle_reserved(&mut self) -> Option<Token> {
         // TODO? Better descending range?
-        for i in (0..LOOKAHEAD_DEPTH).rev() {
+        for i in (0..TokenType::LOOKAHEAD_DEPTH).rev() {
             // self.next() already checks for None, so this unwrap should be safe.
             let string = self.buffer.peekn(i + 1).join("");
 

@@ -1,3 +1,4 @@
+use crate::tfmt::new_token::TokenType;
 use thiserror::Error;
 
 // TODO Expand tfmt error handling.
@@ -28,4 +29,29 @@ pub enum LexerError {
     /// String contains forbidden grapheme.
     #[error(r#"Input ends with "{found}", expected "{expected}""#)]
     WrongTerminatorAtEOF { found: String, expected: String },
+}
+
+#[derive(Error, Debug, PartialEq)]
+/// Error from the [lexer] module.
+pub enum ParserError {
+    #[error("{0}")]
+    Generic(String),
+
+    #[error("Encountered group without expressions!")]
+    EmptyGroup,
+
+    #[error("Maximum iteration depth {0}, exceeded!")]
+    MaxIteration(u64),
+
+    #[error("Expected {expected:?}, got {found:?}")]
+    UnexpectedToken { expected: String, found: TokenType },
+
+    #[error("Unable to parse token type {0:?}!")]
+    UnrecognizedToken(TokenType),
+
+    #[error("")]
+    Lexer {
+        #[from]
+        source: LexerError,
+    },
 }

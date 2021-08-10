@@ -18,6 +18,9 @@ pub mod visitor;
 pub mod visualizer;
 
 pub mod buffered_iterator;
+pub mod new_ast;
+pub mod new_visitor;
+//pub mod new_parser;
 pub mod new_lexer;
 pub mod new_token;
 
