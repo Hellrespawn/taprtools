@@ -1,6 +1,6 @@
 [package]
 name = "tfmttools"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Stef Korporaal <stefkorporaal@gmail.com>"]
 description = "Renames audio files according to their tags."
 edition = "2018"
