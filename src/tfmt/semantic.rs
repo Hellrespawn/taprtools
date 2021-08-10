@@ -1,6 +1,7 @@
 use crate::error::SemanticError;
 use crate::tfmt::ast::{self, Node};
-use crate::tfmt::{Token, Visitor};
+use crate::tfmt::token::Token;
+use crate::tfmt::visitor::Visitor;
 use log::info;
 use std::collections::HashMap;
 
@@ -74,7 +75,7 @@ impl SemanticAnalyzer {
 
 impl Visitor<()> for SemanticAnalyzer {
     fn visit_program(&mut self, program: &ast::Program) {
-        self.name = program.name.get_value_unchecked().to_string();
+        self.name = program.name.get_string_unchecked().to_string();
 
         program.parameters.accept(self);
         program.block.accept(self);
@@ -85,12 +86,12 @@ impl Visitor<()> for SemanticAnalyzer {
     }
 
     fn visit_parameter(&mut self, parameter: &ast::Parameter) {
-        let key = parameter.token.get_value_unchecked();
+        let key = parameter.token.get_string_unchecked();
 
         let default = parameter
             .default
             .as_ref()
-            .map(|t| t.get_value_unchecked().to_string());
+            .map(|t| t.get_string_unchecked().to_string());
 
         self.symbols.push(key.to_string());
         self.symbol_count.insert(key.to_string(), 0);
@@ -143,7 +144,7 @@ impl Visitor<()> for SemanticAnalyzer {
     fn visit_string(&mut self, _string: &Token) {}
 
     fn visit_symbol(&mut self, symbol: &Token) {
-        let key = symbol.get_value_unchecked().to_string();
+        let key = symbol.get_string_unchecked().to_string();
 
         self.symbol_count.entry(key).and_modify(|c| *c += 1);
     }
@@ -154,17 +155,16 @@ impl Visitor<()> for SemanticAnalyzer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tfmt::ast;
+    use crate::tfmt::ast::{self as ast};
+    use crate::tfmt::lexer::Lexer;
     use crate::tfmt::parser::Parser;
     use anyhow::Result;
-    use std::str::FromStr;
 
     fn get_script(path: &str) -> Result<ast::Program> {
-        Ok(Parser::from_str(&std::fs::read_to_string(format!(
-            "testdata/script/{}",
-            path
-        ))?)?
-        .parse()?)
+        let input_text =
+            std::fs::read_to_string(format!("testdata/script/{}", path))?;
+
+        Ok(Parser::from_lexer(Lexer::new(&input_text)).parse()?)
     }
 
     fn script_test(name: &str, reference: &SymbolTable) -> Result<()> {

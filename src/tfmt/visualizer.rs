@@ -1,6 +1,7 @@
-use crate::new_error::DotError;
+use crate::error::DotError;
 use crate::tfmt::ast::{self, Expression, Node};
-use crate::tfmt::{Token, Visitor};
+use crate::tfmt::token::Token;
+use crate::tfmt::visitor::Visitor;
 use anyhow::Result;
 use log::{info, trace};
 use std::fs;
@@ -145,7 +146,7 @@ impl Visitor<String> for Visualizer {
     fn visit_program(&mut self, program: &ast::Program) -> String {
         let (mut string, program_node) = self.new_node(&format!(
             "Program\n{}",
-            program.name.get_value_unchecked()
+            program.name.get_string_unchecked()
         ));
 
         string += "subgraph header {\nrankdir=\"RL\";\n";
@@ -182,11 +183,11 @@ impl Visitor<String> for Visualizer {
 
     fn visit_parameter(&mut self, parameter: &ast::Parameter) -> String {
         let (mut string, parameter_node) =
-            self.new_node(parameter.token.get_value_unchecked());
+            self.new_node(parameter.token.get_string_unchecked());
 
         if let Some(default) = parameter.default.as_ref() {
             let (default_string, default_node) =
-                self.new_node(default.get_value_unchecked());
+                self.new_node(default.get_string_unchecked());
 
             string += &default_string;
             string += &self.connect_nodes(default_node, parameter_node);
@@ -252,7 +253,7 @@ impl Visitor<String> for Visualizer {
         right: &Expression,
     ) -> String {
         let (mut string, binaryop_node) =
-            self.new_node(&format!("BinOp:\n{}", token.ttype.as_str()));
+            self.new_node(&format!("BinOp:\n{:?}", token.token_type));
 
         let left_node = self.counter;
         string += &left.accept(self);
@@ -267,7 +268,7 @@ impl Visitor<String> for Visualizer {
 
     fn visit_unaryop(&mut self, token: &Token, operand: &Expression) -> String {
         let (mut string, unaryop_node) =
-            self.new_node(&format!("UnOp:\n{}", token.ttype.as_str()));
+            self.new_node(&format!("UnOp:\n{:?}", token.token_type));
 
         let operand_node = self.counter;
         string += &operand.accept(self);
@@ -295,7 +296,7 @@ impl Visitor<String> for Visualizer {
     ) -> String {
         let (mut string, function_node) = self.new_node(&format!(
             "Function:\n${}(...)",
-            start_token.get_value_unchecked()
+            start_token.get_string_unchecked()
         ));
 
         for (i, expression) in arguments.iter().enumerate() {
@@ -313,7 +314,7 @@ impl Visitor<String> for Visualizer {
 
     fn visit_integer(&mut self, integer: &Token) -> String {
         let (string, _) =
-            self.new_node(&format!("Int:\n{}", integer.get_value_unchecked()));
+            self.new_node(&format!("Int:\n{}", integer.get_int_unchecked()));
 
         string
     }
@@ -321,7 +322,7 @@ impl Visitor<String> for Visualizer {
     fn visit_string(&mut self, string: &Token) -> String {
         let (string, _) = self.new_node(&format!(
             "String:\n{}",
-            string.get_value_unchecked().trim()
+            string.get_string_unchecked().trim()
         ));
 
         string
@@ -329,14 +330,14 @@ impl Visitor<String> for Visualizer {
 
     fn visit_symbol(&mut self, symbol: &Token) -> String {
         let (string, _) =
-            self.new_node(&format!("Sym:\n{}", symbol.get_value_unchecked()));
+            self.new_node(&format!("Sym:\n{}", symbol.get_string_unchecked()));
 
         string
     }
 
     fn visit_tag(&mut self, token: &Token) -> String {
         let (string, _) =
-            self.new_node(&format!("Tag:\n<{}>", token.get_value_unchecked()));
+            self.new_node(&format!("Tag:\n<{}>", token.get_string_unchecked()));
 
         string
     }

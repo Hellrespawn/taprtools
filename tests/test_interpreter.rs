@@ -1,6 +1,5 @@
 use anyhow::Result;
 use std::path::PathBuf;
-use std::str::FromStr;
 use tfmttools::file::audio_file::get_audio_files;
 use tfmttools::tfmt::interpreter::Interpreter;
 use tfmttools::tfmt::lexer::{Lexer, LexerResult};
@@ -20,9 +19,9 @@ fn file_test(
 ) -> Result<()> {
     let input = common::get_script(filename)?;
 
-    let tokens: Vec<LexerResult> = Lexer::from_str(&input)?.collect();
+    let tokens: Vec<LexerResult> = Lexer::new(&input).collect();
 
-    let mut parser = Parser::from_iterator(tokens.into_iter());
+    let mut parser = Parser::new(tokens.into_iter());
 
     let program = parser.parse()?;
 

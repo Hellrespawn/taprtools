@@ -3,10 +3,11 @@ use crate::file::audio_file::AudioFile;
 use crate::helpers;
 use crate::tfmt::ast::*;
 use crate::tfmt::function::handle_function;
+use crate::tfmt::semantic::SymbolTable;
 use crate::tfmt::token::{
     Token, TokenType, DIRECTORY_SEPARATORS, FORBIDDEN_GRAPHEMES,
 };
-use crate::tfmt::{SymbolTable, Visitor};
+use crate::tfmt::visitor::Visitor;
 use log::trace;
 
 type Result<T> = std::result::Result<T, InterpreterError>;
@@ -98,7 +99,7 @@ impl<'a> Visitor<Result<String>> for Interpreter<'a> {
     ) -> Result<String> {
         let l = left.accept(self)?;
         let r = right.accept(self)?;
-        Ok(match token.ttype {
+        Ok(match &token.token_type {
             TokenType::VerticalBar => {
                 if !l.is_empty() {
                     l
@@ -148,7 +149,8 @@ impl<'a> Visitor<Result<String>> for Interpreter<'a> {
             }
             other => {
                 return Err(InterpreterError::InvalidTokenType(
-                    other, "BinaryOp",
+                    other.clone(),
+                    "BinaryOp",
                 ))
             }
         })
@@ -160,12 +162,13 @@ impl<'a> Visitor<Result<String>> for Interpreter<'a> {
         operand: &Expression,
     ) -> Result<String> {
         let o = operand.accept(self)?;
-        Ok(match token.ttype {
+        Ok(match &token.token_type {
             TokenType::Plus => o,
             TokenType::Hyphen => (-o.parse::<i64>()?).to_string(),
             other => {
                 return Err(InterpreterError::InvalidTokenType(
-                    other, "UnaryOp",
+                    other.clone(),
+                    "UnaryOp",
                 ))
             }
         })
@@ -184,7 +187,7 @@ impl<'a> Visitor<Result<String>> for Interpreter<'a> {
         start_token: &Token,
         arguments: &[Expression],
     ) -> Result<String> {
-        let name = start_token.get_value_unchecked();
+        let name = start_token.get_string_unchecked();
 
         let arguments: Vec<String> = arguments
             .iter()
@@ -195,22 +198,22 @@ impl<'a> Visitor<Result<String>> for Interpreter<'a> {
     }
 
     fn visit_integer(&mut self, integer: &Token) -> Result<String> {
-        Ok(integer.get_value_unchecked().to_string())
+        Ok(integer.get_int_unchecked().to_string())
     }
 
     fn visit_string(&mut self, string: &Token) -> Result<String> {
-        Ok(string.get_value_unchecked().to_string())
+        Ok(string.get_string_unchecked().to_string())
     }
 
     fn visit_symbol(&mut self, symbol: &Token) -> Result<String> {
-        let name = symbol.get_value_unchecked();
+        let name = symbol.get_string_unchecked();
         // This is checked by SemanticAnalyzer, should be safe.
         debug_assert!(self.symbol_table.get(name).is_some());
         Ok(self.symbol_table.get(name).unwrap().to_string())
     }
 
     fn visit_tag(&mut self, token: &Token) -> Result<String> {
-        let tag_name = token.get_value_unchecked();
+        let tag_name = token.get_string_unchecked();
 
         let mut tag = match tag_name {
             // TODO Add less common tags from AudioFile

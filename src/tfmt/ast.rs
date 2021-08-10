@@ -1,4 +1,5 @@
-use crate::tfmt::{Token, Visitor};
+use crate::tfmt::token::Token;
+use crate::tfmt::visitor::Visitor;
 
 /// [Node] accepts a [Visitor], according to the [Visitor pattern].
 ///

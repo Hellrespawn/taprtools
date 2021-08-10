@@ -5,7 +5,10 @@ use crate::error::InterpreterError;
 use crate::file::audio_file::{self, AudioFile};
 use crate::helpers::{self, pp};
 use crate::tfmt::ast::Program;
-use crate::tfmt::{Interpreter, Lexer, Parser, SemanticAnalyzer};
+use crate::tfmt::interpreter::Interpreter;
+use crate::tfmt::lexer::Lexer;
+use crate::tfmt::parser::Parser;
+use crate::tfmt::semantic::SemanticAnalyzer;
 use crate::{PREVIEW_AMOUNT, RECURSION_DEPTH};
 use anyhow::{bail, Result};
 use indicatif::{
@@ -43,7 +46,8 @@ impl<'a> Rename<'a> {
     ) -> Result<()> {
         let path = helpers::get_script(script_name, &self.args.config_folder)?;
 
-        let program = Parser::<Lexer>::from_path(&path)?.parse()?;
+        let input_text = std::fs::read_to_string(path)?;
+        let program = Parser::from_lexer(Lexer::new(&input_text)).parse()?;
 
         let audio_files = self.get_audio_files(
             &input_folder,

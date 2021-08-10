@@ -1,5 +1,5 @@
-use anyhow::{bail, Result};
-use std::str::FromStr;
+use anyhow::Result;
+use tfmttools::helpers::normalize_newlines;
 use tfmttools::tfmt::lexer::Lexer;
 use tfmttools::tfmt::token::Token;
 use tfmttools::tfmt::token::TokenType::*;
@@ -12,198 +12,186 @@ fn file_test(filename: &str, reference: Option<&[Token]>) -> Result<()> {
     if let Some(tokens) = reference {
         lexer_test(&input, tokens)
     } else {
-        run_lexer(&input, true)?;
+        run_lexer(&input)?;
         Ok(())
     }
 }
 
 fn lexer_test(string: &str, reference: &[Token]) -> Result<()> {
-    let tokens = run_lexer(string, true)?;
+    let tokens = run_lexer(string)?;
+
+    println!("{:#?}", tokens);
+
+    for (t1, t2) in tokens.iter().zip(reference) {
+        assert_eq!(t1, t2)
+    }
 
     assert_eq!(tokens, reference);
 
     Ok(())
 }
 
-fn run_lexer(string: &str, pop_eof: bool) -> Result<Vec<Token>> {
-    let lex = create_lexer(string)?;
+fn run_lexer(string: &str) -> Result<Vec<Token>> {
+    let string = normalize_newlines(&string);
+    let lex = Lexer::new(&string);
 
-    let mut tokens = lex.collect::<Result<Vec<Token>, _>>()?;
-
-    if pop_eof {
-        tokens.pop();
-    }
+    let tokens = lex.collect::<Result<Vec<Token>, _>>()?;
 
     Ok(tokens)
 }
 
-fn create_lexer(string: &str) -> Result<Lexer> {
-    Ok(Lexer::from_str(string)?)
-}
-
 #[test]
-fn lexer_simple_input_test() -> Result<()> {
+fn new_lexer_simple_input_test() -> Result<()> {
     let reference = &[
-        Token::new(1, 1, ID, Some("simple_input".to_string()))?,
-        Token::new(1, 13, ParenthesisLeft, None)?,
-        Token::new(1, 14, ParenthesisRight, None)?,
-        Token::new(1, 16, CurlyBraceLeft, None)?,
-        Token::new(2, 5, AngleBracketLeft, None)?,
-        Token::new(2, 6, ID, Some("artist".to_string()))?,
-        Token::new(2, 12, AngleBracketRight, None)?,
-        Token::new(2, 14, String, Some("/".to_string()))?,
-        Token::new(2, 18, AngleBracketLeft, None)?,
-        Token::new(2, 19, ID, Some("title".to_string()))?,
-        Token::new(2, 24, AngleBracketRight, None)?,
-        Token::new(3, 1, CurlyBraceRight, None)?,
+        Token::new(ID("simple_input".to_string()), 1, 1),
+        Token::new(ParenthesisLeft, 1, 13),
+        Token::new(ParenthesisRight, 1, 14),
+        Token::new(CurlyBraceLeft, 1, 16),
+        Token::new(AngleBracketLeft, 2, 5),
+        Token::new(ID("artist".to_string()), 2, 6),
+        Token::new(AngleBracketRight, 2, 12),
+        Token::new(String("/".to_string()), 2, 14),
+        Token::new(AngleBracketLeft, 2, 18),
+        Token::new(ID("title".to_string()), 2, 19),
+        Token::new(AngleBracketRight, 2, 24),
+        Token::new(CurlyBraceRight, 3, 1),
     ];
 
     file_test("simple_input.tfmt", Some(reference))
 }
 
 #[test]
-fn lexer_typical_input_test() -> Result<()> {
+fn new_lexer_typical_input_test() -> Result<()> {
     let reference = &[
-        Token::new(1, 1, ID, Some("typical_input".to_string()))?,
-        Token::new(1, 14, ParenthesisLeft, None)?,
-        Token::new(1, 15, ID, Some("folder".to_string()))?,
-        Token::new(1, 21, Equals, None)?,
-        Token::new(1, 22, String, Some("destination".to_string()))?,
-        Token::new(1, 35, ParenthesisRight, None)?,
+        Token::new(ID("typical_input".to_string()), 1, 1),
+        Token::new(ParenthesisLeft, 1, 14),
+        Token::new(ID("folder".to_string()), 1, 15),
+        Token::new(Equals, 1, 21),
+        Token::new(String("destination".to_string()), 1, 22),
+        Token::new(ParenthesisRight, 1, 35),
         Token::new(
+            String("This file is used to test tfmttools.".to_string()),
             1,
             37,
-            String,
-            Some("This file is used to test tfmttools.".to_string()),
-        )?,
-        Token::new(2, 1, CurlyBraceLeft, None)?,
-        Token::new(3, 5, Dollar, None)?,
-        Token::new(3, 6, ParenthesisLeft, None)?,
-        Token::new(3, 7, ID, Some("folder".to_string()))?,
-        Token::new(3, 13, ParenthesisRight, None)?,
-        Token::new(3, 15, String, Some("/".to_string()))?,
-        Token::new(4, 5, AngleBracketLeft, None)?,
-        Token::new(4, 6, ID, Some("albumartist".to_string()))?,
-        Token::new(4, 17, AngleBracketRight, None)?,
-        Token::new(4, 19, VerticalBar, None)?,
-        Token::new(4, 21, AngleBracketLeft, None)?,
-        Token::new(4, 22, ID, Some("artist".to_string()))?,
-        Token::new(4, 28, AngleBracketRight, None)?,
-        Token::new(5, 5, String, Some("/".to_string()))?,
-        Token::new(7, 5, ParenthesisLeft, None)?,
-        Token::new(8, 9, AngleBracketLeft, None)?,
-        Token::new(8, 10, ID, Some("date".to_string()))?,
-        Token::new(8, 14, AngleBracketRight, None)?,
-        Token::new(8, 16, Ampersand, None)?,
-        Token::new(8, 18, ParenthesisLeft, None)?,
+        ),
+        Token::new(CurlyBraceLeft, 2, 1),
+        Token::new(Dollar, 3, 5),
+        Token::new(ParenthesisLeft, 3, 6),
+        Token::new(ID("folder".to_string()), 3, 7),
+        Token::new(ParenthesisRight, 3, 13),
+        Token::new(String("/".to_string()), 3, 15),
+        Token::new(AngleBracketLeft, 4, 5),
+        Token::new(ID("albumartist".to_string()), 4, 6),
+        Token::new(AngleBracketRight, 4, 17),
+        Token::new(VerticalBar, 4, 19),
+        Token::new(AngleBracketLeft, 4, 21),
+        Token::new(ID("artist".to_string()), 4, 22),
+        Token::new(AngleBracketRight, 4, 28),
+        Token::new(String("/".to_string()), 5, 5),
+        Token::new(ParenthesisLeft, 7, 5),
+        Token::new(AngleBracketLeft, 8, 9),
+        Token::new(ID("date".to_string()), 8, 10),
+        Token::new(AngleBracketRight, 8, 14),
+        Token::new(Ampersand, 8, 16),
+        Token::new(ParenthesisLeft, 8, 18),
         Token::new(
+            Comment(" This is a single-line comment".to_string()),
             8,
-            21,
-            Comment,
-            Some(" This is a single-line comment".to_string()),
-        )?,
-        Token::new(9, 13, Dollar, None)?,
-        Token::new(9, 14, ID, Some("year_from_date".to_string()))?,
-        Token::new(9, 28, ParenthesisLeft, None)?,
-        Token::new(9, 29, AngleBracketLeft, None)?,
-        Token::new(9, 30, ID, Some("date".to_string()))?,
-        Token::new(9, 34, AngleBracketRight, None)?,
-        Token::new(9, 35, ParenthesisRight, None)?,
-        Token::new(10, 13, AngleBracketLeft, None)?,
-        Token::new(10, 14, ID, Some("albumsort".to_string()))?,
-        Token::new(10, 23, AngleBracketRight, None)?,
-        Token::new(10, 25, Ampersand, None)?,
-        Token::new(10, 27, ParenthesisLeft, None)?,
-        Token::new(10, 28, String, Some(".".to_string()))?,
-        Token::new(10, 32, Dollar, None)?,
-        Token::new(10, 33, ID, Some("num".to_string()))?,
-        Token::new(10, 36, ParenthesisLeft, None)?,
-        Token::new(10, 37, AngleBracketLeft, None)?,
-        Token::new(10, 38, ID, Some("albumsort".to_string()))?,
-        Token::new(10, 47, AngleBracketRight, None)?,
-        Token::new(10, 48, Comma, None)?,
-        Token::new(10, 50, Integer, Some("2".to_string()))?,
-        Token::new(10, 51, ParenthesisRight, None)?,
-        Token::new(10, 53, ParenthesisRight, None)?,
-        Token::new(11, 13, String, Some(" - ".to_string()))?,
-        Token::new(12, 9, ParenthesisRight, None)?,
-        Token::new(13, 9, AngleBracketLeft, None)?,
-        Token::new(13, 10, ID, Some("album".to_string()))?,
-        Token::new(13, 15, AngleBracketRight, None)?,
-        Token::new(14, 5, ParenthesisRight, None)?,
-        Token::new(14, 7, DoubleAmpersand, None)?,
-        Token::new(14, 10, String, Some("/".to_string()))?,
+            20,
+        ),
+        Token::new(Dollar, 9, 13),
+        Token::new(ID("year_from_date".to_string()), 9, 14),
+        Token::new(ParenthesisLeft, 9, 28),
+        Token::new(AngleBracketLeft, 9, 29),
+        Token::new(ID("date".to_string()), 9, 30),
+        Token::new(AngleBracketRight, 9, 34),
+        Token::new(ParenthesisRight, 9, 35),
+        Token::new(AngleBracketLeft, 10, 13),
+        Token::new(ID("albumsort".to_string()), 10, 14),
+        Token::new(AngleBracketRight, 10, 23),
+        Token::new(Ampersand, 10, 25),
+        Token::new(ParenthesisLeft, 10, 27),
+        Token::new(String(".".to_string()), 10, 28),
+        Token::new(Dollar, 10, 32),
+        Token::new(ID("num".to_string()), 10, 33),
+        Token::new(ParenthesisLeft, 10, 36),
+        Token::new(AngleBracketLeft, 10, 37),
+        Token::new(ID("albumsort".to_string()), 10, 38),
+        Token::new(AngleBracketRight, 10, 47),
+        Token::new(Comma, 10, 48),
+        Token::new(Integer(2), 10, 50),
+        Token::new(ParenthesisRight, 10, 51),
+        Token::new(ParenthesisRight, 10, 53),
+        Token::new(String(" - ".to_string()), 11, 13),
+        Token::new(ParenthesisRight, 12, 9),
+        Token::new(AngleBracketLeft, 13, 9),
+        Token::new(ID("album".to_string()), 13, 10),
+        Token::new(AngleBracketRight, 13, 15),
+        Token::new(ParenthesisRight, 14, 5),
+        Token::new(DoubleAmpersand, 14, 7),
+        Token::new(String("/".to_string()), 14, 10),
         Token::new(
-            14,
-            16,
-            Comment,
-            Some(
+            Comment(
                 " This is a multiline comment.\n    Here's the second line! "
                     .to_string(),
             ),
-        )?,
-        Token::new(16, 5, AngleBracketLeft, None)?,
-        Token::new(16, 6, ID, Some("discnumber".to_string()))?,
-        Token::new(16, 16, AngleBracketRight, None)?,
-        Token::new(16, 18, QuestionMark, None)?,
-        Token::new(16, 20, Dollar, None)?,
-        Token::new(16, 21, ID, Some("num".to_string()))?,
-        Token::new(16, 24, ParenthesisLeft, None)?,
-        Token::new(16, 25, AngleBracketLeft, None)?,
-        Token::new(16, 26, ID, Some("discnumber".to_string()))?,
-        Token::new(16, 36, AngleBracketRight, None)?,
-        Token::new(16, 37, Comma, None)?,
-        Token::new(16, 39, Integer, Some("1".to_string()))?,
-        Token::new(16, 40, ParenthesisRight, None)?,
-        Token::new(16, 42, Colon, None)?,
-        Token::new(16, 44, String, Some("".to_string()))?,
-        Token::new(17, 5, AngleBracketLeft, None)?,
-        Token::new(17, 6, ID, Some("tracknumber".to_string()))?,
-        Token::new(17, 17, AngleBracketRight, None)?,
-        Token::new(17, 19, Ampersand, None)?,
-        Token::new(17, 21, ParenthesisLeft, None)?,
-        Token::new(17, 22, Dollar, None)?,
-        Token::new(17, 23, ID, Some("num".to_string()))?,
-        Token::new(17, 26, ParenthesisLeft, None)?,
-        Token::new(17, 27, AngleBracketLeft, None)?,
-        Token::new(17, 28, ID, Some("tracknumber".to_string()))?,
-        Token::new(17, 39, AngleBracketRight, None)?,
-        Token::new(17, 40, Comma, None)?,
-        Token::new(17, 42, Integer, Some("2".to_string()))?,
-        Token::new(17, 43, ParenthesisRight, None)?,
-        Token::new(17, 44, String, Some(" - ".to_string()))?,
-        Token::new(17, 49, ParenthesisRight, None)?,
-        Token::new(18, 5, Dollar, None)?,
-        Token::new(18, 6, ID, Some("if".to_string()))?,
-        Token::new(18, 8, ParenthesisLeft, None)?,
-        Token::new(18, 9, AngleBracketLeft, None)?,
-        Token::new(18, 10, ID, Some("albumartist".to_string()))?,
-        Token::new(18, 21, AngleBracketRight, None)?,
-        Token::new(18, 22, Comma, None)?,
-        Token::new(18, 24, ParenthesisLeft, None)?,
-        Token::new(18, 25, AngleBracketLeft, None)?,
-        Token::new(18, 26, ID, Some("artist".to_string()))?,
-        Token::new(18, 32, AngleBracketRight, None)?,
-        Token::new(18, 33, String, Some(" - ".to_string()))?,
-        Token::new(18, 38, ParenthesisRight, None)?,
-        Token::new(18, 39, Comma, None)?,
-        Token::new(18, 41, String, Some("".to_string()))?,
-        Token::new(18, 43, ParenthesisRight, None)?,
-        Token::new(19, 5, AngleBracketLeft, None)?,
-        Token::new(19, 6, ID, Some("title".to_string()))?,
-        Token::new(19, 11, AngleBracketRight, None)?,
-        Token::new(20, 1, CurlyBraceRight, None)?,
+            14,
+            14,
+        ),
+        Token::new(AngleBracketLeft, 16, 5),
+        Token::new(ID("discnumber".to_string()), 16, 6),
+        Token::new(AngleBracketRight, 16, 16),
+        Token::new(QuestionMark, 16, 18),
+        Token::new(Dollar, 16, 20),
+        Token::new(ID("num".to_string()), 16, 21),
+        Token::new(ParenthesisLeft, 16, 24),
+        Token::new(AngleBracketLeft, 16, 25),
+        Token::new(ID("discnumber".to_string()), 16, 26),
+        Token::new(AngleBracketRight, 16, 36),
+        Token::new(Comma, 16, 37),
+        Token::new(Integer(1), 16, 39),
+        Token::new(ParenthesisRight, 16, 40),
+        Token::new(Colon, 16, 42),
+        Token::new(String("".to_string()), 16, 44),
+        Token::new(AngleBracketLeft, 17, 5),
+        Token::new(ID("tracknumber".to_string()), 17, 6),
+        Token::new(AngleBracketRight, 17, 17),
+        Token::new(Ampersand, 17, 19),
+        Token::new(ParenthesisLeft, 17, 21),
+        Token::new(Dollar, 17, 22),
+        Token::new(ID("num".to_string()), 17, 23),
+        Token::new(ParenthesisLeft, 17, 26),
+        Token::new(AngleBracketLeft, 17, 27),
+        Token::new(ID("tracknumber".to_string()), 17, 28),
+        Token::new(AngleBracketRight, 17, 39),
+        Token::new(Comma, 17, 40),
+        Token::new(Integer(2), 17, 42),
+        Token::new(ParenthesisRight, 17, 43),
+        Token::new(String(" - ".to_string()), 17, 44),
+        Token::new(ParenthesisRight, 17, 49),
+        Token::new(Dollar, 18, 5),
+        Token::new(ID("if".to_string()), 18, 6),
+        Token::new(ParenthesisLeft, 18, 8),
+        Token::new(AngleBracketLeft, 18, 9),
+        Token::new(ID("albumartist".to_string()), 18, 10),
+        Token::new(AngleBracketRight, 18, 21),
+        Token::new(Comma, 18, 22),
+        Token::new(ParenthesisLeft, 18, 24),
+        Token::new(AngleBracketLeft, 18, 25),
+        Token::new(ID("artist".to_string()), 18, 26),
+        Token::new(AngleBracketRight, 18, 32),
+        Token::new(String(" - ".to_string()), 18, 33),
+        Token::new(ParenthesisRight, 18, 38),
+        Token::new(Comma, 18, 39),
+        Token::new(String("".to_string()), 18, 41),
+        Token::new(ParenthesisRight, 18, 43),
+        Token::new(AngleBracketLeft, 19, 5),
+        Token::new(ID("title".to_string()), 19, 6),
+        Token::new(AngleBracketRight, 19, 11),
+        Token::new(CurlyBraceRight, 20, 1),
     ];
 
     file_test("typical_input.tfmt", Some(reference))
 }
 
 // TODO Write test with weird unicode characters.
-
-#[test]
-fn lexer_empty_text_test() -> Result<()> {
-    match Lexer::from_str("") {
-        Ok(_) => bail!("Lexer should fail with empty text!"),
-        Err(_) => Ok(()),
-    }
-}

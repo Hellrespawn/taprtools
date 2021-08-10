@@ -1,9 +1,8 @@
 use crate::error::ParserError;
 use crate::tfmt::ast::{self, Expression};
-use crate::tfmt::{Lexer, LexerResult, Token, TokenType};
+use crate::tfmt::lexer::{Lexer, LexerResult};
+use crate::tfmt::token::{Token, TokenType};
 use log::trace;
-use std::path::Path;
-use std::str::FromStr;
 
 type Result<T> = std::result::Result<T, ParserError>;
 
@@ -18,11 +17,9 @@ where
     previous_token: Token,
 }
 
-impl FromStr for Parser<Lexer> {
-    type Err = ParserError;
-
-    fn from_str(string: &str) -> Result<Parser<Lexer>> {
-        Ok(Parser::from_iterator(Lexer::from_str(string)?))
+impl<'a> Parser<Lexer<'a>> {
+    pub fn from_lexer(lexer: Lexer<'a>) -> Parser<Lexer> {
+        Self::new(lexer)
     }
 }
 
@@ -30,22 +27,13 @@ impl<I> Parser<I>
 where
     I: Iterator<Item = LexerResult>,
 {
-    /// Create [Parser] from Iterator<Item = [LexerResult]>.
-    pub fn from_iterator(iterator: I) -> Parser<I> {
+    pub fn new(iterator: I) -> Parser<I> {
         Parser {
             iterator,
             depth: 0,
-            // TokenType::Uninitialized doesn't take a value, so should never fail.
-            current_token: Token::new(0, 0, TokenType::Uninitialized, None)
-                .unwrap(),
-            previous_token: Token::new(0, 0, TokenType::Uninitialized, None)
-                .unwrap(),
+            current_token: Token::new(TokenType::Uninitialized, 0, 0),
+            previous_token: Token::new(TokenType::Uninitialized, 0, 0),
         }
-    }
-
-    /// Create [Parser] from path.
-    pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Parser<Lexer>> {
-        Ok(Parser::from_iterator(Lexer::from_path(path)?))
     }
 
     /// Wrapper function for starting [Parser].
@@ -62,7 +50,11 @@ where
             &mut self.current_token,
             match self.iterator.next() {
                 Some(a) => a?,
-                None => return Err(ParserError::ExpectedEOF),
+                None => {
+                    return Err(ParserError::Generic(
+                        "End of iterator".to_string(),
+                    ))
+                }
             },
         );
 
@@ -70,7 +62,7 @@ where
             self.previous_token = prev
         }
 
-        if TokenType::IGNORED.contains(&self.current_token.ttype) {
+        if self.current_token.token_type.is_ignored() {
             self._advance(true)?;
         }
 
@@ -81,23 +73,64 @@ where
         self._advance(false)
     }
 
-    fn consume(&mut self, expected_ttype: TokenType) -> Result<Token> {
-        let current_ttype = self.current_token.ttype;
+    fn consume(&mut self, expected: &TokenType) -> Result<Token> {
+        let token_type = &self.current_token.token_type;
 
-        if current_ttype == TokenType::EOF {
-            return Err(ParserError::ExhaustedTokens(expected_ttype));
-        }
-
-        if current_ttype != expected_ttype {
-            return Err(ParserError::UnexpectedToken(
-                expected_ttype,
-                current_ttype,
-            ));
+        if token_type != expected {
+            return Err(ParserError::UnexpectedToken {
+                expected: expected.clone(),
+                found: token_type.clone(),
+            });
         }
 
         self.advance()?;
 
         // Explicitly clone here, we need the original in previous, but also to return it.
+        Ok(self.previous_token.clone())
+    }
+
+    fn consume_id(&mut self) -> Result<Token> {
+        let token_type = &self.current_token.token_type;
+
+        if !matches!(token_type, TokenType::ID(..)) {
+            return Err(ParserError::UnexpectedToken {
+                expected: TokenType::ID(String::new()),
+                found: token_type.clone(),
+            });
+        }
+
+        self.advance()?;
+
+        Ok(self.previous_token.clone())
+    }
+
+    fn consume_string(&mut self) -> Result<Token> {
+        let token_type = &self.current_token.token_type;
+
+        if !matches!(token_type, TokenType::String(..)) {
+            return Err(ParserError::UnexpectedToken {
+                expected: TokenType::String(String::new()),
+                found: token_type.clone(),
+            });
+        }
+
+        self.advance()?;
+
+        Ok(self.previous_token.clone())
+    }
+
+    fn consume_int(&mut self) -> Result<Token> {
+        let token_type = &self.current_token.token_type;
+
+        if !matches!(token_type, TokenType::Integer(..)) {
+            return Err(ParserError::UnexpectedToken {
+                expected: TokenType::Integer(0),
+                found: token_type.clone(),
+            });
+        }
+
+        self.advance()?;
+
         Ok(self.previous_token.clone())
     }
 
@@ -111,22 +144,26 @@ where
         // ID "(" Parameters ")" ( String )? "{" Block "}"
         self.depth += 1;
 
-        let name = self.consume(TokenType::ID)?;
+        let name = self.consume_id()?;
 
-        trace!(r#"{} Program: "{}""#, self.dp(), name.get_value_unchecked());
+        trace!(
+            r#"{} Program: "{}""#,
+            self.dp(),
+            name.get_string_unchecked()
+        );
 
-        self.consume(TokenType::ParenthesisLeft)?;
+        self.consume(&TokenType::ParenthesisLeft)?;
 
         let parameters = self.parameters()?;
 
-        self.consume(TokenType::ParenthesisRight)?;
+        self.consume(&TokenType::ParenthesisRight)?;
 
         // Optional, so ok to return Err.
-        let description = self.consume(TokenType::String).ok();
+        let description = self.consume_string().ok();
 
-        self.consume(TokenType::CurlyBraceLeft)?;
+        self.consume(&TokenType::CurlyBraceLeft)?;
         let block = self.block()?;
-        self.consume(TokenType::CurlyBraceRight)?;
+        self.consume(&TokenType::CurlyBraceRight)?;
 
         self.depth -= 1;
 
@@ -152,7 +189,7 @@ where
                 Err(_) => break,
             }
 
-            if self.consume(TokenType::Comma).is_err() {
+            if self.consume(&TokenType::Comma).is_err() {
                 break;
             }
         }
@@ -163,18 +200,18 @@ where
     fn parameter(&mut self) -> Result<ast::Parameter> {
         // ID ( "=" ( Integer | String ) )?
         self.depth += 1;
-        let identifier = self.consume(TokenType::ID)?;
+        let identifier = self.consume_id()?;
         trace!(
             r#"{} Parameter: "{}""#,
             self.dp(),
-            identifier.get_value_unchecked()
+            identifier.get_string_unchecked()
         );
 
-        let default = match self.consume(TokenType::Equals) {
+        let default = match self.consume(&TokenType::Equals) {
             Ok(_) => {
-                if let Ok(token) = self.consume(TokenType::Integer) {
+                if let Ok(token) = self.consume_int() {
                     Some(token)
-                } else if let Ok(token) = self.consume(TokenType::String) {
+                } else if let Ok(token) = self.consume_string() {
                     Some(token)
                 } else {
                     return Err(ParserError::Generic(
@@ -211,14 +248,14 @@ where
     ) -> Result<Vec<Expression>> {
         let mut expressions: Vec<Expression> = Vec::new();
 
-        while !terminators.contains(&self.current_token.ttype) {
+        while !terminators.contains(&self.current_token.token_type) {
             trace!(
                 "{} Gathering expressions until {:?}",
                 self.dp(),
                 terminators
                     .iter()
-                    .map(|tt| tt.as_str())
-                    .collect::<Vec<&str>>()
+                    .map(|tt| format!("{:?}", tt))
+                    .collect::<Vec<String>>()
             );
 
             if self.depth > 48 {
@@ -236,10 +273,10 @@ where
         trace!("{} Expression", self.dp());
         let mut expression = self.ternary()?;
 
-        while self.current_token.ttype == TokenType::QuestionMark {
-            self.consume(TokenType::QuestionMark)?;
+        while self.current_token.token_type == TokenType::QuestionMark {
+            self.consume(&TokenType::QuestionMark)?;
             let true_expr = self.ternary()?;
-            self.consume(TokenType::Colon)?;
+            self.consume(&TokenType::Colon)?;
             let false_expr = self.ternary()?;
 
             expression = Expression::TernaryOp {
@@ -261,10 +298,13 @@ where
         let mut ternary = self.disjunct()?;
 
         loop {
-            let ttype = self.current_token.ttype;
-            let operator = match ttype {
-                TokenType::DoubleVerticalBar => self.consume(ttype)?,
-                TokenType::VerticalBar => self.consume(ttype)?,
+            let operator = match self.current_token.token_type {
+                TokenType::DoubleVerticalBar => {
+                    self.consume(&TokenType::DoubleVerticalBar)?
+                }
+                TokenType::VerticalBar => {
+                    self.consume(&TokenType::VerticalBar)?
+                }
                 _ => break,
             };
 
@@ -287,10 +327,11 @@ where
         let mut disjunct = self.conjunct()?;
 
         loop {
-            let ttype = self.current_token.ttype;
-            let operator = match ttype {
-                TokenType::DoubleAmpersand => self.consume(ttype)?,
-                TokenType::Ampersand => self.consume(ttype)?,
+            let operator = match self.current_token.token_type {
+                TokenType::DoubleAmpersand => {
+                    self.consume(&TokenType::DoubleAmpersand)?
+                }
+                TokenType::Ampersand => self.consume(&TokenType::Ampersand)?,
                 _ => break,
             };
 
@@ -312,10 +353,9 @@ where
         let mut conjunct = self.term()?;
 
         loop {
-            let ttype = self.current_token.ttype;
-            let operator = match ttype {
-                TokenType::Plus => self.consume(ttype)?,
-                TokenType::Hyphen => self.consume(ttype)?,
+            let operator = match self.current_token.token_type {
+                TokenType::Plus => self.consume(&TokenType::Plus)?,
+                TokenType::Hyphen => self.consume(&TokenType::Hyphen)?,
                 _ => break,
             };
 
@@ -338,11 +378,12 @@ where
         let mut term = self.factor()?;
 
         loop {
-            let ttype = self.current_token.ttype;
-            let operator = match ttype {
-                TokenType::Asterisk => self.consume(ttype)?,
-                TokenType::SlashForward => self.consume(ttype)?,
-                TokenType::Percent => self.consume(ttype)?,
+            let operator = match self.current_token.token_type {
+                TokenType::Asterisk => self.consume(&TokenType::Asterisk)?,
+                TokenType::SlashForward => {
+                    self.consume(&TokenType::SlashForward)?
+                }
+                TokenType::Percent => self.consume(&TokenType::Percent)?,
                 _ => break,
             };
 
@@ -365,10 +406,11 @@ where
         let mut factor = self.exponent()?;
 
         loop {
-            let ttype = self.current_token.ttype;
-            let operator = match ttype {
-                TokenType::DoubleAsterisk => self.consume(ttype)?,
-                TokenType::Caret => self.consume(ttype)?,
+            let operator = match self.current_token.token_type {
+                TokenType::DoubleAsterisk => {
+                    self.consume(&TokenType::DoubleAsterisk)?
+                }
+                TokenType::Caret => self.consume(&TokenType::Caret)?,
                 _ => break,
             };
 
@@ -388,24 +430,22 @@ where
         self.depth += 1;
         trace!("{} Exponent", self.dp());
 
-        let ttype = self.current_token.ttype;
-
-        let exponent = match ttype {
+        let exponent = match self.current_token.token_type {
             TokenType::Plus => Expression::UnaryOp {
-                token: self.consume(ttype)?,
+                token: self.consume(&TokenType::Plus)?,
                 operand: Box::new(self.exponent()?),
             },
             TokenType::Hyphen => Expression::UnaryOp {
-                token: self.consume(ttype)?,
+                token: self.consume(&TokenType::Hyphen)?,
                 operand: Box::new(self.exponent()?),
             },
             TokenType::ParenthesisLeft => {
-                self.consume(ttype)?;
+                self.consume(&TokenType::ParenthesisLeft)?;
 
                 let expressions: Vec<Expression> =
                     self.expressions(&[TokenType::ParenthesisRight])?;
 
-                self.consume(TokenType::ParenthesisRight)?;
+                self.consume(&TokenType::ParenthesisRight)?;
 
                 if expressions.is_empty() {
                     return Err(ParserError::EmptyGroup);
@@ -425,26 +465,29 @@ where
         self.depth += 1;
         trace!("{} Statement", self.dp());
 
-        let ttype = self.current_token.ttype;
+        let ttype = &self.current_token.token_type;
 
         let statement = match ttype {
             TokenType::Dollar => {
-                self.consume(ttype)?;
+                self.consume(&TokenType::Dollar)?;
 
-                if self.current_token.ttype == TokenType::ParenthesisLeft {
-                    self.consume(TokenType::ParenthesisLeft)?;
-                    let substitution =
-                        Expression::Symbol(self.consume(TokenType::ID)?);
-                    self.consume(TokenType::ParenthesisRight)?;
+                if self.current_token.token_type == TokenType::ParenthesisLeft {
+                    self.consume(&TokenType::ParenthesisLeft)?;
+                    let substitution = Expression::Symbol(self.consume_id()?);
+                    self.consume(&TokenType::ParenthesisRight)?;
                     substitution
                 } else {
                     self.function()?
                 }
             }
             TokenType::AngleBracketLeft => self.tag()?,
-            TokenType::Integer => Expression::IntegerNode(self.consume(ttype)?),
-            TokenType::String => Expression::StringNode(self.consume(ttype)?),
-            _ => return Err(ParserError::UnrecognizedToken(ttype)),
+            TokenType::Integer(..) => {
+                Expression::IntegerNode(self.consume_int()?)
+            }
+            TokenType::String(..) => {
+                Expression::StringNode(self.consume_string()?)
+            }
+            _ => return Err(ParserError::UnrecognizedToken(ttype.clone())),
         };
 
         self.depth -= 1;
@@ -455,16 +498,16 @@ where
         self.depth += 1;
         trace!("{} Function", self.dp());
 
-        let identifier = self.consume(TokenType::ID)?;
+        let identifier = self.consume_id()?;
 
-        self.consume(TokenType::ParenthesisLeft)?;
+        self.consume(&TokenType::ParenthesisLeft)?;
 
         let mut arguments: Vec<Expression> = Vec::new();
 
         // while self.current_token.ttype() != TokenType::ParenthesisRight {
         loop {
             arguments.push(self.expression()?);
-            if self.consume(TokenType::Comma).is_err() {
+            if self.consume(&TokenType::Comma).is_err() {
                 break;
             }
         }
@@ -472,7 +515,7 @@ where
         let function = Expression::Function {
             start_token: identifier,
             arguments,
-            end_token: self.consume(TokenType::ParenthesisRight)?,
+            end_token: self.consume(&TokenType::ParenthesisRight)?,
         };
 
         self.depth -= 1;
@@ -483,11 +526,11 @@ where
         self.depth += 1;
         trace!("{} Tag", self.dp());
 
-        let start_token = self.consume(TokenType::AngleBracketLeft)?;
+        let start_token = self.consume(&TokenType::AngleBracketLeft)?;
 
-        let identifier = self.consume(TokenType::ID)?;
+        let identifier = self.consume_id()?;
 
-        self.consume(TokenType::AngleBracketRight)?;
+        self.consume(&TokenType::AngleBracketRight)?;
 
         let tag = Expression::Tag {
             start_token,

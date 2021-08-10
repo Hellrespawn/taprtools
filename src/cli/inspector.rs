@@ -1,6 +1,10 @@
 use crate::helpers;
 use crate::tfmt::ast::{self, Node, Program};
-use crate::tfmt::{Lexer, Parser, Token, Visitor, Visualizer};
+use crate::tfmt::lexer::Lexer;
+use crate::tfmt::parser::Parser;
+use crate::tfmt::token::Token;
+use crate::tfmt::visitor::Visitor;
+use crate::tfmt::visualizer::Visualizer;
 
 use log::{debug, info};
 use std::fmt::{self, Display};
@@ -49,7 +53,9 @@ impl<'a> Inspector<'a> {
     /// Public function for Inspector
     pub fn inspect<P: AsRef<Path>>(path: P, mode: Mode) -> Result {
         let path = path.as_ref();
-        let program = Parser::<Lexer>::from_path(path)?.parse()?;
+        let input_text = std::fs::read_to_string(path)?;
+
+        let program = Parser::from_lexer(Lexer::new(&input_text)).parse()?;
 
         let mut inspector = Inspector {
             name: String::new(),
@@ -129,10 +135,10 @@ impl<'a> Display for Inspector<'a> {
 
 impl<'a> Visitor<()> for Inspector<'a> {
     fn visit_program(&mut self, program: &ast::Program) {
-        self.name = program.name.get_value_unchecked().to_string();
+        self.name = program.name.get_string_unchecked().to_string();
 
         if let Some(description) = &program.description {
-            self.description = description.get_value_unchecked().to_string()
+            self.description = description.get_string_unchecked().to_string()
         }
 
         program.parameters.accept(self);
@@ -144,12 +150,12 @@ impl<'a> Visitor<()> for Inspector<'a> {
     }
 
     fn visit_parameter(&mut self, parameter: &ast::Parameter) {
-        let name = parameter.token.get_value_unchecked().to_string();
+        let name = parameter.token.get_string_unchecked().to_string();
 
         let default = parameter
             .default
             .as_ref()
-            .map(|d| d.get_value_unchecked().to_string());
+            .map(|d| d.get_string_unchecked().to_string());
 
         self.parameters.push((name, default));
     }
