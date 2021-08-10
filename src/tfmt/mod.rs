@@ -19,10 +19,13 @@ pub mod visualizer;
 
 pub mod buffered_iterator;
 pub mod new_ast;
-pub mod new_visitor;
-//pub mod new_parser;
+pub mod new_function;
+pub mod new_interpreter;
 pub mod new_lexer;
+pub mod new_parser;
+pub mod new_semantic;
 pub mod new_token;
+pub mod new_visitor;
 
 pub use interpreter::Interpreter;
 pub use lexer::{Lexer, LexerResult};

@@ -1,4 +1,4 @@
-use crate::error::DotError;
+use crate::new_error::DotError;
 use crate::tfmt::ast::{self, Expression, Node};
 use crate::tfmt::{Token, Visitor};
 use anyhow::Result;

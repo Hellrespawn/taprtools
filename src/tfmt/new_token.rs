@@ -7,6 +7,9 @@ type Result<T> = std::result::Result<T, TokenError>;
 pub const FORBIDDEN_GRAPHEMES: [&str; 8] =
     ["<", ">", ":", "\"", "|", "?", "*", "~"];
 
+/// Directory separators.
+pub static DIRECTORY_SEPARATORS: [&str; 2] = ["/", "\\"];
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum TokenType {
     Ampersand,
@@ -117,11 +120,11 @@ impl Token {
         })
     }
 
-    pub fn get_string_unchecked(&self) -> String {
+    pub fn get_string_unchecked(&self) -> &str {
         match &self.token_type {
             TokenType::Comment(string)
             | TokenType::ID(string)
-            | TokenType::String(string) => string.clone(),
+            | TokenType::String(string) => string.as_str(),
             token_type => panic!(
                 "get_string_unchecked was called on TokenType {:?}!",
                 token_type
