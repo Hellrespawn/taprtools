@@ -18,11 +18,13 @@ pub trait Visitor<T> {
                 true_expr,
                 false_expr,
             } => self.visit_ternaryop(condition, true_expr, false_expr),
-            Expression::BinaryOp { left, token, right } => {
-                self.visit_binaryop(left, token, right)
-            }
-            Expression::UnaryOp { token, operand } => {
-                self.visit_unaryop(token, operand)
+            Expression::BinaryOp {
+                left,
+                operator,
+                right,
+            } => self.visit_binaryop(left, operator, right),
+            Expression::UnaryOp { operator, operand } => {
+                self.visit_unaryop(operator, operand)
             }
             Expression::Group { expressions } => self.visit_group(expressions),
             Expression::Function {
@@ -47,7 +49,7 @@ pub trait Visitor<T> {
     fn visit_binaryop(
         &mut self,
         left: &Expression,
-        token: &Token,
+        operator: &Token,
         right: &Expression,
     ) -> T;
 

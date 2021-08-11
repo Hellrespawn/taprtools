@@ -6,7 +6,6 @@ use crate::file::audio_file::{self, AudioFile};
 use crate::helpers::{self, pp};
 use crate::tfmt::ast::Program;
 use crate::tfmt::interpreter::Interpreter;
-use crate::tfmt::lexer::Lexer;
 use crate::tfmt::parser::Parser;
 use crate::tfmt::semantic::SemanticAnalyzer;
 use crate::{PREVIEW_AMOUNT, RECURSION_DEPTH};
@@ -46,8 +45,9 @@ impl<'a> Rename<'a> {
     ) -> Result<()> {
         let path = helpers::get_script(script_name, &self.args.config_folder)?;
 
-        let input_text = std::fs::read_to_string(path)?;
-        let program = Parser::from_lexer(Lexer::new(&input_text)).parse()?;
+        let input_text =
+            helpers::normalize_newlines(&std::fs::read_to_string(path)?);
+        let program = Parser::from_string(&input_text)?.parse()?;
 
         let audio_files = self.get_audio_files(
             &input_folder,

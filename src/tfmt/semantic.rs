@@ -23,7 +23,7 @@ impl SemanticAnalyzer {
         program: &ast::Program,
         arguments: &[&str],
     ) -> Result<SymbolTable, SemanticError> {
-        let mut sa: SemanticAnalyzer = Default::default();
+        let mut sa: Self = Default::default();
 
         program.accept(&mut sa);
 
@@ -155,16 +155,17 @@ impl Visitor<()> for SemanticAnalyzer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::helpers;
     use crate::tfmt::ast::{self as ast};
-    use crate::tfmt::lexer::Lexer;
     use crate::tfmt::parser::Parser;
     use anyhow::Result;
 
     fn get_script(path: &str) -> Result<ast::Program> {
-        let input_text =
-            std::fs::read_to_string(format!("testdata/script/{}", path))?;
+        let input_text = helpers::normalize_newlines(&std::fs::read_to_string(
+            format!("testdata/script/{}", path),
+        )?);
 
-        Ok(Parser::from_lexer(Lexer::new(&input_text)).parse()?)
+        Ok(Parser::from_string(&input_text)?.parse()?)
     }
 
     fn script_test(name: &str, reference: &SymbolTable) -> Result<()> {

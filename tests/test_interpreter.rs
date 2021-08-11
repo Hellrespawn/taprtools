@@ -19,7 +19,7 @@ fn file_test(
 ) -> Result<()> {
     let input = common::get_script(filename)?;
 
-    let tokens: Vec<LexerResult> = Lexer::new(&input).collect();
+    let tokens: Vec<LexerResult> = Lexer::new(&input)?.collect();
 
     let mut parser = Parser::new(tokens.into_iter());
 

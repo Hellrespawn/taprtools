@@ -9,7 +9,6 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-#[derive(Default)]
 /// A [Visitor] used to construct a GraphViz dot-file.
 pub struct Visualizer {
     counter: u64,
@@ -23,7 +22,7 @@ impl Visualizer {
         name: &str,
         remove_dot_file: bool,
     ) -> Result<()> {
-        let mut g: Self = Default::default();
+        let mut g = Self { counter: 0 };
 
         let mut dot = "digraph astgraph {\n  \
             edge [arrowsize=.5];\n  \

@@ -13,13 +13,14 @@ where
 {
     iterator: I,
     depth: u64,
+    // Put tokens in Rc instead of cloning
     current_token: Option<Token>,
     previous_token: Option<Token>,
 }
 
 impl<'a> Parser<Lexer<'a>> {
-    pub fn from_lexer(lexer: Lexer<'a>) -> Parser<Lexer> {
-        Self::new(lexer)
+    pub fn from_string<S: AsRef<str>>(input_text: &'a S) -> Result<Self> {
+        Ok(Self::new(Lexer::new(input_text)?))
     }
 }
 
@@ -27,8 +28,8 @@ impl<I> Parser<I>
 where
     I: Iterator<Item = LexerResult>,
 {
-    pub fn new(iterator: I) -> Parser<I> {
-        Parser {
+    pub fn new(iterator: I) -> Self {
+        Self {
             iterator,
             depth: 0,
             current_token: None,
@@ -340,7 +341,7 @@ where
 
             ternary = Expression::BinaryOp {
                 left: Box::new(ternary),
-                token: operator,
+                operator,
                 right: Box::new(self.ternary()?),
             };
         }
@@ -367,7 +368,7 @@ where
 
             disjunct = Expression::BinaryOp {
                 left: Box::new(disjunct),
-                token: operator,
+                operator,
                 right: Box::new(self.disjunct()?),
             };
         }
@@ -391,7 +392,7 @@ where
 
             conjunct = Expression::BinaryOp {
                 left: Box::new(conjunct),
-                token: operator,
+                operator,
                 right: Box::new(self.conjunct()?),
             };
         }
@@ -419,7 +420,7 @@ where
 
             term = Expression::BinaryOp {
                 left: Box::new(term),
-                token: operator,
+                operator,
                 right: Box::new(self.term()?),
             };
         }
@@ -446,7 +447,7 @@ where
 
             factor = Expression::BinaryOp {
                 left: Box::new(factor),
-                token: operator,
+                operator,
                 right: Box::new(self.factor()?),
             };
         }
@@ -462,11 +463,11 @@ where
 
         let exponent = match *self.current_type() {
             TokenType::Plus => Expression::UnaryOp {
-                token: self.consume(&TokenType::Plus)?,
+                operator: self.consume(&TokenType::Plus)?,
                 operand: Box::new(self.exponent()?),
             },
             TokenType::Hyphen => Expression::UnaryOp {
-                token: self.consume(&TokenType::Hyphen)?,
+                operator: self.consume(&TokenType::Hyphen)?,
                 operand: Box::new(self.exponent()?),
             },
             TokenType::ParenthesisLeft => {

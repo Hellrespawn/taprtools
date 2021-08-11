@@ -26,7 +26,7 @@ impl<'a> Interpreter<'a> {
         symbol_table: &'a SymbolTable,
         audio_file: &'a dyn AudioFile,
     ) -> Self {
-        Interpreter {
+        Self {
             program,
             audio_file,
             symbol_table,
@@ -37,9 +37,12 @@ impl<'a> Interpreter<'a> {
     pub fn interpret(&mut self) -> Result<String> {
         trace!(r#"In:  "{}""#, self.audio_file.path().display());
 
-        let string = helpers::normalize_separators(&self.program.accept(self)?)
-            + "."
-            + self.audio_file.extension();
+        let string = format!(
+            "{}.{}",
+            helpers::normalize_separators(&self.program.accept(self)?),
+            self.audio_file.extension()
+        );
+
         trace!(r#"Out: "{}""#, string);
 
         Ok(string)

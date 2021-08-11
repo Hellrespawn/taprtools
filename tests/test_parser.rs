@@ -9,7 +9,7 @@ mod common;
 fn file_test(filename: &str, reference: Option<ast::Program>) -> Result<()> {
     let input = common::get_script(filename)?;
 
-    let tokens: Vec<LexerResult> = Lexer::new(&input).collect();
+    let tokens: Vec<LexerResult> = Lexer::new(&input)?.collect();
 
     let mut parser = Parser::new(tokens.into_iter());
 
@@ -59,189 +59,189 @@ fn parser_simple_input_test() -> Result<()> {
     file_test("simple_input.tfmt", Some(reference))
 }
 
-// #[test]
-// fn parser_typical_input_test() -> Result<()> {
-//     let reference = ast::Program {
-//         name: Token::new(1, 1, TokenType::ID, Some("typical_input".to_string(),))?,
-//         parameters: ast::Parameters {
-//             parameters: vec![
-//                 ast::Parameter {
-//                     token: Token::new(1, 15, TokenType::ID, Some("folder".to_string(),))?,
-//                     default: Some(
-//                         Token::new(1, 22, TokenType::String, Some("destination".to_string(),))?,
-//                     ),
-//                 },
-//             ],
-//         },
-//         description: Some(
-//             Token::new(1, 37, TokenType::String, Some("This file is used to test tfmttools.".to_string(),))?,
-//         ),
-//         block: ast::Block {
-//             expressions: vec![
-//                 Expression::Symbol(
-//                     Token::new(3, 7, TokenType::ID, Some("folder".to_string(),))?,
-//                 ),
-//                 Expression::StringNode(
-//                     Token::new(3, 15, TokenType::String, Some("/".to_string(),))?,
-//                 ),
-//                 Expression::BinaryOp {
-//                     left: Box::new(Expression::Tag {
-//                         start_token: Token::new(4, 5, TokenType::AngleBracketLeft, None)?,
-//                         token: Token::new(4, 6, TokenType::ID, Some("albumartist".to_string(),))?,
-//                     }),
-//                     token: Token::new(4, 19, TokenType::VerticalBar, None)?,
-//                     right: Box::new(Expression::Tag {
-//                         start_token: Token::new(4, 21, TokenType::AngleBracketLeft, None)?,
-//                         token: Token::new(4, 22, TokenType::ID, Some("artist".to_string(),))?,
-//                     }),
-//                 },
-//                 Expression::StringNode(
-//                     Token::new(5, 5, TokenType::String, Some("/".to_string(),))?,
-//                 ),
-//                 Expression::BinaryOp {
-//                     left: Box::new(Expression::Group {
-//                         expressions: vec![
-//                             Expression::BinaryOp {
-//                                 left: Box::new(Expression::Tag {
-//                                     start_token: Token::new(8, 9, TokenType::AngleBracketLeft, None)?,
-//                                     token: Token::new(8, 10, TokenType::ID, Some("date".to_string(),))?,
-//                                 }),
-//                                 token: Token::new(8, 16, TokenType::Ampersand, None)?,
-//                                 right: Box::new(Expression::Group {
-//                                     expressions: vec![
-//                                         Expression::Function {
-//                                             start_token: Token::new(9, 14, TokenType::ID, Some("year_from_date".to_string(),))?,
-//                                             arguments: vec![
-//                                                 Expression::Tag {
-//                                                     start_token: Token::new(9, 29, TokenType::AngleBracketLeft, None)?,
-//                                                     token: Token::new(9, 30, TokenType::ID, Some("date".to_string(),))?,
-//                                                 },
-//                                             ],
-//                                             end_token: Token::new(9, 35, TokenType::ParenthesisRight, None)?,
-//                                         },
-//                                         Expression::BinaryOp {
-//                                             left: Box::new(Expression::Tag {
-//                                                 start_token: Token::new(10, 13, TokenType::AngleBracketLeft, None)?,
-//                                                 token: Token::new(10, 14, TokenType::ID, Some("albumsort".to_string(),))?,
-//                                             }),
-//                                             token: Token::new(10, 25, TokenType::Ampersand, None)?,
-//                                             right: Box::new(Expression::Group {
-//                                                 expressions: vec![
-//                                                     Expression::StringNode(
-//                                                         Token::new(10, 28, TokenType::String, Some(".".to_string(),))?,
-//                                                     ),
-//                                                     Expression::Function {
-//                                                         start_token: Token::new(10, 33, TokenType::ID, Some("num".to_string(),))?,
-//                                                         arguments: vec![
-//                                                             Expression::Tag {
-//                                                                 start_token: Token::new(10, 37, TokenType::AngleBracketLeft, None)?,
-//                                                                 token: Token::new(10, 38, TokenType::ID, Some("albumsort".to_string(),))?,
-//                                                             },
-//                                                             Expression::IntegerNode(
-//                                                                 Token::new(10, 50, TokenType::Integer, Some("2".to_string(),))?,
-//                                                             ),
-//                                                         ],
-//                                                         end_token: Token::new(10, 51, TokenType::ParenthesisRight, None)?,
-//                                                     },
-//                                                 ],
-//                                             }),
-//                                         },
-//                                         Expression::StringNode(
-//                                             Token::new(11, 13, TokenType::String, Some(" - ".to_string(),))?,
-//                                         ),
-//                                     ],
-//                                 }),
-//                             },
-//                             Expression::Tag {
-//                                 start_token: Token::new(13, 9, TokenType::AngleBracketLeft, None)?,
-//                                 token: Token::new(13, 10, TokenType::ID, Some("album".to_string(),))?,
-//                             },
-//                         ],
-//                     }),
-//                     token: Token::new(14, 7, TokenType::DoubleAmpersand, None)?,
-//                     right: Box::new(Expression::StringNode(
-//                         Token::new(14, 10, TokenType::String, Some("/".to_string(),))?,
-//                     )),
-//                 },
-//                 Expression::TernaryOp {
-//                     condition: Box::new(Expression::Tag {
-//                         start_token: Token::new(16, 5, TokenType::AngleBracketLeft, None)?,
-//                         token: Token::new(16, 6, TokenType::ID, Some("discnumber".to_string(),))?,
-//                     }),
-//                     true_expr: Box::new(Expression::Function {
-//                         start_token: Token::new(16, 21, TokenType::ID, Some("num".to_string(),))?,
-//                         arguments: vec![
-//                             Expression::Tag {
-//                                 start_token: Token::new(16, 25, TokenType::AngleBracketLeft, None)?,
-//                                 token: Token::new(16, 26, TokenType::ID, Some("discnumber".to_string(),))?,
-//                             },
-//                             Expression::IntegerNode(
-//                                 Token::new(16, 39, TokenType::Integer, Some("1".to_string(),))?,
-//                             ),
-//                         ],
-//                         end_token: Token::new(16, 40, TokenType::ParenthesisRight, None)?,
-//                     }),
-//                     false_expr: Box::new(Expression::StringNode(
-//                         Token::new(16, 44, TokenType::String, Some("".to_string(),))?,
-//                     )),
-//                 },
-//                 Expression::BinaryOp {
-//                     left: Box::new(Expression::Tag {
-//                         start_token: Token::new(17, 5, TokenType::AngleBracketLeft, None)?,
-//                         token: Token::new(17, 6, TokenType::ID, Some("tracknumber".to_string(),))?,
-//                     }),
-//                     token: Token::new(17, 19, TokenType::Ampersand, None)?,
-//                     right: Box::new(Expression::Group {
-//                         expressions: vec![
-//                             Expression::Function {
-//                                 start_token: Token::new(17, 23, TokenType::ID, Some("num".to_string(),))?,
-//                                 arguments: vec![
-//                                     Expression::Tag {
-//                                         start_token: Token::new(17, 27, TokenType::AngleBracketLeft, None)?,
-//                                         token: Token::new(17, 28, TokenType::ID, Some("tracknumber".to_string(),))?,
-//                                     },
-//                                     Expression::IntegerNode(
-//                                         Token::new(17, 42, TokenType::Integer, Some("2".to_string(),))?,
-//                                     ),
-//                                 ],
-//                                 end_token: Token::new(17, 43, TokenType::ParenthesisRight, None)?,
-//                             },
-//                             Expression::StringNode(
-//                                 Token::new(17, 44, TokenType::String, Some(" - ".to_string(),))?,
-//                             ),
-//                         ],
-//                     }),
-//                 },
-//                 Expression::Function {
-//                     start_token: Token::new(18, 6, TokenType::ID, Some("if".to_string(),))?,
-//                     arguments: vec![
-//                         Expression::Tag {
-//                             start_token: Token::new(18, 9, TokenType::AngleBracketLeft, None)?,
-//                             token: Token::new(18, 10, TokenType::ID, Some("albumartist".to_string(),))?,
-//                         },
-//                         Expression::Group {
-//                             expressions: vec![
-//                                 Expression::Tag {
-//                                     start_token: Token::new(18, 25, TokenType::AngleBracketLeft, None)?,
-//                                     token: Token::new(18, 26, TokenType::ID, Some("artist".to_string(),))?,
-//                                 },
-//                                 Expression::StringNode(
-//                                     Token::new(18, 33, TokenType::String, Some(" - ".to_string(),))?,
-//                                 ),
-//                             ],
-//                         },
-//                         Expression::StringNode(
-//                             Token::new(18, 41, TokenType::String, Some("".to_string(),))?,
-//                         ),
-//                     ],
-//                     end_token: Token::new(18, 43, TokenType::ParenthesisRight, None)?,
-//                 },
-//                 Expression::Tag {
-//                     start_token: Token::new(19, 5, TokenType::AngleBracketLeft, None)?,
-//                     token: Token::new(19, 6, TokenType::ID, Some("title".to_string(),))?,
-//                 },
-//             ],
-//         },
-//     };
-//     file_test("typical_input.tfmt", Some(reference))
-//}
+#[test]
+fn parser_typical_input_test() -> Result<()> {
+    let reference = ast::Program {
+        name: Token::new( TokenType::ID("typical_input".to_string()), 1, 1),
+        parameters: ast::Parameters {
+            parameters: vec![
+                ast::Parameter {
+                    token: Token::new( TokenType::ID("folder".to_string()), 1, 15),
+                    default: Some(
+                        Token::new( TokenType::String("destination".to_string()), 1, 22),
+                    ),
+                },
+            ],
+        },
+        description: Some(
+            Token::new( TokenType::String("This file is used to test tfmttools.".to_string()), 1, 37),
+        ),
+        block: ast::Block {
+            expressions: vec![
+                Expression::Symbol(
+                    Token::new( TokenType::ID("folder".to_string()), 3, 7),
+                ),
+                Expression::StringNode(
+                    Token::new( TokenType::String("/".to_string()), 3, 15),
+                ),
+                Expression::BinaryOp {
+                    left: Box::new(Expression::Tag {
+                        start_token: Token::new( TokenType::AngleBracketLeft, 4, 5),
+                        token: Token::new( TokenType::ID("albumartist".to_string()), 4, 6),
+                    }),
+                    operator: Token::new( TokenType::VerticalBar, 4, 19),
+                    right: Box::new(Expression::Tag {
+                        start_token: Token::new( TokenType::AngleBracketLeft, 4, 21),
+                        token: Token::new( TokenType::ID("artist".to_string()), 4, 22),
+                    }),
+                },
+                Expression::StringNode(
+                    Token::new( TokenType::String("/".to_string()), 5, 5),
+                ),
+                Expression::BinaryOp {
+                    left: Box::new(Expression::Group {
+                        expressions: vec![
+                            Expression::BinaryOp {
+                                left: Box::new(Expression::Tag {
+                                    start_token: Token::new( TokenType::AngleBracketLeft, 8, 9),
+                                    token: Token::new( TokenType::ID("date".to_string()), 8, 10),
+                                }),
+                                operator: Token::new( TokenType::Ampersand, 8, 16),
+                                right: Box::new(Expression::Group {
+                                    expressions: vec![
+                                        Expression::Function {
+                                            start_token: Token::new( TokenType::ID("year_from_date".to_string()), 9, 14),
+                                            arguments: vec![
+                                                Expression::Tag {
+                                                    start_token: Token::new( TokenType::AngleBracketLeft, 9, 29),
+                                                    token: Token::new( TokenType::ID("date".to_string()), 9, 30),
+                                                },
+                                            ],
+                                            end_token: Token::new( TokenType::ParenthesisRight, 9, 35),
+                                        },
+                                        Expression::BinaryOp {
+                                            left: Box::new(Expression::Tag {
+                                                start_token: Token::new( TokenType::AngleBracketLeft, 10, 13),
+                                                token: Token::new( TokenType::ID("albumsort".to_string()), 10, 14),
+                                            }),
+                                            operator: Token::new( TokenType::Ampersand, 10, 25),
+                                            right: Box::new(Expression::Group {
+                                                expressions: vec![
+                                                    Expression::StringNode(
+                                                        Token::new( TokenType::String(".".to_string()), 10, 28),
+                                                    ),
+                                                    Expression::Function {
+                                                        start_token: Token::new( TokenType::ID("num".to_string()), 10, 33),
+                                                        arguments: vec![
+                                                            Expression::Tag {
+                                                                start_token: Token::new( TokenType::AngleBracketLeft, 10, 37),
+                                                                token: Token::new( TokenType::ID("albumsort".to_string()), 10, 38),
+                                                            },
+                                                            Expression::IntegerNode(
+                                                                Token::new( TokenType::Integer(2), 10, 50),
+                                                            ),
+                                                        ],
+                                                        end_token: Token::new( TokenType::ParenthesisRight, 10, 51),
+                                                    },
+                                                ],
+                                            }),
+                                        },
+                                        Expression::StringNode(
+                                            Token::new( TokenType::String(" - ".to_string()), 11, 13),
+                                        ),
+                                    ],
+                                }),
+                            },
+                            Expression::Tag {
+                                start_token: Token::new( TokenType::AngleBracketLeft, 13, 9),
+                                token: Token::new( TokenType::ID("album".to_string()), 13, 10),
+                            },
+                        ],
+                    }),
+                    operator: Token::new( TokenType::DoubleAmpersand, 14, 7),
+                    right: Box::new(Expression::StringNode(
+                        Token::new( TokenType::String("/".to_string()), 14, 10),
+                    )),
+                },
+                Expression::TernaryOp {
+                    condition: Box::new(Expression::Tag {
+                        start_token: Token::new( TokenType::AngleBracketLeft, 16, 5),
+                        token: Token::new( TokenType::ID("discnumber".to_string()), 16, 6),
+                    }),
+                    true_expr: Box::new(Expression::Function {
+                        start_token: Token::new( TokenType::ID("num".to_string()), 16, 21),
+                        arguments: vec![
+                            Expression::Tag {
+                                start_token: Token::new( TokenType::AngleBracketLeft, 16, 25),
+                                token: Token::new( TokenType::ID("discnumber".to_string()), 16, 26),
+                            },
+                            Expression::IntegerNode(
+                                Token::new( TokenType::Integer(1), 16, 39),
+                            ),
+                        ],
+                        end_token: Token::new( TokenType::ParenthesisRight, 16, 40),
+                    }),
+                    false_expr: Box::new(Expression::StringNode(
+                        Token::new( TokenType::String("".to_string()), 16, 44),
+                    )),
+                },
+                Expression::BinaryOp {
+                    left: Box::new(Expression::Tag {
+                        start_token: Token::new( TokenType::AngleBracketLeft, 17, 5),
+                        token: Token::new( TokenType::ID("tracknumber".to_string()), 17, 6),
+                    }),
+                    operator: Token::new( TokenType::Ampersand, 17, 19),
+                    right: Box::new(Expression::Group {
+                        expressions: vec![
+                            Expression::Function {
+                                start_token: Token::new( TokenType::ID("num".to_string()), 17, 23),
+                                arguments: vec![
+                                    Expression::Tag {
+                                        start_token: Token::new( TokenType::AngleBracketLeft, 17, 27),
+                                        token: Token::new( TokenType::ID("tracknumber".to_string()), 17, 28),
+                                    },
+                                    Expression::IntegerNode(
+                                        Token::new( TokenType::Integer(2), 17, 42),
+                                    ),
+                                ],
+                                end_token: Token::new( TokenType::ParenthesisRight, 17, 43),
+                            },
+                            Expression::StringNode(
+                                Token::new( TokenType::String(" - ".to_string()), 17, 44),
+                            ),
+                        ],
+                    }),
+                },
+                Expression::Function {
+                    start_token: Token::new( TokenType::ID("if".to_string()), 18, 6),
+                    arguments: vec![
+                        Expression::Tag {
+                            start_token: Token::new( TokenType::AngleBracketLeft, 18, 9),
+                            token: Token::new( TokenType::ID("albumartist".to_string()), 18, 10),
+                        },
+                        Expression::Group {
+                            expressions: vec![
+                                Expression::Tag {
+                                    start_token: Token::new( TokenType::AngleBracketLeft, 18, 25),
+                                    token: Token::new( TokenType::ID("artist".to_string()), 18, 26),
+                                },
+                                Expression::StringNode(
+                                    Token::new( TokenType::String(" - ".to_string()), 18, 33),
+                                ),
+                            ],
+                        },
+                        Expression::StringNode(
+                            Token::new( TokenType::String("".to_string()), 18, 41),
+                        ),
+                    ],
+                    end_token: Token::new( TokenType::ParenthesisRight, 18, 43),
+                },
+                Expression::Tag {
+                    start_token: Token::new( TokenType::AngleBracketLeft, 19, 5),
+                    token: Token::new( TokenType::ID("title".to_string()), 19, 6),
+                },
+            ],
+        },
+    };
+    file_test("typical_input.tfmt", Some(reference))
+}

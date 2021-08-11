@@ -1,6 +1,5 @@
 use crate::helpers;
 use crate::tfmt::ast::{self, Node, Program};
-use crate::tfmt::lexer::Lexer;
 use crate::tfmt::parser::Parser;
 use crate::tfmt::token::Token;
 use crate::tfmt::visitor::Visitor;
@@ -53,9 +52,10 @@ impl<'a> Inspector<'a> {
     /// Public function for Inspector
     pub fn inspect<P: AsRef<Path>>(path: P, mode: Mode) -> Result {
         let path = path.as_ref();
-        let input_text = std::fs::read_to_string(path)?;
+        let input_text =
+            helpers::normalize_newlines(&std::fs::read_to_string(path)?);
 
-        let program = Parser::from_lexer(Lexer::new(&input_text)).parse()?;
+        let program = Parser::from_string(&input_text)?.parse()?;
 
         let mut inspector = Inspector {
             name: String::new(),

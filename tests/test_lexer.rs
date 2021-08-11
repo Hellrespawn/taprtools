@@ -33,7 +33,7 @@ fn lexer_test(string: &str, reference: &[Token]) -> Result<()> {
 
 fn run_lexer(string: &str) -> Result<Vec<Token>> {
     let string = normalize_newlines(&string);
-    let lex = Lexer::new(&string);
+    let lex = Lexer::new(&string)?;
 
     let tokens = lex.collect::<Result<Vec<Token>, _>>()?;
 

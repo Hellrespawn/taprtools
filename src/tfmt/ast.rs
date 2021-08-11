@@ -65,11 +65,11 @@ pub enum Expression {
     },
     BinaryOp {
         left: Box<Expression>,
-        token: Token,
+        operator: Token,
         right: Box<Expression>,
     },
     UnaryOp {
-        token: Token,
+        operator: Token,
         operand: Box<Expression>,
     },
     Group {

@@ -39,23 +39,26 @@ impl<'a> Iterator for Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    pub fn new<S: AsRef<str>>(input_text: &S) -> Lexer {
+    pub fn new<S: AsRef<str>>(input_text: &'a S) -> Result<Self> {
         let input_text = input_text.as_ref();
-        let lexer = Lexer {
-            //input_text: String::from(input_text),
+        if input_text.contains('\r') {
+            return Err(LexerError::InputContainsCr);
+        }
+
+        let lexer = Self {
             buffer: input_text.graphemes(true).buffered(),
             line_no: 1,
             col_no: 1,
         };
+
         debug!("Creating lexer:\n{}", input_text);
-        lexer
+        Ok(lexer)
     }
 
     fn advance(&mut self, amount: usize) {
         for _ in 0..amount {
             let current_grapheme = self.buffer.next();
 
-            // FIXME Normalize newlines!
             if current_grapheme == Some("\n") {
                 self.line_no += 1;
                 self.col_no = 1;
@@ -84,7 +87,6 @@ impl<'a> Lexer<'a> {
         match self.crawl(|s| *s == quote, 1) {
             None => Err(LexerError::ExhaustedText(quote.to_string())),
             Some(s) => {
-                // FIXME Normalize newlines!
                 if s.contains('\n') {
                     Err(LexerError::NewlineInString(s))
                 } else {
@@ -153,7 +155,6 @@ impl<'a> Lexer<'a> {
     }
 
     fn handle_single_line_comment(&mut self) -> Result<String> {
-        // FIXME Normalize newlines!
         match self.crawl(|s| *s == "\n", 0) {
             // Ends on newline
             Some(s) => Ok(s),
@@ -258,7 +259,6 @@ impl<'a> Lexer<'a> {
     fn handle_misc(&mut self) -> Option<Token> {
         let (line_no, col_no) = (self.line_no, self.col_no);
 
-        // FIXME Normalize newlines!
         let string = self
             //.crawl(|s| [" ", "\t", "\n"].contains(s), 0)
             .crawl(|s| s.chars().any(|c| !(c.is_alphanumeric() || c == '_')), 0)
@@ -337,7 +337,7 @@ mod tests {
         use super::*;
 
         fn reserved_test(input: &str, expected_type: TokenType) -> Result<()> {
-            let mut lex = Lexer::new(&input);
+            let mut lex = Lexer::new(&input)?;
 
             generic_test(
                 input,
@@ -366,7 +366,7 @@ mod tests {
         use super::*;
 
         fn bounded_test(input: &str, expected_type: TokenType) -> Result<()> {
-            let mut lex = Lexer::new(&input);
+            let mut lex = Lexer::new(&input)?;
 
             generic_test(
                 input,
@@ -533,7 +533,7 @@ mod tests {
         use super::*;
 
         fn misc_test(input: &str, expected_type: TokenType) -> Result<()> {
-            let mut lex = Lexer::new(&input);
+            let mut lex = Lexer::new(&input)?;
 
             generic_test(input, expected_type, "misc_test", lex.handle_misc())
         }

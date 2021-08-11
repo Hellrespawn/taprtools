@@ -22,7 +22,11 @@ pub enum LexerError {
     #[error(r#"String contains forbidden grapheme "{0}"!"#)]
     ForbiddenGrapheme(String),
 
-    /// String contains forbidden grapheme.
+    /// String contains carriage return.
+    #[error("Input contains carriage return (\\r)!")]
+    InputContainsCr,
+
+    /// Single line string contains newline.
     #[error(r#"String contains newline character: "{0}""#)]
     NewlineInString(String),
 

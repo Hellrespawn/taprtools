@@ -101,7 +101,7 @@ pub struct Token {
 
 impl Token {
     pub fn new(token_type: TokenType, line_no: u64, col_no: u64) -> Self {
-        Token {
+        Self {
             token_type,
             line_no,
             col_no,
@@ -113,7 +113,7 @@ impl Token {
         line_no: u64,
         col_no: u64,
     ) -> Result<Self> {
-        Ok(Token {
+        Ok(Self {
             token_type: TokenType::from_str(token_type.as_ref())?,
             line_no,
             col_no,
