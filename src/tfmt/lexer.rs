@@ -1,5 +1,5 @@
-use super::buffered_iterator::{Buffered, BufferedIterator};
 use super::token::{Token, TokenType, FORBIDDEN_GRAPHEMES};
+use crate::buffered_iterator::{Buffered, BufferedIterator};
 use crate::error::LexerError;
 use log::{debug, trace};
 use unicode_segmentation::{Graphemes, UnicodeSegmentation};

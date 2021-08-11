@@ -13,8 +13,8 @@ where
 {
     iterator: I,
     depth: u64,
-    current_token: Token,
-    previous_token: Token,
+    current_token: Option<Token>,
+    previous_token: Option<Token>,
 }
 
 impl<'a> Parser<Lexer<'a>> {
@@ -31,8 +31,8 @@ where
         Parser {
             iterator,
             depth: 0,
-            current_token: Token::new(TokenType::Uninitialized, 0, 0),
-            previous_token: Token::new(TokenType::Uninitialized, 0, 0),
+            current_token: None,
+            previous_token: None,
         }
     }
 
@@ -46,27 +46,38 @@ where
     // TODO? Why do we need previous_token? Just for error handling?
     fn _advance(&mut self, ignore: bool) -> Result<()> {
         // Allows replacing without deinit, even without Clone/Copy
-        let prev = std::mem::replace(
-            &mut self.current_token,
-            match self.iterator.next() {
-                Some(a) => a?,
-                None => {
+        let new = match self.iterator.next() {
+            Some(result) => result?,
+            None => {
+                if let Some(token) = self.current_token.take() {
+                    self.previous_token = Some(token);
+                    return Ok(());
+                } else {
                     return Err(ParserError::Generic(
                         "End of iterator".to_string(),
-                    ))
+                    ));
                 }
-            },
-        );
+            }
+        };
+
+        let prev = self.current_token.replace(new);
 
         if !ignore {
             self.previous_token = prev
         }
 
-        if self.current_token.token_type.is_ignored() {
+        if self.current_type().is_ignored() {
             self._advance(true)?;
         }
 
         Ok(())
+    }
+
+    fn current_type(&self) -> &TokenType {
+        // current_token is guaranteed to be Some() by Parser::advance(), so
+        // unwrap should be safe.
+        debug_assert!(self.current_token.is_some());
+        &self.current_token.as_ref().unwrap().token_type
     }
 
     fn advance(&mut self) -> Result<()> {
@@ -74,7 +85,7 @@ where
     }
 
     fn consume(&mut self, expected: &TokenType) -> Result<Token> {
-        let token_type = &self.current_token.token_type;
+        let token_type = self.current_type();
 
         if token_type != expected {
             return Err(ParserError::UnexpectedToken {
@@ -85,12 +96,16 @@ where
 
         self.advance()?;
 
+        // previous_token is guaranteed to be Some() by Parser::advance(), so
+        // unwrap should be safe.
+        debug_assert!(self.previous_token.is_some());
+
         // Explicitly clone here, we need the original in previous, but also to return it.
-        Ok(self.previous_token.clone())
+        Ok(self.previous_token.as_ref().unwrap().clone())
     }
 
     fn consume_id(&mut self) -> Result<Token> {
-        let token_type = &self.current_token.token_type;
+        let token_type = self.current_type();
 
         if !matches!(token_type, TokenType::ID(..)) {
             return Err(ParserError::UnexpectedToken {
@@ -101,11 +116,16 @@ where
 
         self.advance()?;
 
-        Ok(self.previous_token.clone())
+        // previous_token is guaranteed to be Some() by Parser::advance(), so
+        // unwrap should be safe.
+        debug_assert!(self.previous_token.is_some());
+
+        // Explicitly clone here, we need the original in previous, but also to return it.
+        Ok(self.previous_token.as_ref().unwrap().clone())
     }
 
     fn consume_string(&mut self) -> Result<Token> {
-        let token_type = &self.current_token.token_type;
+        let token_type = self.current_type();
 
         if !matches!(token_type, TokenType::String(..)) {
             return Err(ParserError::UnexpectedToken {
@@ -116,11 +136,16 @@ where
 
         self.advance()?;
 
-        Ok(self.previous_token.clone())
+        // previous_token is guaranteed to be Some() by Parser::advance(), so
+        // unwrap should be safe.
+        debug_assert!(self.previous_token.is_some());
+
+        // Explicitly clone here, we need the original in previous, but also to return it.
+        Ok(self.previous_token.as_ref().unwrap().clone())
     }
 
     fn consume_int(&mut self) -> Result<Token> {
-        let token_type = &self.current_token.token_type;
+        let token_type = self.current_type();
 
         if !matches!(token_type, TokenType::Integer(..)) {
             return Err(ParserError::UnexpectedToken {
@@ -131,7 +156,12 @@ where
 
         self.advance()?;
 
-        Ok(self.previous_token.clone())
+        // previous_token is guaranteed to be Some() by Parser::advance(), so
+        // unwrap should be safe.
+        debug_assert!(self.previous_token.is_some());
+
+        // Explicitly clone here, we need the original in previous, but also to return it.
+        Ok(self.previous_token.as_ref().unwrap().clone())
     }
 
     /// Depth Prefix
@@ -248,7 +278,7 @@ where
     ) -> Result<Vec<Expression>> {
         let mut expressions: Vec<Expression> = Vec::new();
 
-        while !terminators.contains(&self.current_token.token_type) {
+        while !terminators.contains(self.current_type()) {
             trace!(
                 "{} Gathering expressions until {:?}",
                 self.dp(),
@@ -273,7 +303,7 @@ where
         trace!("{} Expression", self.dp());
         let mut expression = self.ternary()?;
 
-        while self.current_token.token_type == TokenType::QuestionMark {
+        while *self.current_type() == TokenType::QuestionMark {
             self.consume(&TokenType::QuestionMark)?;
             let true_expr = self.ternary()?;
             self.consume(&TokenType::Colon)?;
@@ -298,7 +328,7 @@ where
         let mut ternary = self.disjunct()?;
 
         loop {
-            let operator = match self.current_token.token_type {
+            let operator = match *self.current_type() {
                 TokenType::DoubleVerticalBar => {
                     self.consume(&TokenType::DoubleVerticalBar)?
                 }
@@ -327,7 +357,7 @@ where
         let mut disjunct = self.conjunct()?;
 
         loop {
-            let operator = match self.current_token.token_type {
+            let operator = match *self.current_type() {
                 TokenType::DoubleAmpersand => {
                     self.consume(&TokenType::DoubleAmpersand)?
                 }
@@ -353,7 +383,7 @@ where
         let mut conjunct = self.term()?;
 
         loop {
-            let operator = match self.current_token.token_type {
+            let operator = match *self.current_type() {
                 TokenType::Plus => self.consume(&TokenType::Plus)?,
                 TokenType::Hyphen => self.consume(&TokenType::Hyphen)?,
                 _ => break,
@@ -378,7 +408,7 @@ where
         let mut term = self.factor()?;
 
         loop {
-            let operator = match self.current_token.token_type {
+            let operator = match *self.current_type() {
                 TokenType::Asterisk => self.consume(&TokenType::Asterisk)?,
                 TokenType::SlashForward => {
                     self.consume(&TokenType::SlashForward)?
@@ -406,7 +436,7 @@ where
         let mut factor = self.exponent()?;
 
         loop {
-            let operator = match self.current_token.token_type {
+            let operator = match *self.current_type() {
                 TokenType::DoubleAsterisk => {
                     self.consume(&TokenType::DoubleAsterisk)?
                 }
@@ -430,7 +460,7 @@ where
         self.depth += 1;
         trace!("{} Exponent", self.dp());
 
-        let exponent = match self.current_token.token_type {
+        let exponent = match *self.current_type() {
             TokenType::Plus => Expression::UnaryOp {
                 token: self.consume(&TokenType::Plus)?,
                 operand: Box::new(self.exponent()?),
@@ -465,13 +495,13 @@ where
         self.depth += 1;
         trace!("{} Statement", self.dp());
 
-        let ttype = &self.current_token.token_type;
+        let ttype = self.current_type();
 
         let statement = match ttype {
             TokenType::Dollar => {
                 self.consume(&TokenType::Dollar)?;
 
-                if self.current_token.token_type == TokenType::ParenthesisLeft {
+                if self.current_type() == &TokenType::ParenthesisLeft {
                     self.consume(&TokenType::ParenthesisLeft)?;
                     let substitution = Expression::Symbol(self.consume_id()?);
                     self.consume(&TokenType::ParenthesisRight)?;

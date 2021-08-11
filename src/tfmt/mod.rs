@@ -16,5 +16,3 @@ pub mod token;
 pub mod visitor;
 /// AST Dot Generator
 pub mod visualizer;
-
-pub mod buffered_iterator;

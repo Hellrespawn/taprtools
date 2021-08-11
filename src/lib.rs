@@ -8,6 +8,7 @@
 pub const PREVIEW_AMOUNT: usize = 8;
 pub const RECURSION_DEPTH: u64 = 4;
 
+pub mod buffered_iterator;
 /// CLI modules.
 pub mod cli;
 /// Crate errors.
