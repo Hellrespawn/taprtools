@@ -2,9 +2,9 @@ use crate::file::{MP3, OGG};
 use anyhow::Result;
 use indicatif::ProgressBar;
 use std::convert::TryFrom;
-/// Common functions for reading audio file tags.
 use std::path::{Path, PathBuf};
 
+/// Common functions for reading audio file tags.
 pub trait AudioFile: std::fmt::Debug + Send + Sync {
     fn path(&self) -> &PathBuf;
 
@@ -45,7 +45,7 @@ pub trait AudioFile: std::fmt::Debug + Send + Sync {
     }
 }
 
-/// Read [AudioFile]s into buffer.
+/// Return a vector of [AudioFile]s , optionally incrementing a progress bar.
 pub fn get_audio_files(
     dir: &Path,
     depth: u64,

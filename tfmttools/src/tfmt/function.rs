@@ -102,6 +102,9 @@ fn function_validate(string: &str) -> String {
     token::FORBIDDEN_GRAPHEMES
         .iter()
         .for_each(|g| out = out.replace(g, ""));
+    token::DIRECTORY_SEPARATORS
+        .iter()
+        .for_each(|g| out = out.replace(g, ""));
 
     out
 }

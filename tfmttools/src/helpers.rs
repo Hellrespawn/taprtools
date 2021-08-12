@@ -7,7 +7,7 @@ pub fn get_log_dir() -> PathBuf {
     std::env::temp_dir().join("tfmttools")
 }
 
-/// Search a path
+/// Search a path for files matching `predicate`, recursing for `depth`.
 pub fn search_path<P, Q>(path: &P, predicate: Q, depth: u64) -> Vec<PathBuf>
 where
     P: AsRef<Path>,
@@ -86,12 +86,12 @@ pub fn titlecase(string: &str) -> String {
     }
 }
 
-/// Normalizes newlines
+/// Normalizes newlines in `string`.
 pub fn normalize_newlines<S: AsRef<str>>(string: &S) -> String {
     string.as_ref().replace("\r\n", "\n").replace("\r", "\n")
 }
 
-/// Normalizes separators
+/// Normalizes separators for the platform in `string`.
 pub fn normalize_separators<S: AsRef<str>>(string: &S) -> String {
     string.as_ref().replace(
         if MAIN_SEPARATOR == '/' { '\\' } else { '/' },
@@ -99,7 +99,7 @@ pub fn normalize_separators<S: AsRef<str>>(string: &S) -> String {
     )
 }
 
-/// Preview Prefix
+/// Preview prefix
 pub fn pp(preview: bool) -> &'static str {
     if preview {
         "[P] "

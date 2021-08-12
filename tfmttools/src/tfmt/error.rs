@@ -38,24 +38,30 @@ pub enum LexerError {
 #[derive(Error, Debug, PartialEq)]
 /// Error from the [lexer] module.
 pub enum ParserError {
+    /// Generic [ParserError]
     #[error("{0}")]
     Generic(String),
 
+    /// Encountered group without expressions.
     #[error("Encountered group without expressions!")]
     EmptyGroup,
 
+    /// Iterator has run out of tokens.
     #[error("Iterator has run out of tokens!")]
     ExhaustedTokens,
 
-    #[error("Maximum iteration depth {0}, exceeded!")]
+    /// Maximum iteration depth exceeded!
+    #[error("Maximum iteration depth, {0}, exceeded!")]
     MaxIteration(u64),
 
+    /// Unexpected [TokenType].
     #[error("Expected {expected:?}, got {found:?}")]
-    UnexpectedToken {
+    UnexpectedTokenType {
         expected: TokenType,
         found: TokenType,
     },
 
+    /// Unable to parse [TokenType].
     #[error("Unable to parse token type {0:?}!")]
     UnrecognizedToken(TokenType),
 

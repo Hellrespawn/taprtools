@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
 
-/// Representation of an Ogg-file.
+/// Implementation of [AudioFile] for Ogg files.
 #[derive(Debug)]
 pub struct OGG {
     path: PathBuf,

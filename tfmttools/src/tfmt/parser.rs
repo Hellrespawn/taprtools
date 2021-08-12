@@ -19,6 +19,7 @@ where
 }
 
 impl<'a> Parser<Lexer<'a>> {
+    /// Create a [Parser<Lexer<'a>>] from a string.
     pub fn from_string<S: AsRef<str>>(input_text: &'a S) -> Result<Self> {
         Ok(Self::new(Lexer::new(input_text)?))
     }
@@ -28,6 +29,7 @@ impl<I> Parser<I>
 where
     I: Iterator<Item = LexerResult>,
 {
+    /// Create a [Parser] from an [Iterator] returning [LexerResult].
     pub fn new(iterator: I) -> Self {
         Self {
             iterator,
@@ -37,7 +39,7 @@ where
         }
     }
 
-    /// Wrapper function for starting [Parser].
+    /// Run [Parser] to create an Abstract Syntax Tree.
     pub fn parse(&mut self) -> Result<ast::Program> {
         // Prime parser
         self._advance(true)?;
@@ -87,7 +89,7 @@ where
         let token_type = self.current_type();
 
         if token_type != expected {
-            return Err(ParserError::UnexpectedToken {
+            return Err(ParserError::UnexpectedTokenType {
                 expected: expected.clone(),
                 found: token_type.clone(),
             });
@@ -107,7 +109,7 @@ where
         let token_type = self.current_type();
 
         if !matches!(token_type, TokenType::ID(..)) {
-            return Err(ParserError::UnexpectedToken {
+            return Err(ParserError::UnexpectedTokenType {
                 expected: TokenType::ID(String::new()),
                 found: token_type.clone(),
             });
@@ -127,7 +129,7 @@ where
         let token_type = self.current_type();
 
         if !matches!(token_type, TokenType::String(..)) {
-            return Err(ParserError::UnexpectedToken {
+            return Err(ParserError::UnexpectedTokenType {
                 expected: TokenType::String(String::new()),
                 found: token_type.clone(),
             });
@@ -147,7 +149,7 @@ where
         let token_type = self.current_type();
 
         if !matches!(token_type, TokenType::Integer(..)) {
-            return Err(ParserError::UnexpectedToken {
+            return Err(ParserError::UnexpectedTokenType {
                 expected: TokenType::Integer(0),
                 found: token_type.clone(),
             });
@@ -243,8 +245,9 @@ where
                 } else if let Ok(token) = self.consume_string() {
                     Some(token)
                 } else {
+                    // TODO? Create a separate error?
                     return Err(ParserError::Generic(
-                        "Paramater has invalid default!".to_string(),
+                        "Parameter has invalid default!".to_string(),
                     ));
                 }
             }

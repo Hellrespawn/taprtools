@@ -12,7 +12,7 @@ use log::trace;
 
 type Result<T> = std::result::Result<T, InterpreterError>;
 
-/// Interprets an AST based on tags from and [AudioFile].
+/// Interprets an [AST](ast::Program) based on tags from an [AudioFile].
 pub struct Interpreter<'a> {
     program: &'a Program,
     symbol_table: &'a SymbolTable,

@@ -8,6 +8,7 @@ use unicode_segmentation::{Graphemes, UnicodeSegmentation};
 pub type LexerResult = std::result::Result<Token, LexerError>;
 type Result<T> = std::result::Result<T, LexerError>;
 
+/// Reads a string and returns a stream of [Token]s.
 pub struct Lexer<'a> {
     buffer: BufferedIterator<Graphemes<'a>>,
     line_no: u64,
@@ -39,6 +40,8 @@ impl<'a> Iterator for Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
+    /// Attempt to create a [Lexer] from a string. Requires that the input
+    /// does not contain carriage return characters (\r).
     pub fn new<S: AsRef<str>>(input_text: &'a S) -> Result<Self> {
         let input_text = input_text.as_ref();
         if input_text.contains('\r') {
@@ -68,7 +71,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    pub fn crawl<P>(&mut self, predicate: P, discard: usize) -> Option<String>
+    fn crawl<P>(&mut self, predicate: P, discard: usize) -> Option<String>
     where
         P: Fn(&&str) -> bool,
     {

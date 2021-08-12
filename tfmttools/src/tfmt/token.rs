@@ -10,6 +10,7 @@ pub const FORBIDDEN_GRAPHEMES: [&str; 8] =
 /// Directory separators.
 pub static DIRECTORY_SEPARATORS: [&str; 2] = ["/", "\\"];
 
+/// Represents the type of token, and optionally it's value.
 #[derive(Clone, Debug, PartialEq)]
 pub enum TokenType {
     Ampersand,
@@ -30,17 +31,14 @@ pub enum TokenType {
     Percent,
     Plus,
     QuestionMark,
-    //QuoteDouble,
-    //QuoteSingle,
     SlashBack,
     SlashForward,
     VerticalBar,
 
-    //AsteriskSlash,
     DoubleAmpersand,
     DoubleAsterisk,
     DoubleVerticalBar,
-    //SlashAsterisk,
+
     Comment(String),
     ID(String),
     Integer(i64),
@@ -85,13 +83,16 @@ impl FromStr for TokenType {
 }
 
 impl TokenType {
+    /// Maximum length of [TokenType] string representation.
     pub const LOOKAHEAD_DEPTH: usize = 2;
 
+    /// Whether or not this TokenType is ignored by [Parser].
     pub fn is_ignored(&self) -> bool {
         matches!(self, Self::Comment(..))
     }
 }
 
+/// TFMT Token
 #[derive(Clone, Debug, PartialEq)]
 pub struct Token {
     pub token_type: TokenType,
@@ -100,6 +101,7 @@ pub struct Token {
 }
 
 impl Token {
+    /// Create a new [Token].
     pub fn new(token_type: TokenType, line_no: u64, col_no: u64) -> Self {
         Self {
             token_type,
@@ -108,6 +110,7 @@ impl Token {
         }
     }
 
+    /// Attempt to create a new [Token], parsing a string as [TokenType].
     pub fn from_str<S: AsRef<str>>(
         token_type: &S,
         line_no: u64,
@@ -120,6 +123,8 @@ impl Token {
         })
     }
 
+    /// Gets value from [TokenType::{Comment, ID, String}], panicking if the
+    /// the token is a different type.
     pub fn get_string_unchecked(&self) -> &str {
         match &self.token_type {
             TokenType::Comment(string)
@@ -132,6 +137,8 @@ impl Token {
         }
     }
 
+    /// Gets value from [TokenType::Integer], panicking if the
+    /// the token is a different type.
     pub fn get_int_unchecked(&self) -> i64 {
         match &self.token_type {
             TokenType::Integer(int) => *int,

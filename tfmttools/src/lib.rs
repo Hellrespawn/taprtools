@@ -5,7 +5,10 @@
 //! rename your music files based on their tags.
 
 // TODO? Write proper config/settings module?
+/// Number of [AudioFile]s to preview.
 pub const PREVIEW_AMOUNT: usize = 8;
+
+/// Number of folders to recurse from --input-dir
 pub const RECURSION_DEPTH: u64 = 4;
 
 /// CLI modules.
