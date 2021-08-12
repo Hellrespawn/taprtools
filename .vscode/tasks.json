@@ -7,7 +7,7 @@
             "label": "Generate to-do",
             "type": "shell",
             "problemMatcher": [],
-            "command": "sscs_rust > doc/todo.txt",
+            "command": "sscs > doc/todo.txt",
             "presentation": {
                 "reveal": "silent"
             }

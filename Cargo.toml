@@ -4,3 +4,6 @@ members = [
     "tfmttools",
     "buffered-iterator"
 ]
+
+[profile.release]
+panic = "abort"

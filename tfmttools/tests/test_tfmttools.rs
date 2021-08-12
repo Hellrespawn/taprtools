@@ -143,7 +143,7 @@ fn test_rename<P: AsRef<Path>>(
         args
     );
 
-    tfmt::main(&args.split_whitespace().collect::<Vec<&str>>())?;
+    tfmt::main(&args.split_whitespace().collect::<Vec<&str>>(), false)?;
 
     check_paths(&tempdir, &reference)?;
 
@@ -163,7 +163,7 @@ fn test_undo<P: AsRef<Path>>(
         tempdir.path().join(CONFIG_FOLDER).display(),
     );
 
-    tfmt::main(&args.split_whitespace().collect::<Vec<&str>>())?;
+    tfmt::main(&args.split_whitespace().collect::<Vec<&str>>(), false)?;
 
     let reference = [
         "source/Dune - MASTER BOOT RECORD.mp3",
@@ -191,7 +191,7 @@ fn test_redo<P: AsRef<Path>>(
         tempdir.path().join(CONFIG_FOLDER).display(),
     );
 
-    tfmt::main(&args.split_whitespace().collect::<Vec<&str>>())?;
+    tfmt::main(&args.split_whitespace().collect::<Vec<&str>>(), false)?;
 
     check_paths(&tempdir, &reference)?;
 

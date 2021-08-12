@@ -1,6 +1,6 @@
+use super::error::LexerError;
 use super::token::{Token, TokenType, FORBIDDEN_GRAPHEMES};
 use buffered_iterator::{Buffered, BufferedIterator};
-use super::error::LexerError;
 use log::{debug, trace};
 use unicode_segmentation::{Graphemes, UnicodeSegmentation};
 

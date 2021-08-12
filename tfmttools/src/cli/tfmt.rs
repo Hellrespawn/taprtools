@@ -10,8 +10,12 @@ use std::convert::TryInto;
 use std::ffi::OsStr;
 
 /// Main tfmttools entrypoint.
-pub fn main<S: AsRef<OsStr>>(args: &[S]) -> Result<()> {
-    let args = argparse::parse_args(args)?;
+pub fn main<S: AsRef<OsStr>>(args: &[S], preview: bool) -> Result<()> {
+    let args = {
+        let mut args = argparse::parse_args(args)?;
+        args.preview |= preview;
+        args
+    };
 
     logging::setup_logger(args.verbosity.try_into()?, "tfmttools")?;
 
@@ -19,7 +23,7 @@ pub fn main<S: AsRef<OsStr>>(args: &[S]) -> Result<()> {
     info!("rayon is enabled, running in parallel.");
 
     #[cfg(not(feature = "rayon"))]
-    info!("rayon is not enabled.");
+    info!("rayon is not enabled, running sequentially.");
 
     info!("Parsed arguments:\n{:#?}", &args);
 

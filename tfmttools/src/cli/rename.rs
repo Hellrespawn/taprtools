@@ -1,10 +1,10 @@
 use super::argparse::Args;
 use super::history::{Action, ActionGroup, History, MoveMode};
 use super::validate::validate;
-use crate::tfmt::error::InterpreterError;
 use crate::file::audio_file::{self, AudioFile};
 use crate::helpers::{self, pp};
 use crate::tfmt::ast::Program;
+use crate::tfmt::error::InterpreterError;
 use crate::tfmt::interpreter::Interpreter;
 use crate::tfmt::parser::Parser;
 use crate::tfmt::semantic::SemanticAnalyzer;
@@ -147,7 +147,7 @@ impl<'a> Rename<'a> {
         let path_iter = audio_files.par_iter().progress_with(progress_bar);
 
         #[cfg(not(feature = "rayon"))]
-        let paths_iter = audio_files.iter().progress_with(bar);
+        let path_iter = audio_files.iter().progress_with(progress_bar);
 
         type IResult = std::result::Result<Vec<SrcTgtPair>, InterpreterError>;
 
