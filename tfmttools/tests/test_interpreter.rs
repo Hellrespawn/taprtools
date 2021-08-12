@@ -41,7 +41,7 @@ fn file_test(
 
     let output: std::result::Result<
         Vec<String>,
-        tfmttools::error::InterpreterError,
+        tfmttools::tfmt::error::InterpreterError,
     > = iter
         .map(|s| {
             Interpreter::new(&program, &symbol_table, s.as_ref()).interpret()

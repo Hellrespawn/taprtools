@@ -1,4 +1,4 @@
-use crate::error::InterpreterError;
+use super::error::InterpreterError;
 use crate::file::audio_file::AudioFile;
 use crate::helpers;
 use crate::tfmt::ast::*;

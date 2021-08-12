@@ -44,6 +44,9 @@ pub enum ParserError {
     #[error("Encountered group without expressions!")]
     EmptyGroup,
 
+    #[error("Iterator has run out of tokens!")]
+    ExhaustedTokens,
+
     #[error("Maximum iteration depth {0}, exceeded!")]
     MaxIteration(u64),
 

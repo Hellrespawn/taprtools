@@ -1,43 +1,6 @@
-[package]
-name = "tfmttools"
-version = "0.3.0"
-authors = ["Stef Korporaal <stefkorporaal@gmail.com>"]
-description = "Renames audio files according to their tags."
-edition = "2018"
-license = "BSD-3-Clause AND MIT OR Apache-2.0"
-default-run = "tfmt"
+[workspace]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[profile.release]
-panic = "abort"
-
-[features]
-default = ["rayon"]
-# TODO? Make history a feature?
-# default = ["history", "rayon"]
-# history = []
-
-[dependencies]
-anyhow = "1.0"
-bimap = "0.6.1"
-bincode = "1.3"
-clap = {version = "2", features = ["yaml"]}
-chrono = "0.4"
-# colored = "2"
-dirs = "3.0.2"
-dunce = "1.0.2"
-fern = "0.6.0"
-id3 = "0.6.4"
-indicatif = {version = "0.16.2", features = ["rayon"]}
-lewton = "0.10.2"
-log = "0.4"
-once_cell = "1.8.0"
-rayon = {version = "1.5", optional = true}
-regex = "1"
-serde = {version = "1.0", features = ["derive"]}
-thiserror = "1.0"
-unicode-segmentation = "1.8"
-
-[dev-dependencies]
-tempfile = "3"
+members = [
+    "tfmttools",
+    "buffered-iterator"
+]

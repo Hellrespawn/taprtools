@@ -1,7 +1,7 @@
 use super::argparse::Args;
 use super::history::{Action, ActionGroup, History, MoveMode};
 use super::validate::validate;
-use crate::error::InterpreterError;
+use crate::tfmt::error::InterpreterError;
 use crate::file::audio_file::{self, AudioFile};
 use crate::helpers::{self, pp};
 use crate::tfmt::ast::Program;
@@ -28,21 +28,24 @@ use indicatif::ProgressIterator;
 
 /// Intermediate representation during interpreting.
 pub type SrcTgtPair = (PathBuf, PathBuf);
-//pub type SrcTgtPairs = Vec<SrcTgtPair>;
 
 pub struct Rename<'a> {
     pub args: &'a Args,
 }
 
 impl<'a> Rename<'a> {
-    pub fn rename<P: AsRef<Path>>(
+    pub fn rename<P, Q>(
         &mut self,
         script_name: &str,
         arguments: &[&str],
         input_folder: &P,
-        output_folder: &P,
+        output_folder: &Q,
         recursive: bool,
-    ) -> Result<()> {
+    ) -> Result<()>
+    where
+        P: AsRef<Path>,
+        Q: AsRef<Path>,
+    {
         let path = helpers::get_script(script_name, &self.args.config_folder)?;
 
         let input_text =

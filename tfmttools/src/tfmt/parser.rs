@@ -1,4 +1,4 @@
-use crate::error::ParserError;
+use super::error::ParserError;
 use crate::tfmt::ast::{self, Expression};
 use crate::tfmt::lexer::{Lexer, LexerResult};
 use crate::tfmt::token::{Token, TokenType};
@@ -54,9 +54,7 @@ where
                     self.previous_token = Some(token);
                     return Ok(());
                 } else {
-                    return Err(ParserError::Generic(
-                        "End of iterator".to_string(),
-                    ));
+                    return Err(ParserError::ExhaustedTokens);
                 }
             }
         };

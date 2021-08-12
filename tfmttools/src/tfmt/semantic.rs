@@ -1,4 +1,4 @@
-use crate::error::SemanticError;
+use super::error::SemanticError;
 use crate::tfmt::ast::{self, Node};
 use crate::tfmt::token::Token;
 use crate::tfmt::visitor::Visitor;

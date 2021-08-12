@@ -1,4 +1,4 @@
-use crate::error::TokenError;
+use super::error::TokenError;
 use std::str::FromStr;
 
 type Result<T> = std::result::Result<T, TokenError>;

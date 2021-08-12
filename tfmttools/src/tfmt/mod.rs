@@ -1,5 +1,7 @@
 /// Abstract Syntax Tree nodes
 pub mod ast;
+/// Crate errors.
+pub mod error;
 /// Functions
 pub mod function;
 ///Interpreter
