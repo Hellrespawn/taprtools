@@ -1,15 +1,61 @@
 use anyhow::Result;
+use rayon::prelude::*;
 use std::path::PathBuf;
 use tfmttools::file::audio_file::get_audio_files;
+use tfmttools::file::AudioFile;
+use tfmttools::tfmt::ast::node::Program;
 use tfmttools::tfmt::ast::Parser;
 use tfmttools::tfmt::lexer::{Lexer, LexerResult};
-use tfmttools::tfmt::visitors::{Interpreter, SemanticAnalyzer};
+use tfmttools::tfmt::visitors::{Interpreter, SemanticAnalyzer, SymbolTable};
 use tfmttools::{helpers, RECURSION_DEPTH};
 
-#[cfg(feature = "rayon")]
-use rayon::prelude::*;
-
 mod common;
+
+fn seq_test(
+    audio_files: &[Box<dyn AudioFile>],
+    program: &Program,
+    symbol_table: &SymbolTable,
+    reference: &[String],
+) -> Result<()> {
+    let output: std::result::Result<
+        Vec<String>,
+        tfmttools::tfmt::error::InterpreterError,
+    > = audio_files
+        .iter()
+        .map(|s| {
+            Interpreter::new(&program, &symbol_table, s.as_ref()).interpret()
+        })
+        .collect();
+
+    for string in output? {
+        assert!(reference.contains(&string))
+    }
+
+    Ok(())
+}
+
+fn par_test(
+    audio_files: &[Box<dyn AudioFile>],
+    program: &Program,
+    symbol_table: &SymbolTable,
+    reference: &[String],
+) -> Result<()> {
+    let output: std::result::Result<
+        Vec<String>,
+        tfmttools::tfmt::error::InterpreterError,
+    > = audio_files
+        .par_iter()
+        .map(|s| {
+            Interpreter::new(program, symbol_table, s.as_ref()).interpret()
+        })
+        .collect();
+
+    for string in output? {
+        assert!(reference.contains(&string))
+    }
+
+    Ok(())
+}
 
 fn file_test(
     filename: &str,
@@ -32,29 +78,14 @@ fn file_test(
         None,
     )?;
 
-    #[cfg(feature = "rayon")]
-    let iter = audio_files.par_iter();
-
-    #[cfg(not(feature = "rayon"))]
-    let iter = audio_files.iter();
-
-    let output: std::result::Result<
-        Vec<String>,
-        tfmttools::tfmt::error::InterpreterError,
-    > = iter
-        .map(|s| {
-            Interpreter::new(&program, &symbol_table, s.as_ref()).interpret()
-        })
-        .collect();
-
     let reference: Vec<String> = reference
         .iter()
         .map(helpers::normalize_separators)
         .collect();
 
-    for string in output? {
-        assert!(reference.contains(&string))
-    }
+    seq_test(&audio_files, &program, &symbol_table, &reference)?;
+
+    par_test(&audio_files, &program, &symbol_table, &reference)?;
 
     Ok(())
 }

@@ -7,23 +7,17 @@ use crate::tfmt::ast::node::Program;
 use crate::tfmt::ast::Parser;
 use crate::tfmt::error::InterpreterError;
 use crate::tfmt::visitors::{Interpreter, SemanticAnalyzer};
-use crate::{PREVIEW_AMOUNT, RECURSION_DEPTH};
+use crate::{MIN_PARALLEL, PREVIEW_AMOUNT, RECURSION_DEPTH};
 use anyhow::{bail, Result};
 use indicatif::{
-    ProgressBar, ProgressDrawTarget, ProgressFinish, ProgressStyle,
+    ParallelProgressIterator, ProgressBar, ProgressDrawTarget, ProgressFinish,
+    ProgressIterator, ProgressStyle,
 };
 use log::{debug, info, warn};
+use rayon::prelude::*;
 use std::convert::TryInto;
 use std::path::{Path, PathBuf};
 use std::sync::Once;
-
-#[cfg(feature = "rayon")]
-use indicatif::ParallelProgressIterator;
-#[cfg(feature = "rayon")]
-use rayon::prelude::*;
-
-#[cfg(not(feature = "rayon"))]
-use indicatif::ProgressIterator;
 
 /// Intermediate representation during interpreting.
 pub type SrcTgtPair = (PathBuf, PathBuf);
@@ -142,36 +136,43 @@ impl<'a> Rename<'a> {
         progress_bar.set_draw_target(ProgressDrawTarget::stdout());
         progress_bar.set_message("Interpreting files...");
 
-        #[cfg(feature = "rayon")]
-        let path_iter = audio_files.par_iter().progress_with(progress_bar);
-
-        #[cfg(not(feature = "rayon"))]
-        let path_iter = audio_files.iter().progress_with(progress_bar);
-
         type IResult = std::result::Result<Vec<SrcTgtPair>, InterpreterError>;
 
         // Pushing/joining an absolute path onto another path clobbers that
         // path. Pushing/joining a relative path onto an empty path overwrites
         // it entirely. Therefore we can join output_folder unconditionally.
 
-        let paths = path_iter
-            .map(|af| {
-                let result =
-                    Interpreter::new(program, &symbol_table, af.as_ref())
-                        .interpret();
+        let function = |af: &dyn AudioFile| {
+            let result =
+                Interpreter::new(program, &symbol_table, af).interpret();
 
-                match result {
-                    Ok(s) => {
-                        let p = PathBuf::from(s);
-                        if p.is_absolute() {
-                            absolute.call_once(|| {})
-                        }
-                        Ok((PathBuf::from(af.path()), output_folder.join(p)))
+            match result {
+                Ok(s) => {
+                    let p = PathBuf::from(s);
+                    if p.is_absolute() {
+                        absolute.call_once(|| {})
                     }
-                    Err(e) => Err(e),
+                    Ok((PathBuf::from(af.path()), output_folder.join(p)))
                 }
-            })
-            .collect::<IResult>()?;
+                Err(e) => Err(e),
+            }
+        };
+
+        let paths = if audio_files.len() < MIN_PARALLEL {
+            info!("Less than {} files, running sequentially.", MIN_PARALLEL);
+            audio_files
+                .iter()
+                .progress_with(progress_bar)
+                .map(|af| function(af.as_ref()))
+                .collect::<IResult>()?
+        } else {
+            info!("More than {} files, running in parallel.", MIN_PARALLEL);
+            audio_files
+                .par_iter()
+                .progress_with(progress_bar)
+                .map(|af| function(af.as_ref()))
+                .collect::<IResult>()?
+        };
 
         if absolute.is_completed() {
             let s = format!(

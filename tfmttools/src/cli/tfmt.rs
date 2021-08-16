@@ -19,12 +19,6 @@ pub fn main<S: AsRef<OsStr>>(args: &[S], preview: bool) -> Result<()> {
 
     logging::setup_logger(args.verbosity.try_into()?, "tfmttools")?;
 
-    #[cfg(feature = "rayon")]
-    info!("rayon is enabled, running in parallel.");
-
-    #[cfg(not(feature = "rayon"))]
-    info!("rayon is not enabled, running sequentially.");
-
     info!("Parsed arguments:\n{:#?}", &args);
 
     // TODO Pretty-print errors
