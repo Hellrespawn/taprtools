@@ -1,10 +1,9 @@
 use anyhow::Result;
 use std::path::PathBuf;
 use tfmttools::file::audio_file::get_audio_files;
-use tfmttools::tfmt::interpreter::Interpreter;
+use tfmttools::tfmt::ast::Parser;
 use tfmttools::tfmt::lexer::{Lexer, LexerResult};
-use tfmttools::tfmt::parser::Parser;
-use tfmttools::tfmt::semantic::SemanticAnalyzer;
+use tfmttools::tfmt::visitors::{Interpreter, SemanticAnalyzer};
 use tfmttools::{helpers, RECURSION_DEPTH};
 
 #[cfg(feature = "rayon")]

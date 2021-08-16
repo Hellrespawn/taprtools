@@ -1,7 +1,7 @@
-use super::error::SemanticError;
-use crate::tfmt::ast::{self, Node};
+use crate::tfmt::ast::node::{self, Node};
+use crate::tfmt::ast::Visitor;
+use crate::tfmt::error::SemanticError;
 use crate::tfmt::token::Token;
-use crate::tfmt::visitor::Visitor;
 use log::info;
 use std::collections::HashMap;
 
@@ -20,7 +20,7 @@ pub struct SemanticAnalyzer {
 impl SemanticAnalyzer {
     /// Public function for SemanticAnalyzer
     pub fn analyze(
-        program: &ast::Program,
+        program: &node::Program,
         arguments: &[&str],
     ) -> Result<SymbolTable, SemanticError> {
         let mut sa: Self = Default::default();
@@ -74,18 +74,18 @@ impl SemanticAnalyzer {
 }
 
 impl Visitor<()> for SemanticAnalyzer {
-    fn visit_program(&mut self, program: &ast::Program) {
+    fn visit_program(&mut self, program: &node::Program) {
         self.name = program.name.get_string_unchecked().to_string();
 
         program.parameters.accept(self);
         program.block.accept(self);
     }
 
-    fn visit_parameters(&mut self, parameters: &ast::Parameters) {
+    fn visit_parameters(&mut self, parameters: &node::Parameters) {
         parameters.parameters.iter().for_each(|e| e.accept(self));
     }
 
-    fn visit_parameter(&mut self, parameter: &ast::Parameter) {
+    fn visit_parameter(&mut self, parameter: &node::Parameter) {
         let key = parameter.token.get_string_unchecked();
 
         let default = parameter
@@ -98,15 +98,15 @@ impl Visitor<()> for SemanticAnalyzer {
         self.defaults.push(default);
     }
 
-    fn visit_block(&mut self, block: &ast::Block) {
+    fn visit_block(&mut self, block: &node::Block) {
         block.expressions.iter().for_each(|e| e.accept(self));
     }
 
     fn visit_ternaryop(
         &mut self,
-        condition: &ast::Expression,
-        true_expr: &ast::Expression,
-        false_expr: &ast::Expression,
+        condition: &node::Expression,
+        true_expr: &node::Expression,
+        false_expr: &node::Expression,
     ) {
         condition.accept(self);
         true_expr.accept(self);
@@ -115,26 +115,26 @@ impl Visitor<()> for SemanticAnalyzer {
 
     fn visit_binaryop(
         &mut self,
-        left: &ast::Expression,
+        left: &node::Expression,
         _token: &Token,
-        right: &ast::Expression,
+        right: &node::Expression,
     ) {
         left.accept(self);
         right.accept(self);
     }
 
-    fn visit_unaryop(&mut self, _token: &Token, operand: &ast::Expression) {
+    fn visit_unaryop(&mut self, _token: &Token, operand: &node::Expression) {
         operand.accept(self);
     }
 
-    fn visit_group(&mut self, expressions: &[ast::Expression]) {
+    fn visit_group(&mut self, expressions: &[node::Expression]) {
         expressions.iter().for_each(|e| e.accept(self));
     }
 
     fn visit_function(
         &mut self,
         _start_token: &Token,
-        arguments: &[ast::Expression],
+        arguments: &[node::Expression],
     ) {
         arguments.iter().for_each(|e| e.accept(self));
     }
@@ -156,11 +156,10 @@ impl Visitor<()> for SemanticAnalyzer {
 mod tests {
     use super::*;
     use crate::helpers;
-    use crate::tfmt::ast::{self as ast};
-    use crate::tfmt::parser::Parser;
+    use crate::tfmt::ast::{node, Parser};
     use anyhow::Result;
 
-    fn get_script(path: &str) -> Result<ast::Program> {
+    fn get_script(path: &str) -> Result<node::Program> {
         let input_text = helpers::normalize_newlines(&std::fs::read_to_string(
             format!("testdata/script/{}", path),
         )?);

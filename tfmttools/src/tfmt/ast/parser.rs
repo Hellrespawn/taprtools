@@ -1,5 +1,5 @@
-use super::error::ParserError;
-use crate::tfmt::ast::{self, Expression};
+use super::node::{self, Expression};
+use crate::tfmt::error::ParserError;
 use crate::tfmt::lexer::{Lexer, LexerResult};
 use crate::tfmt::token::{Token, TokenType};
 use log::trace;
@@ -40,7 +40,7 @@ where
     }
 
     /// Run [Parser] to create an Abstract Syntax Tree.
-    pub fn parse(&mut self) -> Result<ast::Program> {
+    pub fn parse(&mut self) -> Result<node::Program> {
         // Prime parser
         self._advance(true)?;
         self.program()
@@ -171,7 +171,7 @@ where
     }
 
     // Grammar functions
-    fn program(&mut self) -> Result<ast::Program> {
+    fn program(&mut self) -> Result<node::Program> {
         // ID "(" Parameters ")" ( String )? "{" Block "}"
         self.depth += 1;
 
@@ -198,7 +198,7 @@ where
 
         self.depth -= 1;
 
-        Ok(ast::Program {
+        Ok(node::Program {
             name,
             parameters,
             description,
@@ -206,7 +206,7 @@ where
         })
     }
 
-    fn parameters(&mut self) -> Result<ast::Parameters> {
+    fn parameters(&mut self) -> Result<node::Parameters> {
         // ( Parameter ( "," Parameter )* )?
         self.depth += 1;
 
@@ -225,10 +225,10 @@ where
             }
         }
         self.depth -= 1;
-        Ok(ast::Parameters { parameters })
+        Ok(node::Parameters { parameters })
     }
 
-    fn parameter(&mut self) -> Result<ast::Parameter> {
+    fn parameter(&mut self) -> Result<node::Parameter> {
         // ID ( "=" ( Integer | String ) )?
         self.depth += 1;
         let identifier = self.consume_id()?;
@@ -256,13 +256,13 @@ where
 
         self.depth -= 1;
 
-        Ok(ast::Parameter {
+        Ok(node::Parameter {
             token: identifier,
             default,
         })
     }
 
-    fn block(&mut self) -> Result<ast::Block> {
+    fn block(&mut self) -> Result<node::Block> {
         // ( DriveLetter )? Expression*
         self.depth += 1;
         trace!("{} Block", self.dp());
@@ -271,7 +271,7 @@ where
             self.expressions(&[TokenType::CurlyBraceRight])?;
 
         self.depth -= 1;
-        Ok(ast::Block { expressions })
+        Ok(node::Block { expressions })
     }
 
     fn expressions(

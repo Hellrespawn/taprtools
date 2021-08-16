@@ -1,4 +1,4 @@
-use crate::tfmt::ast::*;
+use crate::tfmt::ast::node::*;
 use crate::tfmt::token::Token;
 
 /// [Visitor] visits [Node]s and returns `T`.

@@ -1,4 +1,4 @@
-use super::error::FunctionError;
+use crate::tfmt::error::FunctionError;
 use crate::tfmt::token;
 use once_cell::sync::Lazy;
 use regex::Regex;

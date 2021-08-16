@@ -3,11 +3,10 @@ use super::history::{Action, ActionGroup, History, MoveMode};
 use super::validate::validate;
 use crate::file::audio_file::{self, AudioFile};
 use crate::helpers::{self, pp};
-use crate::tfmt::ast::Program;
+use crate::tfmt::ast::node::Program;
+use crate::tfmt::ast::Parser;
 use crate::tfmt::error::InterpreterError;
-use crate::tfmt::interpreter::Interpreter;
-use crate::tfmt::parser::Parser;
-use crate::tfmt::semantic::SemanticAnalyzer;
+use crate::tfmt::visitors::{Interpreter, SemanticAnalyzer};
 use crate::{PREVIEW_AMOUNT, RECURSION_DEPTH};
 use anyhow::{bail, Result};
 use indicatif::{

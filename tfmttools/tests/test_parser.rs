@@ -1,12 +1,12 @@
 use anyhow::Result;
-use tfmttools::tfmt::ast::{self as ast, Expression};
+use tfmttools::tfmt::ast::node::{self, Expression};
+use tfmttools::tfmt::ast::Parser;
 use tfmttools::tfmt::lexer::{Lexer, LexerResult};
-use tfmttools::tfmt::parser::Parser;
 use tfmttools::tfmt::token::{Token, TokenType};
 
 mod common;
 
-fn file_test(filename: &str, reference: Option<ast::Program>) -> Result<()> {
+fn file_test(filename: &str, reference: Option<node::Program>) -> Result<()> {
     let input = common::get_script(filename)?;
 
     let tokens: Vec<LexerResult> = Lexer::new(&input)?.collect();
@@ -24,13 +24,13 @@ fn file_test(filename: &str, reference: Option<ast::Program>) -> Result<()> {
 
 #[test]
 fn parser_simple_input_test() -> Result<()> {
-    let reference = ast::Program {
+    let reference = node::Program {
         name: Token::new(TokenType::ID("simple_input".to_string()), 1, 1),
-        parameters: ast::Parameters {
+        parameters: node::Parameters {
             parameters: Vec::new(),
         },
         description: None,
-        block: ast::Block {
+        block: node::Block {
             expressions: vec![
                 Expression::Tag {
                     start_token: Token::new(TokenType::AngleBracketLeft, 2, 5),
@@ -61,11 +61,11 @@ fn parser_simple_input_test() -> Result<()> {
 
 #[test]
 fn parser_typical_input_test() -> Result<()> {
-    let reference = ast::Program {
+    let reference = node::Program {
         name: Token::new( TokenType::ID("typical_input".to_string()), 1, 1),
-        parameters: ast::Parameters {
+        parameters: node::Parameters {
             parameters: vec![
-                ast::Parameter {
+                node::Parameter {
                     token: Token::new( TokenType::ID("folder".to_string()), 1, 15),
                     default: Some(
                         Token::new( TokenType::String("destination".to_string()), 1, 22),
@@ -76,7 +76,7 @@ fn parser_typical_input_test() -> Result<()> {
         description: Some(
             Token::new( TokenType::String("This file is used to test tfmttools.".to_string()), 1, 37),
         ),
-        block: ast::Block {
+        block: node::Block {
             expressions: vec![
                 Expression::Symbol(
                     Token::new( TokenType::ID("folder".to_string()), 3, 7),

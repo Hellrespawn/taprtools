@@ -1,13 +1,13 @@
-use super::error::InterpreterError;
 use crate::file::audio_file::AudioFile;
 use crate::helpers;
-use crate::tfmt::ast::*;
+use crate::tfmt::ast::node::*;
+use crate::tfmt::ast::Visitor;
+use crate::tfmt::error::InterpreterError;
 use crate::tfmt::function::handle_function;
-use crate::tfmt::semantic::SymbolTable;
 use crate::tfmt::token::{
     Token, TokenType, DIRECTORY_SEPARATORS, FORBIDDEN_GRAPHEMES,
 };
-use crate::tfmt::visitor::Visitor;
+use crate::tfmt::visitors::SymbolTable;
 use log::trace;
 
 type Result<T> = std::result::Result<T, InterpreterError>;

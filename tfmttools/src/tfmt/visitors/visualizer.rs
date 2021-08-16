@@ -1,7 +1,7 @@
-use super::error::DotError;
-use crate::tfmt::ast::{self, Expression, Node};
+use crate::tfmt::ast::node::{self, Expression, Node};
+use crate::tfmt::ast::Visitor;
+use crate::tfmt::error::DotError;
 use crate::tfmt::token::Token;
-use crate::tfmt::visitor::Visitor;
 use anyhow::Result;
 use log::{info, trace};
 use std::fs;
@@ -15,9 +15,9 @@ pub struct Visualizer {
 }
 
 impl Visualizer {
-    /// Construct a GraphViz dot-file from a [ast::Program] and render it as a png.
+    /// Construct a GraphViz dot-file from a [node::Program] and render it as a png.
     pub fn visualize_ast<P: AsRef<Path>>(
-        program: &ast::Program,
+        program: &node::Program,
         directory: &P,
         name: &str,
         remove_dot_file: bool,
@@ -142,7 +142,7 @@ impl Visualizer {
 }
 
 impl Visitor<String> for Visualizer {
-    fn visit_program(&mut self, program: &ast::Program) -> String {
+    fn visit_program(&mut self, program: &node::Program) -> String {
         let (mut string, program_node) = self.new_node(&format!(
             "Program\n{}",
             program.name.get_string_unchecked()
@@ -167,7 +167,7 @@ impl Visitor<String> for Visualizer {
         string
     }
 
-    fn visit_parameters(&mut self, parameters: &ast::Parameters) -> String {
+    fn visit_parameters(&mut self, parameters: &node::Parameters) -> String {
         let (mut string, parameters_node) = self
             .new_node(&format!("Params:\n({})", parameters.parameters.len()));
 
@@ -180,7 +180,7 @@ impl Visitor<String> for Visualizer {
         string
     }
 
-    fn visit_parameter(&mut self, parameter: &ast::Parameter) -> String {
+    fn visit_parameter(&mut self, parameter: &node::Parameter) -> String {
         let (mut string, parameter_node) =
             self.new_node(parameter.token.get_string_unchecked());
 
@@ -195,7 +195,7 @@ impl Visitor<String> for Visualizer {
         string
     }
 
-    fn visit_block(&mut self, block: &ast::Block) -> String {
+    fn visit_block(&mut self, block: &node::Block) -> String {
         let (mut string, block_node) = self.new_node("Block");
 
         let (expressions_string, expressions_node) = self.hidden_node();

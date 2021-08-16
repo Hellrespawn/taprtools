@@ -1,9 +1,8 @@
 use crate::helpers;
-use crate::tfmt::ast::{self, Node, Program};
-use crate::tfmt::parser::Parser;
+use crate::tfmt::ast::node::{self, Node, Program};
+use crate::tfmt::ast::{Parser, Visitor};
 use crate::tfmt::token::Token;
-use crate::tfmt::visitor::Visitor;
-use crate::tfmt::visualizer::Visualizer;
+use crate::tfmt::visitors::Visualizer;
 
 use log::{debug, info};
 use std::fmt::{self, Display};
@@ -134,7 +133,7 @@ impl<'a> Display for Inspector<'a> {
 }
 
 impl<'a> Visitor<()> for Inspector<'a> {
-    fn visit_program(&mut self, program: &ast::Program) {
+    fn visit_program(&mut self, program: &node::Program) {
         self.name = program.name.get_string_unchecked().to_string();
 
         if let Some(description) = &program.description {
@@ -145,11 +144,11 @@ impl<'a> Visitor<()> for Inspector<'a> {
         program.block.accept(self);
     }
 
-    fn visit_parameters(&mut self, parameters: &ast::Parameters) {
+    fn visit_parameters(&mut self, parameters: &node::Parameters) {
         parameters.parameters.iter().for_each(|e| e.accept(self));
     }
 
-    fn visit_parameter(&mut self, parameter: &ast::Parameter) {
+    fn visit_parameter(&mut self, parameter: &node::Parameter) {
         let name = parameter.token.get_string_unchecked().to_string();
 
         let default = parameter
@@ -160,15 +159,15 @@ impl<'a> Visitor<()> for Inspector<'a> {
         self.parameters.push((name, default));
     }
 
-    fn visit_block(&mut self, block: &ast::Block) {
+    fn visit_block(&mut self, block: &node::Block) {
         block.expressions.iter().for_each(|e| e.accept(self));
     }
 
     fn visit_ternaryop(
         &mut self,
-        condition: &ast::Expression,
-        true_expr: &ast::Expression,
-        false_expr: &ast::Expression,
+        condition: &node::Expression,
+        true_expr: &node::Expression,
+        false_expr: &node::Expression,
     ) {
         condition.accept(self);
         true_expr.accept(self);
@@ -177,26 +176,26 @@ impl<'a> Visitor<()> for Inspector<'a> {
 
     fn visit_binaryop(
         &mut self,
-        left: &ast::Expression,
+        left: &node::Expression,
         _token: &Token,
-        right: &ast::Expression,
+        right: &node::Expression,
     ) {
         left.accept(self);
         right.accept(self);
     }
 
-    fn visit_unaryop(&mut self, _token: &Token, operand: &ast::Expression) {
+    fn visit_unaryop(&mut self, _token: &Token, operand: &node::Expression) {
         operand.accept(self);
     }
 
-    fn visit_group(&mut self, expressions: &[ast::Expression]) {
+    fn visit_group(&mut self, expressions: &[node::Expression]) {
         expressions.iter().for_each(|e| e.accept(self));
     }
 
     fn visit_function(
         &mut self,
         _start_token: &Token,
-        arguments: &[ast::Expression],
+        arguments: &[node::Expression],
     ) {
         arguments.iter().for_each(|e| e.accept(self));
     }
