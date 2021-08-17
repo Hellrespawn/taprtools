@@ -2,8 +2,6 @@
 pub mod argparse;
 /// History
 pub mod history;
-/// Inspector
-pub mod inspector;
 /// Logging setup
 pub mod logging;
 /// Rename stuff

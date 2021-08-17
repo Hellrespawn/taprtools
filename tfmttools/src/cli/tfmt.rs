@@ -1,9 +1,9 @@
 use super::argparse::{Args, Subcommand};
 use super::history::History;
-use super::inspector::{Inspector, Mode};
 use super::rename::Rename;
 use super::{argparse, logging};
 use crate::helpers;
+use crate::tfmt::visitors::{Inspector, InspectorMode};
 use anyhow::Result;
 use log::{info, warn};
 use std::convert::TryInto;
@@ -101,9 +101,9 @@ impl<'a> TFMTTools<'a> {
         } else {
             println!("Found {} scripts:", paths.len());
             let mode = if self.args.verbosity == 0 {
-                Mode::Short
+                InspectorMode::Short
             } else {
-                Mode::Long
+                InspectorMode::Long
             };
 
             for path in paths {
@@ -152,7 +152,11 @@ impl<'a> TFMTTools<'a> {
     fn inspect(&self, name: &str, render_ast: bool) -> Result<()> {
         Inspector::inspect(
             &helpers::get_script(name, &self.args.config_folder)?,
-            if render_ast { Mode::Dot } else { Mode::Long },
+            if render_ast {
+                InspectorMode::Dot
+            } else {
+                InspectorMode::Long
+            },
         )
     }
 }

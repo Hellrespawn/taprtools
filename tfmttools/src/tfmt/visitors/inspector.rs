@@ -12,10 +12,10 @@ type Result = anyhow::Result<()>;
 
 /// Inspector format
 #[derive(Clone, Copy)]
-pub enum Mode {
+pub enum InspectorMode {
     /// Short format.
     ///
-    /// {name}: "{description}"
+    /// {name}({param, ...}): "{description}"
     Short,
     /// Long format.
     ///
@@ -25,15 +25,9 @@ pub enum Mode {
     ///
     /// parameters:
     ///     {param}: {default}
+    ///     ...
     Long,
-    /// Dot format. Also visualizes AST.
-    ///
-    /// {name}: "{description}"
-    ///
-    /// path: {path}
-    ///
-    /// parameters:
-    ///     {param}: {default}
+    /// Dot format. As Long format, but also visualizes AST.
     Dot,
 }
 
@@ -44,12 +38,12 @@ pub struct Inspector<'a> {
     description: String,
     parameters: Vec<(String, Option<String>)>,
     program: &'a Program,
-    mode: Mode,
+    mode: InspectorMode,
 }
 
 impl<'a> Inspector<'a> {
     /// Public function for Inspector
-    pub fn inspect<P: AsRef<Path>>(path: P, mode: Mode) -> Result {
+    pub fn inspect<P: AsRef<Path>>(path: P, mode: InspectorMode) -> Result {
         let path = path.as_ref();
         let input_text =
             helpers::normalize_newlines(&std::fs::read_to_string(path)?);
@@ -77,7 +71,16 @@ impl<'a> Inspector<'a> {
     }
 
     fn fmt_short(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.name)?;
+        write!(
+            f,
+            "{}({})",
+            self.name,
+            self.parameters
+                .iter()
+                .map(|s| s.0.clone())
+                .collect::<Vec<String>>()
+                .join(", ")
+        )?;
 
         if !self.description.is_empty() {
             write!(f, r#": "{}""#, self.description)?;
@@ -125,9 +128,9 @@ impl<'a> Inspector<'a> {
 impl<'a> Display for Inspector<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.mode {
-            Mode::Short => self.fmt_short(f),
-            Mode::Long => self.fmt_long(f),
-            Mode::Dot => self.fmt_dot(f),
+            InspectorMode::Short => self.fmt_short(f),
+            InspectorMode::Long => self.fmt_long(f),
+            InspectorMode::Dot => self.fmt_dot(f),
         }
     }
 }

@@ -3,18 +3,15 @@ use super::history::{Action, ActionGroup, History, MoveMode};
 use super::validate::validate;
 use crate::file::audio_file::{self, AudioFile};
 use crate::helpers::{self, pp};
-use crate::tfmt::ast::node::Program;
-use crate::tfmt::ast::Parser;
 use crate::tfmt::error::InterpreterError;
-use crate::tfmt::visitors::{Interpreter, SemanticAnalyzer};
-use crate::{MIN_PARALLEL, PREVIEW_AMOUNT, RECURSION_DEPTH};
+use crate::tfmt::visitors::Interpreter;
+use crate::{PREVIEW_AMOUNT, RECURSION_DEPTH};
 use anyhow::{bail, Result};
 use indicatif::{
-    ParallelProgressIterator, ProgressBar, ProgressDrawTarget, ProgressFinish,
-    ProgressIterator, ProgressStyle,
+    ProgressBar, ProgressDrawTarget, ProgressFinish, ProgressIterator,
+    ProgressStyle,
 };
 use log::{debug, info, warn};
-use rayon::prelude::*;
 use std::convert::TryInto;
 use std::path::{Path, PathBuf};
 use std::sync::Once;
@@ -39,11 +36,9 @@ impl<'a> Rename<'a> {
         P: AsRef<Path>,
         Q: AsRef<Path>,
     {
-        let path = helpers::get_script(script_name, &self.args.config_folder)?;
-
-        let input_text =
-            helpers::normalize_newlines(&std::fs::read_to_string(path)?);
-        let program = Parser::from_string(&input_text)?.parse()?;
+        let input_text = helpers::normalize_newlines(&std::fs::read_to_string(
+            helpers::get_script(script_name, &self.args.config_folder)?,
+        )?);
 
         let audio_files = self.get_audio_files(
             &input_folder,
@@ -60,11 +55,12 @@ impl<'a> Rename<'a> {
             return Ok(());
         }
 
+        let mut intp = Interpreter::new(&input_text, arguments)?;
+
         let paths = self.interpret_destinations(
             &audio_files,
             output_folder,
-            &program,
-            arguments,
+            &mut intp,
         )?;
 
         let (to_move, _no_move) = validate(&paths)?;
@@ -110,16 +106,13 @@ impl<'a> Rename<'a> {
     // FIXME Interpreting bar prints double
     fn interpret_destinations<P: AsRef<Path>>(
         &self,
-        audio_files: &[Box<dyn AudioFile>],
+        audio_files: &'a [Box<dyn AudioFile>],
         output_folder: &P,
-        program: &Program,
-        arguments: &[&str],
+        intp: &'a mut Interpreter,
     ) -> Result<Vec<SrcTgtPair>> {
         let output_folder = output_folder.as_ref();
 
         let absolute = Once::new();
-
-        let symbol_table = SemanticAnalyzer::analyze(program, arguments)?;
 
         let progress_bar = ProgressBar::new(audio_files.len().try_into()?);
 
@@ -142,11 +135,10 @@ impl<'a> Rename<'a> {
         // path. Pushing/joining a relative path onto an empty path overwrites
         // it entirely. Therefore we can join output_folder unconditionally.
 
-        let function = |af: &dyn AudioFile| {
-            let result =
-                Interpreter::new(program, &symbol_table, af).interpret();
-
-            match result {
+        let paths = audio_files
+            .iter()
+            .progress_with(progress_bar)
+            .map(|af| match intp.interpret(af.as_ref()) {
                 Ok(s) => {
                     let p = PathBuf::from(s);
                     if p.is_absolute() {
@@ -155,24 +147,8 @@ impl<'a> Rename<'a> {
                     Ok((PathBuf::from(af.path()), output_folder.join(p)))
                 }
                 Err(e) => Err(e),
-            }
-        };
-
-        let paths = if audio_files.len() < MIN_PARALLEL {
-            info!("Less than {} files, running sequentially.", MIN_PARALLEL);
-            audio_files
-                .iter()
-                .progress_with(progress_bar)
-                .map(|af| function(af.as_ref()))
-                .collect::<IResult>()?
-        } else {
-            info!("More than {} files, running in parallel.", MIN_PARALLEL);
-            audio_files
-                .par_iter()
-                .progress_with(progress_bar)
-                .map(|af| function(af.as_ref()))
-                .collect::<IResult>()?
-        };
+            })
+            .collect::<IResult>()?;
 
         if absolute.is_completed() {
             let s = format!(

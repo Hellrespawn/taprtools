@@ -1,46 +1,50 @@
 use crate::file::audio_file::AudioFile;
 use crate::helpers;
 use crate::tfmt::ast::node::*;
-use crate::tfmt::ast::Visitor;
+use crate::tfmt::ast::{Parser, Visitor};
 use crate::tfmt::error::InterpreterError;
 use crate::tfmt::function::handle_function;
 use crate::tfmt::token::{
     Token, TokenType, DIRECTORY_SEPARATORS, FORBIDDEN_GRAPHEMES,
 };
-use crate::tfmt::visitors::SymbolTable;
+use crate::tfmt::visitors::{SemanticAnalyzer, SymbolTable};
 use log::trace;
 
 type Result<T> = std::result::Result<T, InterpreterError>;
 
 /// Interprets an [AST](ast::Program) based on tags from an [AudioFile].
-pub struct Interpreter<'a> {
-    program: &'a Program,
-    symbol_table: &'a SymbolTable,
-    audio_file: &'a dyn AudioFile,
+pub struct Interpreter {
+    program: Program,
+    symbol_table: SymbolTable,
 }
 
-impl<'a> Interpreter<'a> {
-    /// Constructor
-    pub fn new(
-        program: &'a Program,
-        symbol_table: &'a SymbolTable,
-        audio_file: &'a dyn AudioFile,
-    ) -> Self {
-        Self {
+impl Interpreter {
+    pub fn new<S: AsRef<str>>(
+        input_text: &S,
+        arguments: &[&str],
+    ) -> Result<Self> {
+        let program = Parser::from_string(input_text)?.parse()?;
+        let symbol_table = SemanticAnalyzer::analyze(&program, arguments)?;
+
+        Ok(Self {
             program,
-            audio_file,
             symbol_table,
-        }
+        })
     }
 
     /// Public function for interpreter.
-    pub fn interpret(&mut self) -> Result<String> {
-        trace!(r#"In:  "{}""#, self.audio_file.path().display());
+    pub fn interpret(&mut self, audio_file: &dyn AudioFile) -> Result<String> {
+        trace!(r#"In:  "{}""#, audio_file.path().display());
 
         let string = format!(
             "{}.{}",
-            helpers::normalize_separators(&self.program.accept(self)?),
-            self.audio_file.extension()
+            helpers::normalize_separators(&self.program.accept(
+                &mut IntpVisitor {
+                    symbol_table: &self.symbol_table,
+                    audio_file
+                }
+            )?),
+            audio_file.extension()
         );
 
         trace!(r#"Out: "{}""#, string);
@@ -59,7 +63,12 @@ impl<'a> Interpreter<'a> {
     }
 }
 
-impl<'a> Visitor<Result<String>> for Interpreter<'a> {
+struct IntpVisitor<'a> {
+    symbol_table: &'a SymbolTable,
+    audio_file: &'a dyn AudioFile,
+}
+
+impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
     fn visit_program(&mut self, program: &Program) -> Result<String> {
         program.block.accept(self)
     }
@@ -218,25 +227,25 @@ impl<'a> Visitor<Result<String>> for Interpreter<'a> {
     fn visit_tag(&mut self, token: &Token) -> Result<String> {
         let tag_name = token.get_string_unchecked();
 
+        let audio_file = self.audio_file;
+
         let mut tag = match tag_name {
             // TODO Add less common tags from AudioFile
-            "album" => self.audio_file.album(),
-            "albumartist" | "album_artist" => self.audio_file.album_artist(),
-            "albumsort" | "album_sort" => self.audio_file.albumsort(),
-            "artist" => self.audio_file.artist(),
-            "duration" | "length" => self.audio_file.duration(),
+            "album" => audio_file.album(),
+            "albumartist" | "album_artist" => audio_file.album_artist(),
+            "albumsort" | "album_sort" => audio_file.albumsort(),
+            "artist" => audio_file.artist(),
+            "duration" | "length" => audio_file.duration(),
             "disc" | "disk" | "discnumber" | "disknumber" | "disc_number"
-            | "disk_number" => self
-                .audio_file
+            | "disk_number" => audio_file
                 .disc_number()
-                .map(Self::strip_leading_zeroes),
-            "genre" => self.audio_file.genre(),
-            "title" | "name" => self.audio_file.title(),
-            "track" | "tracknumber" | "track_number" => self
-                .audio_file
+                .map(Interpreter::strip_leading_zeroes),
+            "genre" => audio_file.genre(),
+            "title" | "name" => audio_file.title(),
+            "track" | "tracknumber" | "track_number" => audio_file
                 .track_number()
-                .map(Self::strip_leading_zeroes),
-            "year" | "date" => self.audio_file.year(),
+                .map(Interpreter::strip_leading_zeroes),
+            "year" | "date" => audio_file.year(),
             _ => None,
         }
         .unwrap_or("")

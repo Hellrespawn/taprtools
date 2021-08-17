@@ -1,20 +1,16 @@
 use anyhow::Result;
-use rayon::prelude::*;
+// use rayon::prelude::*;
 use std::path::PathBuf;
 use tfmttools::file::audio_file::get_audio_files;
 use tfmttools::file::AudioFile;
-use tfmttools::tfmt::ast::node::Program;
-use tfmttools::tfmt::ast::Parser;
-use tfmttools::tfmt::lexer::{Lexer, LexerResult};
-use tfmttools::tfmt::visitors::{Interpreter, SemanticAnalyzer, SymbolTable};
+use tfmttools::tfmt::visitors::Interpreter;
 use tfmttools::{helpers, RECURSION_DEPTH};
 
 mod common;
 
 fn seq_test(
+    intp: &mut Interpreter,
     audio_files: &[Box<dyn AudioFile>],
-    program: &Program,
-    symbol_table: &SymbolTable,
     reference: &[String],
 ) -> Result<()> {
     let output: std::result::Result<
@@ -22,9 +18,7 @@ fn seq_test(
         tfmttools::tfmt::error::InterpreterError,
     > = audio_files
         .iter()
-        .map(|s| {
-            Interpreter::new(&program, &symbol_table, s.as_ref()).interpret()
-        })
+        .map(|af| intp.interpret(af.as_ref()))
         .collect();
 
     for string in output? {
@@ -34,28 +28,28 @@ fn seq_test(
     Ok(())
 }
 
-fn par_test(
-    audio_files: &[Box<dyn AudioFile>],
-    program: &Program,
-    symbol_table: &SymbolTable,
-    reference: &[String],
-) -> Result<()> {
-    let output: std::result::Result<
-        Vec<String>,
-        tfmttools::tfmt::error::InterpreterError,
-    > = audio_files
-        .par_iter()
-        .map(|s| {
-            Interpreter::new(program, symbol_table, s.as_ref()).interpret()
-        })
-        .collect();
+// fn par_test(
+//     audio_files: &[Box<dyn AudioFile>],
+//     program: &Program,
+//     symbol_table: &SymbolTable,
+//     reference: &[String],
+// ) -> Result<()> {
+//     let output: std::result::Result<
+//         Vec<String>,
+//         tfmttools::tfmt::error::InterpreterError,
+//     > = audio_files
+//         .par_iter()
+//         .map(|s| {
+//             Interpreter::new(program, symbol_table, s.as_ref()).interpret()
+//         })
+//         .collect();
 
-    for string in output? {
-        assert!(reference.contains(&string))
-    }
+//     for string in output? {
+//         assert!(reference.contains(&string))
+//     }
 
-    Ok(())
-}
+//     Ok(())
+// }
 
 fn file_test(
     filename: &str,
@@ -64,13 +58,7 @@ fn file_test(
 ) -> Result<()> {
     let input = common::get_script(filename)?;
 
-    let tokens: Vec<LexerResult> = Lexer::new(&input)?.collect();
-
-    let mut parser = Parser::new(tokens.into_iter());
-
-    let program = parser.parse()?;
-
-    let symbol_table = SemanticAnalyzer::analyze(&program, arguments)?;
+    let mut intp = Interpreter::new(&input, arguments)?;
 
     let audio_files = get_audio_files(
         &PathBuf::from("testdata/music"),
@@ -83,9 +71,9 @@ fn file_test(
         .map(helpers::normalize_separators)
         .collect();
 
-    seq_test(&audio_files, &program, &symbol_table, &reference)?;
+    seq_test(&mut intp, &audio_files, &reference)?;
 
-    par_test(&audio_files, &program, &symbol_table, &reference)?;
+    // par_test(&audio_files, &program, &symbol_table, &reference)?;
 
     Ok(())
 }

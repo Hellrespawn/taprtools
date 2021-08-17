@@ -13,7 +13,7 @@ pub const RECURSION_DEPTH: u64 = 4;
 
 /// TODO Mock this for tests.
 /// Minimum files before switching to parallel
-pub const MIN_PARALLEL: usize = 128;
+// pub const MIN_PARALLEL: usize = 128;
 
 /// CLI modules.
 pub mod cli;

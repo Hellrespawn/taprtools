@@ -619,7 +619,6 @@ dependencies = [
  "lewton",
  "log",
  "once_cell",
- "rayon",
  "regex",
  "serde",
  "tempfile",
