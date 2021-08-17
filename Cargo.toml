@@ -1,8 +1,9 @@
 [workspace]
 
 members = [
+    "buffered-iterator",
+    "file-history",
     "tfmttools",
-    "buffered-iterator"
 ]
 
 [profile.release]

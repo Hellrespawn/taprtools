@@ -13,8 +13,9 @@ default-run = "tfmt"
 # default = ["history"]
 
 [dependencies]
-anyhow = "1.0"
 buffered-iterator = { path = "../buffered-iterator" }
+file-history = { path = "../file-history" }
+anyhow = "1.0"
 bimap = "0.6.1"
 bincode = "1.3"
 clap = {version = "2", features = ["yaml"]}

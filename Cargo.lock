@@ -229,6 +229,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "file-history"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bincode",
+ "clap",
+ "log",
+ "serde",
+]
+
+[[package]]
 name = "flate2"
 version = "1.0.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -614,6 +625,7 @@ dependencies = [
  "dirs",
  "dunce",
  "fern",
+ "file-history",
  "id3",
  "indicatif",
  "lewton",
