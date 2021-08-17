@@ -1,5 +1,4 @@
-use super::action::Action;
-use anyhow::{anyhow, bail, Result};
+use crate::{Action, HistoryError, Result};
 use log::info;
 use std::convert::TryFrom;
 use std::io::Write;
@@ -9,8 +8,9 @@ pub type Stack = Vec<ActionGroup>;
 pub type ActionGroup = Vec<Action>;
 
 /// Stores a history of action for the purpose of undoing them.
+
+#[derive(Default)]
 pub struct History {
-    preview: bool,
     pub done_stack: Stack,
     pub undone_stack: Stack,
     pub path: Option<PathBuf>,
@@ -24,9 +24,8 @@ enum Mode {
 
 impl History {
     /// Create new [History]
-    pub fn new(preview: bool) -> History {
+    pub fn new() -> History {
         History {
-            preview,
             done_stack: Stack::new(),
             undone_stack: Stack::new(),
             path: None,
@@ -34,12 +33,7 @@ impl History {
         }
     }
 
-    pub fn load_from_path<P: AsRef<Path>>(
-        preview: bool,
-        path: &P,
-    ) -> Result<History> {
-        // These were selected through path.is_file(), file_name.unwrap()
-        // should be safe.
+    pub fn load_file<P: AsRef<Path>>(path: &P) -> Result<History> {
         let path = path.as_ref();
 
         info!("Loading history from {}.", path.display());
@@ -48,36 +42,11 @@ impl History {
         let (undo_stack, redo_stack) = bincode::deserialize(&serialized)?;
 
         Ok(History {
-            preview,
             done_stack: undo_stack,
             undone_stack: redo_stack,
             path: Some(PathBuf::from(path)),
             changed: false,
         })
-    }
-
-    /// Load [History] from `config_folder`.
-    pub fn load_from_config<P: AsRef<Path>>(
-        preview: bool,
-        config_folder: &P,
-    ) -> Result<History> {
-        // These were selected through path.is_file(), file_name.unwrap()
-        // should be safe.
-        let path = helpers::search_path(
-            config_folder,
-            |p| {
-                debug_assert!(p.is_file());
-                p.file_name().unwrap() == HISTORY_FILENAME
-            },
-            1,
-        )
-        .into_iter()
-        .next()
-        .ok_or_else(|| {
-            anyhow!("Unable to load history from {}", HISTORY_FILENAME)
-        })?;
-
-        History::load_from_path(preview, &path)
     }
 
     /// Save [History] to `self.path`
@@ -90,21 +59,18 @@ impl History {
         if let Some(path) = &self.path {
             self._save(&path)
         } else {
-            bail!("There is not path associated with the history file!")
+            Err(HistoryError::NoPath)
         }
     }
 
     /// Save [History] to `self.path` or `config_folder`.
-    pub fn save_to_path<P: AsRef<Path>>(
-        &self,
-        config_folder: &P,
-    ) -> Result<()> {
+    pub fn save_to_path<P: AsRef<Path>>(&self, path: &P) -> Result<()> {
         if !self.changed {
             info!("History was unchanged.");
             return Ok(());
         }
 
-        self._save(&config_folder.as_ref().join(HISTORY_FILENAME))
+        self._save(path)
     }
 
     fn _save<P: AsRef<Path>>(&self, path: &P) -> Result<()> {
@@ -115,51 +81,38 @@ impl History {
         let serialized =
             bincode::serialize(&(&self.done_stack, &self.undone_stack))?;
 
-        if !self.preview {
-            let mut filehandle = std::fs::OpenOptions::new()
-                .write(true)
-                .create(true)
-                .truncate(true)
-                .open(&path)?;
+        let mut filehandle = std::fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&path)?;
 
-            filehandle.write_all(&serialized)?;
-        }
+        filehandle.write_all(&serialized)?;
 
         Ok(())
     }
 
     /// Deletes the history file.
     pub fn delete(&mut self) -> Result<()> {
-        if !self.preview {
-            // This function is only called after History::load_history has
-            // succeeded. Unwrap should be safe.
-            debug_assert!(self.path.is_some());
-            let path = self.path.as_ref().unwrap();
+        self.done_stack = Vec::new();
+        self.undone_stack = Vec::new();
+        self.path = None;
+        self.changed = false;
 
-            std::fs::remove_file(path)?;
-
-            let s = format!(
-                "{}Deleted history file at {}",
-                pp(self.preview),
-                path.display()
-            );
-            println!("{}", s);
-            info!("{}", s);
-
-            self.done_stack = Vec::new();
-            self.undone_stack = Vec::new();
-            self.path = None;
-            self.changed = false;
+        if let Some(path) = &self.path {
+            std::fs::remove_file(&path)?;
+            info!("Deleted history file at {}", path.display());
+        } else {
+            info!("Deleted history file");
         }
+
         Ok(())
     }
 
     /// Inserts action group without applying it.
     pub fn insert(&mut self, action_group: ActionGroup) -> Result<()> {
-        if !self.preview {
-            self.done_stack.push(action_group);
-            self.changed = true;
-        }
+        self.done_stack.push(action_group);
+        self.changed = true;
 
         Ok(())
     }
@@ -176,32 +129,25 @@ impl History {
 
         let min = std::cmp::min(amount, u64::try_from(from.len())?);
 
-        let s = if min == 0 {
-            let s = format!("There is nothing to {}.", name);
-            println!("{}", s);
-            info!("{}", s);
+        if min == 0 {
+            info!("There is nothing to {}.", name);
             return Ok(());
         } else if min != amount {
-            format!(
-                "{}There {} only {} action{} to {}.",
-                pp(self.preview),
+            info!(
+                "There {} only {} action{} to {}.",
                 if min > 1 { "are" } else { "is" },
                 min,
                 if min > 1 { "s" } else { "" },
                 name
             )
         } else {
-            format!(
-                "{}{}ing {} time{}:",
-                pp(self.preview),
-                helpers::titlecase(name),
+            info!(
+                "{}ing {} time{}:",
+                crate::titlecase(name),
                 min,
                 if min > 1 { "s" } else { "" }
             )
         };
-
-        println!("{}", s);
-        info!("{}", s);
 
         for i in 0..min {
             // We test the amount of actions to do,
@@ -209,39 +155,29 @@ impl History {
             debug_assert!(from.last().is_some());
 
             let action_group = from.pop().unwrap();
-            let preview = self.preview;
 
-            let s = format!(
+            info!(
                 "{}: {}ing {} action{}...",
                 i + 1,
-                helpers::titlecase(name),
+                crate::titlecase(name),
                 action_group.len(),
                 if action_group.len() > 1 { "s" } else { "" }
             );
-            print!("{}", s);
-            info!("{}\n", s);
 
             match mode {
-                Mode::Undo => action_group
-                    .iter()
-                    .rev()
-                    .try_for_each(|a| a.undo(preview))?,
-
-                Mode::Redo => {
-                    action_group.iter().try_for_each(|a| a.redo(preview))?
+                Mode::Undo => {
+                    action_group.iter().rev().try_for_each(|a| a.undo())?
                 }
+
+                Mode::Redo => action_group.iter().try_for_each(|a| a.redo())?,
             }
 
             println!(" Done.");
 
-            if !self.preview {
-                to.push(action_group);
-            }
+            to.push(action_group);
         }
 
-        if !self.preview {
-            self.changed = true;
-        }
+        self.changed = true;
 
         Ok(())
     }

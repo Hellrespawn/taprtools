@@ -1,10 +1,9 @@
-use anyhow::Result;
 use clap::{
     app_from_crate, crate_authors, crate_description, crate_name,
     crate_version, Arg,
 };
+use file_history::{Action, History, Result, Stack};
 use std::path::Path;
-use tfmttools::cli::history::{Action, History, Stack};
 
 fn main() -> Result<()> {
     let app = app_from_crate!()
@@ -33,7 +32,7 @@ fn main() -> Result<()> {
 }
 
 fn histviewer<P: AsRef<Path>>(path: &P, verbose: bool) -> Result<String> {
-    let history = History::load_from_path(true, &path.as_ref())?;
+    let history = History::load_file(&path.as_ref())?;
 
     let mut string = String::new();
 
@@ -95,13 +94,16 @@ fn action_group_to_string(action_group: &[Action]) -> String {
 #[cfg(test)]
 mod test {
     use super::*;
-    use tfmttools::helpers::normalize_newlines;
+
+    /// Normalizes newlines in `string`.
+    pub fn normalize_newlines<S: AsRef<str>>(string: &S) -> String {
+        string.as_ref().replace("\r\n", "\n").replace("\r", "\n")
+    }
 
     #[test]
     fn histviewer_verbose_test() -> Result<()> {
-        let string = histviewer(&"testdata/history/test.hist", true)?;
-        let reference =
-            std::fs::read_to_string("testdata/history/verbose.hist.txt")?;
+        let string = histviewer(&"testdata/test.hist", true)?;
+        let reference = std::fs::read_to_string("testdata/verbose.hist.txt")?;
 
         println!("{}", string);
 
@@ -115,9 +117,8 @@ mod test {
 
     #[test]
     fn histviewer_normal_test() -> Result<()> {
-        let string = histviewer(&"testdata/history/test.hist", false)?;
-        let reference =
-            std::fs::read_to_string("testdata/history/ref.hist.txt")?;
+        let string = histviewer(&"testdata/test.hist", false)?;
+        let reference = std::fs::read_to_string("testdata/ref.hist.txt")?;
 
         println!("{}", string);
 

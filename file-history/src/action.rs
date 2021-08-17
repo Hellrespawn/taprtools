@@ -1,11 +1,8 @@
-use anyhow::Result;
+use crate::Result;
 use log::trace;
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display};
 use std::path::{Path, PathBuf};
-
-pub type Stack = Vec<ActionGroup>;
-pub type ActionGroup = Vec<Action>;
 
 /// Rename can't cross filesystems/mountpoints.
 #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
@@ -97,16 +94,14 @@ impl Action {
     }
 
     /// Applies or "does" the action.
-    pub fn apply(&self, preview: bool) -> Result<()> {
+    pub fn apply(&self) -> Result<()> {
         match self {
             Action::Move {
                 source,
                 target,
                 move_mode,
             } => {
-                if !preview {
-                    Action::move_file(source, target, *move_mode)?;
-                }
+                Action::move_file(source, target, *move_mode)?;
 
                 trace!(
                     "Renamed:\n\"{}\"\n\"{}\"",
@@ -117,16 +112,12 @@ impl Action {
 
             // TODO? Fail silently if dir already exists?
             Action::CreateDir { path } => {
-                if !preview {
-                    std::fs::create_dir(path)?;
-                }
+                std::fs::create_dir(path)?;
                 trace!("Created directory {}", path.display());
             }
 
             Action::RemoveDir { path } => {
-                if !preview {
-                    std::fs::remove_dir(path)?;
-                }
+                std::fs::remove_dir(path)?;
                 trace!("Removed directory {}", path.display());
             }
         }
@@ -134,16 +125,15 @@ impl Action {
     }
 
     /// Undoes the action.
-    pub fn undo(&self, preview: bool) -> Result<()> {
+    pub fn undo(&self) -> Result<()> {
         match self {
             Action::Move {
                 source,
                 target,
                 move_mode,
             } => {
-                if !preview {
-                    Action::move_file(target, source, *move_mode)?;
-                }
+                Action::move_file(target, source, *move_mode)?;
+
                 trace!(
                     "Undid:\n\"{}\"\n\"{}\"",
                     &target.display(),
@@ -153,17 +143,16 @@ impl Action {
 
             Action::CreateDir { path } => {
                 trace!("Undoing directory {}", path.display());
-                if !preview {
-                    std::fs::remove_dir(path)?;
-                }
+
+                std::fs::remove_dir(path)?;
+
                 trace!("Undid directory {}", path.display());
             }
 
             // TODO? Fail silently if dir already exists?
             Action::RemoveDir { path } => {
-                if !preview {
-                    std::fs::create_dir(path)?;
-                }
+                std::fs::create_dir(path)?;
+
                 trace!("Recreated directory {}", path.display());
             }
         }
@@ -171,7 +160,7 @@ impl Action {
     }
 
     /// Redoes the action. Currently only delegates to `self.apply`.
-    pub fn redo(&self, preview: bool) -> Result<()> {
-        self.apply(preview)
+    pub fn redo(&self) -> Result<()> {
+        self.apply()
     }
 }

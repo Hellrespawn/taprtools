@@ -65,11 +65,8 @@ pub enum ParserError {
     #[error("Unable to parse token type {0:?}!")]
     UnrecognizedToken(TokenType),
 
-    #[error("")]
-    Lexer {
-        #[from]
-        source: LexerError,
-    },
+    #[error("Lexer error: {0}")]
+    Lexer(#[from] LexerError),
 }
 
 #[derive(Error, Debug)]
@@ -96,17 +93,11 @@ pub enum FunctionError {
     /// Wrong number of arguments for function
     UnknownFunction(String),
 
-    #[error("")]
-    ParseInt {
-        #[from]
-        source: std::num::ParseIntError,
-    },
+    #[error("ParseInt error: {0}")]
+    ParseInt(#[from] std::num::ParseIntError),
 
-    #[error("")]
-    ParseChar {
-        #[from]
-        source: std::char::ParseCharError,
-    },
+    #[error("ParseChar error: {0}")]
+    ParseChar(#[from] std::char::ParseCharError),
 }
 
 #[derive(Error, Debug)]
@@ -140,30 +131,6 @@ pub enum InterpreterError {
     #[error("Invalid TokenType in {0:?}: {1}!")]
     InvalidTokenType(TokenType, &'static str),
 
-    #[error("")]
-    Parser {
-        #[from]
-        source: ParserError,
-    },
-
-    #[error("")]
-    Semantic {
-        #[from]
-        source: SemanticError,
-    },
-
-    #[error("")]
-    Function {
-        #[from]
-        source: FunctionError,
-    },
-
-    #[error("")]
-    ParseInt {
-        #[from]
-        source: std::num::ParseIntError,
-    },
-
     /// Forbidden grapheme in ID.
     #[error(r#"Encountered forbidden grapheme "{0}" in tag!"#)]
     TagForbidden(String),
@@ -171,4 +138,19 @@ pub enum InterpreterError {
     /// Directory separator in ID.
     #[error(r#"Encountered directory separator "{0}" in tag!"#)]
     TagDirSep(String),
+
+    #[error("Lexer error: {0}")]
+    Lexer(#[from] LexerError),
+
+    #[error("Parser error: {0}")]
+    Parser(#[from] ParserError),
+
+    #[error("Semantic error: {0}")]
+    Semantic(#[from] SemanticError),
+
+    #[error("Function error: {0}")]
+    Function(#[from] FunctionError),
+
+    #[error("ParseInt error: {0}")]
+    ParseInt(#[from] std::num::ParseIntError),
 }
