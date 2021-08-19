@@ -1,7 +1,5 @@
 /// Argument Parsing
 pub mod argparse;
-/// History
-pub mod history;
 /// Logging setup
 pub mod logging;
 /// Rename stuff

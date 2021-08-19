@@ -5,6 +5,9 @@
 //! rename your music files based on their tags.
 
 // TODO? Write proper config/settings module?
+
+const HISTORY_FILENAME: &str = "tfmttools.hist";
+
 /// Number of [AudioFile]s to preview.
 pub const PREVIEW_AMOUNT: usize = 8;
 

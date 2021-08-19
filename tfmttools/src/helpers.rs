@@ -77,15 +77,6 @@ pub fn get_script<P: AsRef<Path>>(
         .ok_or_else(|| anyhow!("Unable to find script {}", name))
 }
 
-/// Titlecases `string`.
-pub fn titlecase(string: &str) -> String {
-    let mut chars = string.chars();
-    match chars.next() {
-        None => String::new(),
-        Some(f) => f.to_uppercase().collect::<String>() + chars.as_str(),
-    }
-}
-
 /// Normalizes newlines in `string`.
 pub fn normalize_newlines<S: AsRef<str>>(string: &S) -> String {
     string.as_ref().replace("\r\n", "\n").replace("\r", "\n")

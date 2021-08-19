@@ -32,7 +32,7 @@ fn main() -> Result<()> {
 }
 
 fn histviewer<P: AsRef<Path>>(path: &P, verbose: bool) -> Result<String> {
-    let history = History::load_file(&path.as_ref())?;
+    let history = History::load_file(&path.as_ref(), true)?;
 
     let mut string = String::new();
 

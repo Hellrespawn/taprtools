@@ -2,7 +2,7 @@ pub mod action;
 pub mod error;
 pub mod history;
 
-pub use action::Action;
+pub use action::{Action, MoveMode};
 pub use error::HistoryError;
 pub use history::{ActionGroup, History, Stack};
 

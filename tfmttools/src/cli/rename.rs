@@ -1,12 +1,12 @@
 use super::argparse::Args;
-use super::history::{Action, ActionGroup, History, MoveMode};
 use super::validate::validate;
 use crate::file::audio_file::{self, AudioFile};
 use crate::helpers::{self, pp};
 use crate::tfmt::error::InterpreterError;
 use crate::tfmt::visitors::Interpreter;
-use crate::{PREVIEW_AMOUNT, RECURSION_DEPTH};
+use crate::{HISTORY_FILENAME, PREVIEW_AMOUNT, RECURSION_DEPTH};
 use anyhow::{bail, Result};
+use file_history::{Action, ActionGroup, History, MoveMode};
 use indicatif::{
     ProgressBar, ProgressDrawTarget, ProgressFinish, ProgressIterator,
     ProgressStyle,
@@ -204,8 +204,11 @@ impl<'a> Rename<'a> {
             let action = Action::CreateDir {
                 path: PathBuf::from(path),
             };
-            action.apply(self.args.preview)?;
-            action_group.push(action);
+
+            if !self.args.preview {
+                action.apply()?;
+                action_group.push(action);
+            }
 
             Ok(action_group)
         }
@@ -230,8 +233,11 @@ impl<'a> Rename<'a> {
                     .extend(self.remove_dir_recursive(&path, depth - 1)?);
 
                 let action = Action::RemoveDir { path };
-                if let Ok(()) = action.apply(self.args.preview) {
-                    action_group.push(action);
+
+                if !self.args.preview {
+                    if let Ok(()) = action.apply() {
+                        action_group.push(action);
+                    }
                 }
             }
         }
@@ -291,37 +297,39 @@ impl<'a> Rename<'a> {
             action_group
                 .extend(self.create_dir_recursive(&target.parent().unwrap())?);
 
-            action_group.push({
-                let action = Action::new_move(source, target, move_mode);
+            if !self.args.preview {
+                action_group.push({
+                    let action = Action::new_move(source, target, move_mode);
 
-                if let Err(err) = action.apply(self.args.preview) {
-                    // Can't rename across filesystem boundaries. Checks for
-                    // the appropriate error and changes the mode henceforth.
-                    // Error codes are correct on Windows 10 20H2 and Arch
-                    // Linux.
+                    if let Err(err) = action.apply() {
+                        // Can't rename across filesystem boundaries. Checks for
+                        // the appropriate error and changes the mode henceforth.
+                        // Error codes are correct on Windows 10 20H2 and Arch
+                        // Linux.
 
-                    #[cfg(windows)]
-                    let condition = err.to_string().contains("os error 17");
+                        #[cfg(windows)]
+                        let condition = err.to_string().contains("os error 17");
 
-                    #[cfg(unix)]
-                    let condition = err.to_string().contains("os error 18");
+                        #[cfg(unix)]
+                        let condition = err.to_string().contains("os error 18");
 
-                    if condition {
-                        info!("Changing mode to copy/remove");
-                        move_mode = MoveMode::CopyRemove;
+                        if condition {
+                            info!("Changing mode to copy/remove");
+                            move_mode = MoveMode::CopyRemove;
 
-                        let action =
-                            Action::new_move(source, target, move_mode);
+                            let action =
+                                Action::new_move(source, target, move_mode);
 
-                        action.apply(self.args.preview)?;
-                        action
+                            action.apply()?;
+                            action
+                        } else {
+                            bail!(err)
+                        }
                     } else {
-                        bail!(err)
+                        action
                     }
-                } else {
-                    action
-                }
-            });
+                });
+            }
 
             progress_bar.inc(1);
         }
@@ -337,18 +345,21 @@ impl<'a> Rename<'a> {
 
         println!("Done.");
 
-        let mut history = History::load_from_config(
-            self.args.preview,
-            &self.args.config_folder,
+        let mut history = History::load_file(
+            &self.args.config_folder.join(HISTORY_FILENAME),
+            false,
         )
-        .unwrap_or_else(|_| History::new(self.args.preview));
+        .unwrap_or_else(|_| History::new(false));
 
-        history.insert(action_group)?;
+        if !self.args.preview {
+            history.insert(action_group)?;
 
-        history
-            .save()
-            .or_else(|_| history.save_to_path(&self.args.config_folder))?;
-
+            history.save().or_else(|_| {
+                history.save_to_file(
+                    &self.args.config_folder.join(HISTORY_FILENAME),
+                )
+            })?;
+        }
         Ok(())
     }
 }

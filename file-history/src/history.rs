@@ -15,6 +15,7 @@ pub struct History {
     pub undone_stack: Stack,
     pub path: Option<PathBuf>,
     changed: bool,
+    quiet: bool,
 }
 
 enum Mode {
@@ -24,16 +25,17 @@ enum Mode {
 
 impl History {
     /// Create new [History]
-    pub fn new() -> History {
+    pub fn new(quiet: bool) -> History {
         History {
             done_stack: Stack::new(),
             undone_stack: Stack::new(),
             path: None,
             changed: false,
+            quiet,
         }
     }
 
-    pub fn load_file<P: AsRef<Path>>(path: &P) -> Result<History> {
+    pub fn load_file<P: AsRef<Path>>(path: &P, quiet: bool) -> Result<History> {
         let path = path.as_ref();
 
         info!("Loading history from {}.", path.display());
@@ -46,6 +48,7 @@ impl History {
             undone_stack: redo_stack,
             path: Some(PathBuf::from(path)),
             changed: false,
+            quiet,
         })
     }
 
@@ -64,7 +67,7 @@ impl History {
     }
 
     /// Save [History] to `self.path` or `config_folder`.
-    pub fn save_to_path<P: AsRef<Path>>(&self, path: &P) -> Result<()> {
+    pub fn save_to_file<P: AsRef<Path>>(&self, path: &P) -> Result<()> {
         if !self.changed {
             info!("History was unchanged.");
             return Ok(());
@@ -99,11 +102,17 @@ impl History {
         self.path = None;
         self.changed = false;
 
-        if let Some(path) = &self.path {
+        let string = if let Some(path) = &self.path {
             std::fs::remove_file(&path)?;
-            info!("Deleted history file at {}", path.display());
+            format!("Deleted history file at {}.", path.display())
         } else {
-            info!("Deleted history file");
+            "Deleted history file.".to_string()
+        };
+
+        info!("{}", string);
+
+        if !self.quiet {
+            println!("{}", string)
         }
 
         Ok(())
@@ -129,25 +138,29 @@ impl History {
 
         let min = std::cmp::min(amount, u64::try_from(from.len())?);
 
-        if min == 0 {
-            info!("There is nothing to {}.", name);
-            return Ok(());
+        let string = if min == 0 {
+            format!("There is nothing to {}.", name)
         } else if min != amount {
-            info!(
-                "There {} only {} action{} to {}.",
+            format!(
+                "There {} only {} action{} to {}:",
                 if min > 1 { "are" } else { "is" },
                 min,
                 if min > 1 { "s" } else { "" },
                 name
             )
         } else {
-            info!(
+            format!(
                 "{}ing {} time{}:",
                 crate::titlecase(name),
                 min,
                 if min > 1 { "s" } else { "" }
             )
         };
+
+        info!("{}", string);
+        if !self.quiet {
+            println!("{}", string)
+        }
 
         for i in 0..min {
             // We test the amount of actions to do,
@@ -156,13 +169,18 @@ impl History {
 
             let action_group = from.pop().unwrap();
 
-            info!(
+            let string = format!(
                 "{}: {}ing {} action{}...",
                 i + 1,
                 crate::titlecase(name),
                 action_group.len(),
                 if action_group.len() > 1 { "s" } else { "" }
             );
+
+            info!("{}", string);
+            if !self.quiet {
+                print!("{}", string)
+            }
 
             match mode {
                 Mode::Undo => {
@@ -172,12 +190,14 @@ impl History {
                 Mode::Redo => action_group.iter().try_for_each(|a| a.redo())?,
             }
 
-            println!(" Done.");
+            if !self.quiet {
+                println!(" Done.")
+            }
 
             to.push(action_group);
-        }
 
-        self.changed = true;
+            self.changed = true;
+        }
 
         Ok(())
     }

@@ -1,10 +1,10 @@
 use super::argparse::{Args, Subcommand};
-use super::history::History;
 use super::rename::Rename;
 use super::{argparse, logging};
-use crate::helpers;
 use crate::tfmt::visitors::{Inspector, InspectorMode};
+use crate::{helpers, HISTORY_FILENAME};
 use anyhow::Result;
+use file_history::History;
 use log::{info, warn};
 use std::convert::TryInto;
 use std::ffi::OsStr;
@@ -68,19 +68,17 @@ impl<'a> TFMTTools<'a> {
     }
 
     fn clear_history(&self) -> Result<()> {
-        match History::load_from_config(
-            self.args.preview,
-            &self.args.config_folder,
+        match History::load_file(
+            &self.args.config_folder.join(HISTORY_FILENAME),
+            false,
         ) {
             Ok(mut history) => {
-                history.delete()?;
+                if !self.args.preview {
+                    history.delete()?;
+                } else {
+                    print!("[P] Deleted history file.")
+                }
             }
-            Err(err) if err.to_string().contains("Unable to load") => {
-                let s = "Can't find history file to clear!";
-                println!("{}", s);
-                warn!("{}", s);
-            }
-
             Err(err) => {
                 let s =
                     format!("Error while trying to clear history!\n{}", err);
@@ -118,33 +116,48 @@ impl<'a> TFMTTools<'a> {
         // Creating a new history will make history.history_action() return
         // without doing anything, thus never setting history.changed.
         // We run history.save() purely for the side effects.
-        let mut history = History::load_from_config(
-            self.args.preview,
-            &self.args.config_folder,
+        let mut history = History::load_file(
+            &self.args.config_folder.join(HISTORY_FILENAME),
+            false,
         )
-        .unwrap_or_else(|_| History::new(self.args.preview));
+        .unwrap_or_else(|_| History::new(false));
 
-        history.redo(amount)?;
+        if !self.args.preview {
+            history.redo(amount)?;
 
-        history
-            .save()
-            .or_else(|_| history.save_to_path(&self.args.config_folder))?;
+            history.save().or_else(|_| {
+                history.save_to_file(
+                    &self.args.config_folder.join(HISTORY_FILENAME),
+                )
+            })?;
+        } else {
+            println!("[P] Redoing {} times.", amount)
+        }
 
         Ok(())
     }
 
     fn undo(&mut self, amount: u64) -> Result<()> {
-        let mut history = History::load_from_config(
-            self.args.preview,
-            &self.args.config_folder,
+        // Creating a new history will make history.history_action() return
+        // without doing anything, thus never setting history.changed.
+        // We run history.save() purely for the side effects.
+        let mut history = History::load_file(
+            &self.args.config_folder.join(HISTORY_FILENAME),
+            false,
         )
-        .unwrap_or_else(|_| History::new(self.args.preview));
+        .unwrap_or_else(|_| History::new(false));
 
-        history.undo(amount)?;
+        if !self.args.preview {
+            history.undo(amount)?;
 
-        history
-            .save()
-            .or_else(|_| history.save_to_path(&self.args.config_folder))?;
+            history.save().or_else(|_| {
+                history.save_to_file(
+                    &self.args.config_folder.join(HISTORY_FILENAME),
+                )
+            })?;
+        } else {
+            println!("[P] Undoing {} times.", amount)
+        }
 
         Ok(())
     }
