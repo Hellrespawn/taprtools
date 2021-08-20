@@ -219,6 +219,7 @@ impl<'a> Rename<'a> {
         root_path: &P,
         depth: u64,
     ) -> Result<ActionGroup> {
+        // TODO? Add a spinner and counter here?
         if depth == 0 {
             return Ok(ActionGroup::new());
         }
@@ -285,6 +286,7 @@ impl<'a> Rename<'a> {
         progress_bar.set_draw_target(ProgressDrawTarget::stdout());
         progress_bar.set_message("Renaming files...");
 
+        // TODO Revert any actions taken if there was an error?
         let mut action_group = ActionGroup::new();
 
         let mut move_mode = MoveMode::Rename;
