@@ -46,10 +46,10 @@ pub trait AudioFile: std::fmt::Debug + Send + Sync {
 }
 
 /// Return a vector of [AudioFile]s , optionally incrementing a progress bar.
-pub fn get_audio_files(
-    dir: &Path,
+pub fn get_audio_files<P: AsRef<Path>>(
+    dir: &P,
     depth: u64,
-    progress_bar: Option<&ProgressBar>,
+    spinner: Option<&ProgressBar>,
 ) -> Result<Vec<Box<dyn AudioFile>>> {
     if depth == 0 {
         return Ok(Vec::new());
@@ -57,14 +57,14 @@ pub fn get_audio_files(
 
     let mut audio_files: Vec<Box<dyn AudioFile>> = Vec::new();
 
-    if let Ok(read_dir) = std::fs::read_dir(dir) {
+    if let Ok(read_dir) = std::fs::read_dir(dir.as_ref()) {
         for entry in read_dir.flatten() {
             let path = entry.path();
             if let Ok(file_type) = entry.file_type() {
                 if file_type.is_file() {
                     if let Some(extension) = path.extension() {
-                        if let Some(progress_bar) = progress_bar {
-                            progress_bar.inc_length(1)
+                        if let Some(spinner) = spinner {
+                            spinner.inc_length(1)
                         };
 
                         if extension == "mp3" {
@@ -75,7 +75,7 @@ pub fn get_audio_files(
                             continue;
                         }
 
-                        if let Some(progress_bar) = progress_bar {
+                        if let Some(progress_bar) = spinner {
                             progress_bar.inc(1)
                         };
                     }
@@ -83,7 +83,7 @@ pub fn get_audio_files(
                     audio_files.extend(get_audio_files(
                         &path,
                         depth - 1,
-                        progress_bar,
+                        spinner,
                     )?)
                 }
             }

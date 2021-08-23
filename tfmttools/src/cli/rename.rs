@@ -14,7 +14,6 @@ use indicatif::{
 use log::{debug, info, warn};
 use std::convert::TryInto;
 use std::path::{Path, PathBuf};
-use std::sync::Once;
 
 /// Intermediate representation during interpreting.
 pub type SrcTgtPair = (PathBuf, PathBuf);
@@ -36,52 +35,11 @@ impl<'a> Rename<'a> {
         P: AsRef<Path>,
         Q: AsRef<Path>,
     {
+        // Get files
         let input_text = helpers::normalize_newlines(&std::fs::read_to_string(
             helpers::get_script(script_name, &self.args.config_folder)?,
         )?);
 
-        let audio_files = self.get_audio_files(
-            &input_folder,
-            if recursive { RECURSION_DEPTH } else { 1 },
-        )?;
-
-        if audio_files.is_empty() {
-            let s = format!(
-                "Couldn't find any files at {}.",
-                input_folder.as_ref().display()
-            );
-            println!("{}", s);
-            warn!("{}", s);
-            return Ok(());
-        }
-
-        let mut intp = Interpreter::new(&input_text, arguments)?;
-
-        let paths = self.interpret_destinations(
-            &audio_files,
-            output_folder,
-            &mut intp,
-        )?;
-
-        let (to_move, _no_move) = validate(&paths)?;
-
-        if to_move.is_empty() {
-            let s = "All files are already in the requested location.";
-            println!("{}", s);
-            warn!("{}", s);
-            return Ok(());
-        }
-
-        Self::preview_audio_files(&to_move, PREVIEW_AMOUNT);
-
-        self.rename_audio_files(&to_move)
-    }
-
-    pub fn get_audio_files<P: AsRef<Path>>(
-        &self,
-        dir: &P,
-        depth: u64,
-    ) -> Result<Vec<Box<dyn AudioFile>>> {
         let progress_bar = ProgressBar::new(0);
 
         progress_bar.set_style(
@@ -95,25 +53,22 @@ impl<'a> Rename<'a> {
         progress_bar.set_draw_target(ProgressDrawTarget::stdout());
 
         let audio_files = audio_file::get_audio_files(
-            dir.as_ref(),
-            depth,
+            input_folder,
+            if recursive { RECURSION_DEPTH } else { 1 },
             Some(&progress_bar),
         )?;
 
-        Ok(audio_files)
-    }
+        if audio_files.is_empty() {
+            let s = format!(
+                "Couldn't find any files at {}.",
+                input_folder.as_ref().display()
+            );
+            println!("{}", s);
+            warn!("{}", s);
+            return Ok(());
+        }
 
-    // FIXME Interpreting bar prints double
-    fn interpret_destinations<P: AsRef<Path>>(
-        &self,
-        audio_files: &'a [Box<dyn AudioFile>],
-        output_folder: &P,
-        intp: &'a mut Interpreter,
-    ) -> Result<Vec<SrcTgtPair>> {
-        let output_folder = output_folder.as_ref();
-
-        let absolute = Once::new();
-
+        // Interpret files
         let progress_bar = ProgressBar::new(audio_files.len().try_into()?);
 
         progress_bar.set_style(
@@ -129,6 +84,93 @@ impl<'a> Rename<'a> {
         progress_bar.set_draw_target(ProgressDrawTarget::stdout());
         progress_bar.set_message("Interpreting files...");
 
+        let mut intp = Interpreter::new(&input_text, arguments)?;
+
+        let paths = self.interpret_destinations(
+            &audio_files,
+            output_folder,
+            &mut intp,
+            progress_bar,
+        )?;
+
+        // TODO? Validate that *all* paths are absolute?
+        if paths.iter().any(|p| p.1.is_absolute()) {
+            let s = format!(
+                "Absolute path found, ignoring --output-folder {}",
+                output_folder.as_ref().display()
+            );
+            println!("{}", s);
+            warn!("{}", s);
+        }
+
+        // Validate files
+        let (to_move, _no_move) = validate(&paths)?;
+
+        if to_move.is_empty() {
+            let s = "All files are already in the requested location.";
+            println!("{}", s);
+            warn!("{}", s);
+            return Ok(());
+        }
+
+        Self::print_audio_files_preview(&to_move, PREVIEW_AMOUNT);
+
+        // Rename files
+        let progress_bar = ProgressBar::new(paths.len().try_into()?);
+
+        progress_bar.set_style(
+            ProgressStyle::default_bar()
+                .template(&format!(
+                    "{}[{{pos}}/{{len}}] {{msg:<21}} {{wide_bar}}",
+                    pp(self.args.preview)
+                ))
+                .on_finish(ProgressFinish::WithMessage(
+                    std::borrow::Cow::Borrowed("Renamed."),
+                )),
+        );
+        progress_bar.set_draw_target(ProgressDrawTarget::stdout());
+        progress_bar.set_message("Renaming files...");
+
+        let mut action_group = ActionGroup::new();
+
+        self.rename_audio_files(&to_move, &mut action_group, &progress_bar)?;
+
+        print!("{}Removing empty directories... ", pp(self.args.preview));
+
+        self.remove_dir_recursive(
+            &Rename::get_common_path(&paths),
+            RECURSION_DEPTH,
+            &mut action_group,
+        )?;
+
+        println!("Done.");
+
+        let mut history = History::load_file(
+            &self.args.config_folder.join(HISTORY_FILENAME),
+            false,
+        )
+        .unwrap_or_else(|_| History::new(false));
+
+        if !self.args.preview {
+            history.insert(action_group)?;
+
+            history.save().or_else(|_| {
+                history.save_to_file(
+                    &self.args.config_folder.join(HISTORY_FILENAME),
+                )
+            })?;
+        }
+
+        Ok(())
+    }
+
+    fn interpret_destinations<P: AsRef<Path>>(
+        &self,
+        audio_files: &'a [Box<dyn AudioFile>],
+        output_folder: &P,
+        intp: &'a mut Interpreter,
+        progress_bar: ProgressBar,
+    ) -> Result<Vec<SrcTgtPair>> {
         type IResult = std::result::Result<Vec<SrcTgtPair>, InterpreterError>;
 
         // Pushing/joining an absolute path onto another path clobbers that
@@ -139,30 +181,21 @@ impl<'a> Rename<'a> {
             .iter()
             .progress_with(progress_bar)
             .map(|af| match intp.interpret(af.as_ref()) {
-                Ok(s) => {
-                    let p = PathBuf::from(s);
-                    if p.is_absolute() {
-                        absolute.call_once(|| {})
-                    }
-                    Ok((PathBuf::from(af.path()), output_folder.join(p)))
-                }
+                Ok(s) => Ok((
+                    PathBuf::from(af.path()),
+                    output_folder.as_ref().join(s),
+                )),
                 Err(e) => Err(e),
             })
             .collect::<IResult>()?;
 
-        if absolute.is_completed() {
-            let s = format!(
-                "Absolute path found, ignoring --output-folder {}",
-                output_folder.display()
-            );
-            println!("{}", s);
-            warn!("{}", s);
-        }
-
         Ok(paths)
     }
 
-    fn preview_audio_files<P: AsRef<Path>>(paths: &[(P, P)], amount: usize) {
+    fn print_audio_files_preview<P: AsRef<Path>>(
+        paths: &[(P, P)],
+        amount: usize,
+    ) {
         let length = paths.len();
 
         println!(
@@ -218,20 +251,17 @@ impl<'a> Rename<'a> {
         &self,
         root_path: &P,
         depth: u64,
-    ) -> Result<ActionGroup> {
+        action_group: &mut ActionGroup,
+    ) -> Result<()> {
         // TODO? Add a spinner and counter here?
         if depth == 0 {
-            return Ok(ActionGroup::new());
+            return Ok(());
         }
-
-        let mut action_group = ActionGroup::new();
-
         for result in std::fs::read_dir(root_path.as_ref())? {
             let path = result?.path();
 
             if path.is_dir() {
-                action_group
-                    .extend(self.remove_dir_recursive(&path, depth - 1)?);
+                self.remove_dir_recursive(&path, depth - 1, action_group)?;
 
                 let action = Action::RemoveDir { path };
 
@@ -243,7 +273,7 @@ impl<'a> Rename<'a> {
             }
         }
 
-        Ok(action_group)
+        Ok(())
     }
 
     fn get_common_path(paths: &[(PathBuf, PathBuf)]) -> PathBuf {
@@ -270,25 +300,13 @@ impl<'a> Rename<'a> {
         common_path
     }
 
-    fn rename_audio_files(&self, paths: &[(PathBuf, PathBuf)]) -> Result<()> {
-        let progress_bar = ProgressBar::new(paths.len().try_into()?);
-
-        progress_bar.set_style(
-            ProgressStyle::default_bar()
-                .template(&format!(
-                    "{}[{{pos}}/{{len}}] {{msg:<21}} {{wide_bar}}",
-                    pp(self.args.preview)
-                ))
-                .on_finish(ProgressFinish::WithMessage(
-                    std::borrow::Cow::Borrowed("Renamed."),
-                )),
-        );
-        progress_bar.set_draw_target(ProgressDrawTarget::stdout());
-        progress_bar.set_message("Renaming files...");
-
+    fn rename_audio_files(
+        &self,
+        paths: &[(PathBuf, PathBuf)],
+        action_group: &mut ActionGroup,
+        progress_bar: &ProgressBar,
+    ) -> Result<()> {
         // TODO Revert any actions taken if there was an error?
-        let mut action_group = ActionGroup::new();
-
         let mut move_mode = MoveMode::Rename;
 
         for (source, target) in paths {
@@ -338,30 +356,6 @@ impl<'a> Rename<'a> {
 
         progress_bar.finish();
 
-        print!("{}Removing empty directories... ", pp(self.args.preview));
-
-        action_group.extend(self.remove_dir_recursive(
-            &Rename::get_common_path(paths),
-            RECURSION_DEPTH,
-        )?);
-
-        println!("Done.");
-
-        let mut history = History::load_file(
-            &self.args.config_folder.join(HISTORY_FILENAME),
-            false,
-        )
-        .unwrap_or_else(|_| History::new(false));
-
-        if !self.args.preview {
-            history.insert(action_group)?;
-
-            history.save().or_else(|_| {
-                history.save_to_file(
-                    &self.args.config_folder.join(HISTORY_FILENAME),
-                )
-            })?;
-        }
         Ok(())
     }
 }
