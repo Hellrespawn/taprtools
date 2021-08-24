@@ -1,17 +1,13 @@
 use anyhow::Result;
 use tfmttools::tfmt::ast::node::{self, Expression};
 use tfmttools::tfmt::ast::Parser;
-use tfmttools::tfmt::lexer::{Lexer, LexerResult};
 use tfmttools::tfmt::token::{Token, TokenType};
-
 mod common;
 
 fn file_test(filename: &str, reference: Option<node::Program>) -> Result<()> {
     let input = common::get_script(filename)?;
 
-    let tokens: Vec<LexerResult> = Lexer::new(&input)?.collect();
-
-    let mut parser = Parser::new(tokens.into_iter());
+    let mut parser = Parser::new(&input)?;
 
     let program = parser.parse()?;
 

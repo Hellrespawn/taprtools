@@ -1,18 +1,18 @@
-use super::error::LexerError;
+use super::error::{ErrorContext, LexerError};
 use super::token::{Token, TokenType, FORBIDDEN_GRAPHEMES};
+use crate::helpers::normalize_newlines;
 use buffered_iterator::{Buffered, BufferedIterator};
 use log::{debug, trace};
 use unicode_segmentation::{Graphemes, UnicodeSegmentation};
 
-/// The [Result] that a [Lexer] returns.
-pub type LexerResult = std::result::Result<Token, LexerError>;
 type Result<T> = std::result::Result<T, LexerError>;
 
 /// Reads a string and returns a stream of [Token]s.
 pub struct Lexer<'a> {
+    input_text: &'a str,
     buffer: BufferedIterator<Graphemes<'a>>,
-    line_no: u64,
-    col_no: u64,
+    line_no: usize,
+    col_no: usize,
 }
 
 impl<'a> Iterator for Lexer<'a> {
@@ -44,11 +44,33 @@ impl<'a> Lexer<'a> {
     /// does not contain carriage return characters (\r).
     pub fn new<S: AsRef<str>>(input_text: &'a S) -> Result<Self> {
         let input_text = input_text.as_ref();
-        if input_text.contains('\r') {
-            return Err(LexerError::InputContainsCr);
+
+        if let Some(cr_index) = input_text.find('\r') {
+            let text_before_cr =
+                normalize_newlines(&input_text[..cr_index].to_string());
+
+            let newline_matches: Vec<usize> = text_before_cr
+                .rmatch_indices('\n')
+                .map(|(i, _)| i)
+                .collect();
+
+            let line_no = newline_matches.len();
+
+            let col_no = if line_no > 0 {
+                cr_index - newline_matches[0]
+            } else {
+                cr_index
+            };
+
+            return Err(LexerError::InputContainsCr(ErrorContext::new(
+                input_text,
+                1 + line_no,
+                1 + col_no,
+            )));
         }
 
         let lexer = Self {
+            input_text,
             buffer: input_text.graphemes(true).buffered(),
             line_no: 1,
             col_no: 1,
@@ -56,6 +78,10 @@ impl<'a> Lexer<'a> {
 
         debug!("Creating lexer:\n{}", input_text);
         Ok(lexer)
+    }
+
+    fn get_context(&self) -> ErrorContext {
+        ErrorContext::new(self.input_text, self.line_no, self.col_no)
     }
 
     fn advance(&mut self, amount: usize) {
@@ -86,12 +112,16 @@ impl<'a> Lexer<'a> {
     }
 
     fn handle_single_line_string(&mut self, quote: &str) -> Result<String> {
+        let mut ctx = self.get_context();
+
         self.advance(1);
+
         match self.crawl(|s| *s == quote, 1) {
-            None => Err(LexerError::ExhaustedText(quote.to_string())),
+            None => Err(LexerError::ExhaustedText(ctx, quote.to_string())),
             Some(s) => {
-                if s.contains('\n') {
-                    Err(LexerError::NewlineInString(s))
+                if let Some(i) = s.find('\n') {
+                    ctx.col_no += i;
+                    Err(LexerError::NewlineInString(ctx))
                 } else {
                     Ok(s)
                 }
@@ -100,6 +130,8 @@ impl<'a> Lexer<'a> {
     }
 
     fn handle_multiline_string(&mut self, quote: &str) -> Result<String> {
+        let ctx = self.get_context();
+
         self.advance(3);
 
         let triple_quote = quote.repeat(3);
@@ -108,7 +140,9 @@ impl<'a> Lexer<'a> {
 
         loop {
             match self.crawl(|s| *s == quote, 0) {
-                None => return Err(LexerError::ExhaustedText(triple_quote)),
+                None => {
+                    return Err(LexerError::ExhaustedText(ctx, triple_quote))
+                }
                 Some(s) => string += &s,
             }
 
@@ -116,6 +150,7 @@ impl<'a> Lexer<'a> {
 
             if peek.len() != 3 {
                 return Err(LexerError::WrongTerminatorAtEOF {
+                    context: self.get_context(),
                     found: quote.to_string(),
                     expected: triple_quote,
                 });
@@ -133,7 +168,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn handle_string(&mut self) -> Result<Token> {
-        let (line_no, col_no) = (self.line_no, self.col_no);
+        let ctx = self.get_context();
 
         // self.next() already checks for None, so this unwrap should be safe.
         debug_assert!(self.buffer.peek().is_some());
@@ -149,12 +184,17 @@ impl<'a> Lexer<'a> {
         for grapheme in string.graphemes(true) {
             if FORBIDDEN_GRAPHEMES.contains(&grapheme) {
                 return Err(LexerError::ForbiddenGrapheme(
+                    ctx,
                     grapheme.to_string(),
                 ));
             }
         }
 
-        Ok(Token::new(TokenType::String(string), line_no, col_no))
+        Ok(Token::new(
+            TokenType::String(string),
+            ctx.line_no,
+            ctx.col_no,
+        ))
     }
 
     fn handle_single_line_comment(&mut self) -> Result<String> {
@@ -178,10 +218,15 @@ impl<'a> Lexer<'a> {
     fn handle_multiline_comment(&mut self) -> Result<String> {
         let mut string = String::new();
 
+        let ctx = self.get_context();
+
         loop {
             match self.crawl(|s| *s == "*", 0) {
                 None => {
-                    return Err(LexerError::ExhaustedText("*/".to_string()))
+                    return Err(LexerError::ExhaustedText(
+                        ctx,
+                        "*/".to_string(),
+                    ))
                 }
                 Some(s) => string += &s,
             }
@@ -190,6 +235,7 @@ impl<'a> Lexer<'a> {
 
             if peek.len() != 2 {
                 return Err(LexerError::WrongTerminatorAtEOF {
+                    context: self.get_context(),
                     found: "*".to_string(),
                     expected: "*/".to_string(),
                 });
@@ -249,8 +295,7 @@ impl<'a> Lexer<'a> {
             // self.next() already checks for None, so this unwrap should be safe.
             let string = self.buffer.peekn(i + 1).join("");
 
-            let result = Token::from_str(&string, self.line_no, self.col_no);
-            if let Ok(t) = result {
+            if let Ok(t) = Token::from_str(&string, self.line_no, self.col_no) {
                 self.advance(i + 1);
                 return Some(t);
             }
@@ -431,9 +476,11 @@ mod tests {
                     NEWLINE_IN_STRING,
                     TokenType::String(String::new()),
                 ),
-                LexerError::NewlineInString(
-                    dequote(NEWLINE_IN_STRING).to_string(),
-                ),
+                LexerError::NewlineInString(ErrorContext::new(
+                    NEWLINE_IN_STRING,
+                    1,
+                    18,
+                )),
                 "newline_in_string_test",
             )
         }
@@ -445,7 +492,10 @@ mod tests {
                     STRING_WITH_FORBIDDEN_GRAPHEMES,
                     TokenType::String(String::new()),
                 ),
-                LexerError::ForbiddenGrapheme("|".to_string()),
+                LexerError::ForbiddenGrapheme(
+                    ErrorContext::new(STRING_WITH_FORBIDDEN_GRAPHEMES, 1, 1),
+                    "|".to_string(),
+                ),
                 "forbidden_graphemes_test",
             )
         }
@@ -457,7 +507,10 @@ mod tests {
                     UNTERMINATED_STRING,
                     TokenType::String(String::new()),
                 ),
-                LexerError::ExhaustedText("\"".to_string()),
+                LexerError::ExhaustedText(
+                    ErrorContext::new(UNTERMINATED_STRING, 1, 1),
+                    "\"".to_string(),
+                ),
                 "unterminated_single_line_string_test",
             )
         }
@@ -470,6 +523,11 @@ mod tests {
                     TokenType::String(String::new()),
                 ),
                 LexerError::WrongTerminatorAtEOF {
+                    context: ErrorContext::new(
+                        UNTERMINATED_MULTILINE_STRING,
+                        2,
+                        18,
+                    ),
                     found: "'".to_string(),
                     expected: "'''".to_string(),
                 },
@@ -481,7 +539,14 @@ mod tests {
                     &(UNTERMINATED_MULTILINE_STRING.to_string() + "abcd"),
                     TokenType::String(String::new()),
                 ),
-                LexerError::ExhaustedText("'''".to_string()),
+                LexerError::ExhaustedText(
+                    ErrorContext::new(
+                        UNTERMINATED_MULTILINE_STRING.to_string() + "abcd",
+                        1,
+                        1,
+                    ),
+                    "'''".to_string(),
+                ),
                 "unterminated_multiline_string_test",
             )
         }
@@ -526,7 +591,10 @@ mod tests {
                     UNTERMINATED_COMMENT,
                     TokenType::Comment(String::new()),
                 ),
-                LexerError::ExhaustedText("*/".to_string()),
+                LexerError::ExhaustedText(
+                    ErrorContext::new(UNTERMINATED_COMMENT, 1, 3),
+                    "*/".to_string(),
+                ),
                 "unterminated_comment_test",
             )
         }

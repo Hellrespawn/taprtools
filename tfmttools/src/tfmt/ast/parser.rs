@@ -1,42 +1,31 @@
 use super::node::{self, Expression};
-use crate::tfmt::error::ParserError;
-use crate::tfmt::lexer::{Lexer, LexerResult};
+use crate::tfmt::error::{ErrorContext, ParserError};
+use crate::tfmt::lexer::Lexer;
 use crate::tfmt::token::{Token, TokenType};
 use log::trace;
 
 type Result<T> = std::result::Result<T, ParserError>;
 
 /// Reads a stream of [Token]s and build an Abstract Syntax Tree.
-pub struct Parser<I>
-where
-    I: Iterator<Item = LexerResult>,
-{
-    iterator: I,
+pub struct Parser<'a> {
+    input_text: &'a str,
+    lexer: Lexer<'a>,
     depth: u64,
     // Put tokens in Rc instead of cloning
     current_token: Option<Token>,
     previous_token: Option<Token>,
 }
 
-impl<'a> Parser<Lexer<'a>> {
-    /// Create a [Parser<Lexer<'a>>] from a string.
-    pub fn from_string<S: AsRef<str>>(input_text: &'a S) -> Result<Self> {
-        Ok(Self::new(Lexer::new(input_text)?))
-    }
-}
-
-impl<I> Parser<I>
-where
-    I: Iterator<Item = LexerResult>,
-{
-    /// Create a [Parser] from an [Iterator] returning [LexerResult].
-    pub fn new(iterator: I) -> Self {
-        Self {
-            iterator,
+impl<'a> Parser<'a> {
+    /// Create a [Parser<'a>] from a string.
+    pub fn new<S: AsRef<str>>(input_text: &'a S) -> Result<Self> {
+        Ok(Parser {
+            input_text: input_text.as_ref(),
+            lexer: Lexer::new(input_text)?,
             depth: 0,
             current_token: None,
             previous_token: None,
-        }
+        })
     }
 
     /// Run [Parser] to create an Abstract Syntax Tree.
@@ -46,10 +35,18 @@ where
         self.program()
     }
 
-    // TODO? Why do we need previous_token? Just for error handling?
+    fn get_current_context(&self) -> ErrorContext {
+        // This method is only to be used if current_token.is_some() is verified.
+        debug_assert!(self.current_token.is_some());
+        ErrorContext::from_token(
+            self.input_text,
+            self.current_token.as_ref().unwrap().clone(),
+        )
+    }
+
     fn _advance(&mut self, ignore: bool) -> Result<()> {
         // Allows replacing without deinit, even without Clone/Copy
-        let new = match self.iterator.next() {
+        let new = match self.lexer.next() {
             Some(result) => result?,
             None => {
                 if let Some(token) = self.current_token.take() {
@@ -90,6 +87,7 @@ where
 
         if token_type != expected {
             return Err(ParserError::UnexpectedTokenType {
+                context: self.get_current_context(),
                 expected: expected.clone(),
                 found: token_type.clone(),
             });
@@ -110,6 +108,7 @@ where
 
         if !matches!(token_type, TokenType::ID(..)) {
             return Err(ParserError::UnexpectedTokenType {
+                context: self.get_current_context(),
                 expected: TokenType::ID(String::new()),
                 found: token_type.clone(),
             });
@@ -130,6 +129,7 @@ where
 
         if !matches!(token_type, TokenType::String(..)) {
             return Err(ParserError::UnexpectedTokenType {
+                context: self.get_current_context(),
                 expected: TokenType::String(String::new()),
                 found: token_type.clone(),
             });
@@ -150,6 +150,7 @@ where
 
         if !matches!(token_type, TokenType::Integer(..)) {
             return Err(ParserError::UnexpectedTokenType {
+                context: self.get_current_context(),
                 expected: TokenType::Integer(0),
                 found: token_type.clone(),
             });
@@ -165,6 +166,24 @@ where
         Ok(self.previous_token.as_ref().unwrap().clone())
     }
 
+    fn inc_depth(&mut self) -> Result<()> {
+        self.depth += 1;
+
+        // TODO? Set this somewhere?
+        if self.depth > 48 {
+            return Err(ParserError::MaxIteration(48));
+        }
+
+        Ok(())
+    }
+
+    // TODO? Error check for negative numbers?
+    fn dec_depth(&mut self) -> Result<()> {
+        self.depth -= 1;
+
+        Ok(())
+    }
+
     /// Depth Prefix
     fn dp(&mut self) -> String {
         (0..self.depth).map(|i| (i % 10).to_string()).collect()
@@ -173,7 +192,7 @@ where
     // Grammar functions
     fn program(&mut self) -> Result<node::Program> {
         // ID "(" Parameters ")" ( String )? "{" Block "}"
-        self.depth += 1;
+        self.inc_depth()?;
 
         let name = self.consume_id()?;
 
@@ -196,7 +215,7 @@ where
         let block = self.block()?;
         self.consume(&TokenType::CurlyBraceRight)?;
 
-        self.depth -= 1;
+        self.dec_depth()?;
 
         Ok(node::Program {
             name,
@@ -208,7 +227,7 @@ where
 
     fn parameters(&mut self) -> Result<node::Parameters> {
         // ( Parameter ( "," Parameter )* )?
-        self.depth += 1;
+        self.inc_depth()?;
 
         trace!("{} Parameters", self.dp());
 
@@ -224,13 +243,13 @@ where
                 break;
             }
         }
-        self.depth -= 1;
+        self.dec_depth()?;
         Ok(node::Parameters { parameters })
     }
 
     fn parameter(&mut self) -> Result<node::Parameter> {
         // ID ( "=" ( Integer | String ) )?
-        self.depth += 1;
+        self.inc_depth()?;
         let identifier = self.consume_id()?;
         trace!(
             r#"{} Parameter: "{}""#,
@@ -245,16 +264,16 @@ where
                 } else if let Ok(token) = self.consume_string() {
                     Some(token)
                 } else {
-                    // TODO? Create a separate error?
-                    return Err(ParserError::Generic(
-                        "Parameter has invalid default!".to_string(),
+                    return Err(ParserError::InvalidDefault(
+                        self.get_current_context(),
+                        self.current_type().to_owned(),
                     ));
                 }
             }
             Err(_) => None,
         };
 
-        self.depth -= 1;
+        self.dec_depth()?;
 
         Ok(node::Parameter {
             token: identifier,
@@ -264,13 +283,13 @@ where
 
     fn block(&mut self) -> Result<node::Block> {
         // ( DriveLetter )? Expression*
-        self.depth += 1;
+        self.inc_depth()?;
         trace!("{} Block", self.dp());
 
         let expressions: Vec<Expression> =
             self.expressions(&[TokenType::CurlyBraceRight])?;
 
-        self.depth -= 1;
+        self.dec_depth()?;
         Ok(node::Block { expressions })
     }
 
@@ -290,9 +309,6 @@ where
                     .collect::<Vec<String>>()
             );
 
-            if self.depth > 48 {
-                return Err(ParserError::MaxIteration(48));
-            }
             expressions.push(self.expression()?);
         }
 
@@ -301,7 +317,7 @@ where
 
     fn expression(&mut self) -> Result<Expression> {
         // Ternary ( "?" Ternary ":" Ternary )*
-        self.depth += 1;
+        self.inc_depth()?;
         trace!("{} Expression", self.dp());
         let mut expression = self.ternary()?;
 
@@ -318,13 +334,13 @@ where
             };
         }
 
-        self.depth -= 1;
+        self.dec_depth()?;
         Ok(expression)
     }
 
     fn ternary(&mut self) -> Result<Expression> {
         // Disjunct ( ( "||" | "|" ) Disjunct )*
-        self.depth += 1;
+        self.inc_depth()?;
         trace!("{} Ternary", self.dp());
 
         let mut ternary = self.disjunct()?;
@@ -347,13 +363,13 @@ where
             };
         }
 
-        self.depth -= 1;
+        self.dec_depth()?;
         Ok(ternary)
     }
 
     fn disjunct(&mut self) -> Result<Expression> {
         // Conjunct ( ( "&&" | "&" ) Conjunct )*
-        self.depth += 1;
+        self.inc_depth()?;
         trace!("{} Disjunct", self.dp());
 
         let mut disjunct = self.conjunct()?;
@@ -374,13 +390,13 @@ where
             };
         }
 
-        self.depth -= 1;
+        self.dec_depth()?;
         Ok(disjunct)
     }
 
     fn conjunct(&mut self) -> Result<Expression> {
         // Term ( ( "+" | "-" ) Term )*
-        self.depth += 1;
+        self.inc_depth()?;
         trace!("{} Conjunct", self.dp());
         let mut conjunct = self.term()?;
 
@@ -398,13 +414,13 @@ where
             };
         }
 
-        self.depth -= 1;
+        self.dec_depth()?;
         Ok(conjunct)
     }
 
     fn term(&mut self) -> Result<Expression> {
         // Factor ( ( "*" | "/" | "%" ) Factor )*
-        self.depth += 1;
+        self.inc_depth()?;
         trace!("{} Term", self.dp());
 
         let mut term = self.factor()?;
@@ -426,13 +442,13 @@ where
             };
         }
 
-        self.depth -= 1;
+        self.dec_depth()?;
         Ok(term)
     }
 
     fn factor(&mut self) -> Result<Expression> {
         // Exponent ( ( "**" | "^" ) Exponent )*
-        self.depth += 1;
+        self.inc_depth()?;
         trace!("{} Factor", self.dp());
 
         let mut factor = self.exponent()?;
@@ -453,13 +469,13 @@ where
             };
         }
 
-        self.depth -= 1;
+        self.dec_depth()?;
         Ok(factor)
     }
 
     fn exponent(&mut self) -> Result<Expression> {
         // "+" Exponent | "-" Exponent | "(" Expression+ ")" | Statement
-        self.depth += 1;
+        self.inc_depth()?;
         trace!("{} Exponent", self.dp());
 
         let exponent = match *self.current_type() {
@@ -480,7 +496,9 @@ where
                 self.consume(&TokenType::ParenthesisRight)?;
 
                 if expressions.is_empty() {
-                    return Err(ParserError::EmptyGroup);
+                    return Err(ParserError::EmptyGroup(
+                        self.get_current_context(),
+                    ));
                 }
 
                 Expression::Group { expressions }
@@ -488,13 +506,13 @@ where
             _ => self.statement()?,
         };
 
-        self.depth -= 1;
+        self.dec_depth()?;
         Ok(exponent)
     }
 
     fn statement(&mut self) -> Result<Expression> {
         // Comment | Function | Integer | String | Substitution | Tag
-        self.depth += 1;
+        self.inc_depth()?;
         trace!("{} Statement", self.dp());
 
         let ttype = self.current_type();
@@ -519,15 +537,20 @@ where
             TokenType::String(..) => {
                 Expression::StringNode(self.consume_string()?)
             }
-            _ => return Err(ParserError::UnrecognizedToken(ttype.clone())),
+            _ => {
+                return Err(ParserError::UnrecognizedToken(
+                    self.get_current_context(),
+                    ttype.clone(),
+                ))
+            }
         };
 
-        self.depth -= 1;
+        self.dec_depth()?;
         Ok(statement)
     }
 
     fn function(&mut self) -> Result<Expression> {
-        self.depth += 1;
+        self.inc_depth()?;
         trace!("{} Function", self.dp());
 
         let identifier = self.consume_id()?;
@@ -550,12 +573,12 @@ where
             end_token: self.consume(&TokenType::ParenthesisRight)?,
         };
 
-        self.depth -= 1;
+        self.dec_depth()?;
         Ok(function)
     }
 
     fn tag(&mut self) -> Result<Expression> {
-        self.depth += 1;
+        self.inc_depth()?;
         trace!("{} Tag", self.dp());
 
         let start_token = self.consume(&TokenType::AngleBracketLeft)?;
@@ -569,7 +592,7 @@ where
             token: identifier,
         };
 
-        self.depth -= 1;
+        self.dec_depth()?;
         Ok(tag)
     }
 }

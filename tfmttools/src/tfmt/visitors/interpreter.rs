@@ -23,7 +23,7 @@ impl Interpreter {
         input_text: &S,
         arguments: &[&str],
     ) -> Result<Self> {
-        let program = Parser::from_string(input_text)?.parse()?;
+        let program = Parser::new(input_text)?.parse()?;
         let symbol_table = SemanticAnalyzer::analyze(&program, arguments)?;
 
         Ok(Self {

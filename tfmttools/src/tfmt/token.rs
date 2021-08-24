@@ -96,13 +96,13 @@ impl TokenType {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Token {
     pub token_type: TokenType,
-    pub line_no: u64,
-    pub col_no: u64,
+    pub line_no: usize,
+    pub col_no: usize,
 }
 
 impl Token {
     /// Create a new [Token].
-    pub fn new(token_type: TokenType, line_no: u64, col_no: u64) -> Self {
+    pub fn new(token_type: TokenType, line_no: usize, col_no: usize) -> Self {
         Self {
             token_type,
             line_no,
@@ -113,8 +113,8 @@ impl Token {
     /// Attempt to create a new [Token], parsing a string as [TokenType].
     pub fn from_str<S: AsRef<str>>(
         token_type: &S,
-        line_no: u64,
-        col_no: u64,
+        line_no: usize,
+        col_no: usize,
     ) -> Result<Self> {
         Ok(Self {
             token_type: TokenType::from_str(token_type.as_ref())?,

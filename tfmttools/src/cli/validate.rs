@@ -11,6 +11,7 @@ pub fn validate<P: AsRef<Path>>(
 ) -> Result<(Vec<SrcTgtPair>, Vec<SrcTgtPair>)> {
     validate_collisions(paths)?;
     validate_existing_files(paths)?;
+
     validate_movement(paths)
 }
 

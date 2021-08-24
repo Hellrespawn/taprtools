@@ -164,7 +164,7 @@ mod tests {
             format!("testdata/script/{}", path),
         )?);
 
-        Ok(Parser::from_string(&input_text)?.parse()?)
+        Ok(Parser::new(&input_text)?.parse()?)
     }
 
     fn script_test(name: &str, reference: &SymbolTable) -> Result<()> {

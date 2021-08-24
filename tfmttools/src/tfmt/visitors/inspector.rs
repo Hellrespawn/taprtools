@@ -48,7 +48,7 @@ impl<'a> Inspector<'a> {
         let input_text =
             helpers::normalize_newlines(&std::fs::read_to_string(path)?);
 
-        let program = Parser::from_string(&input_text)?.parse()?;
+        let program = Parser::new(&input_text)?.parse()?;
 
         let mut inspector = Inspector {
             name: String::new(),
