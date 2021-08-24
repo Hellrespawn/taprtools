@@ -8,7 +8,6 @@ type Result<T> = std::result::Result<T, ParserError>;
 
 /// Reads a stream of [Token]s and build an Abstract Syntax Tree.
 pub struct Parser<'a> {
-    input_text: &'a str,
     lexer: Lexer<'a>,
     depth: u64,
     // Put tokens in Rc instead of cloning
@@ -20,7 +19,6 @@ impl<'a> Parser<'a> {
     /// Create a [Parser<'a>] from a string.
     pub fn new<S: AsRef<str>>(input_text: &'a S) -> Result<Self> {
         Ok(Parser {
-            input_text: input_text.as_ref(),
             lexer: Lexer::new(input_text)?,
             depth: 0,
             current_token: None,
@@ -35,13 +33,21 @@ impl<'a> Parser<'a> {
         self.program()
     }
 
-    fn get_current_context(&self) -> ErrorContext {
-        // This method is only to be used if current_token.is_some() is verified.
+    fn current_context(&self) -> ErrorContext {
+        // current_token is guaranteed to be Some() by Parser::advance(), so
+        // unwrap should be safe.
         debug_assert!(self.current_token.is_some());
         ErrorContext::from_token(
-            self.input_text,
+            self.lexer.input_text,
             self.current_token.as_ref().unwrap().clone(),
         )
+    }
+
+    fn current_type(&self) -> &TokenType {
+        // current_token is guaranteed to be Some() by Parser::advance(), so
+        // unwrap should be safe.
+        debug_assert!(self.current_token.is_some());
+        &self.current_token.as_ref().unwrap().token_type
     }
 
     fn _advance(&mut self, ignore: bool) -> Result<()> {
@@ -71,13 +77,6 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    fn current_type(&self) -> &TokenType {
-        // current_token is guaranteed to be Some() by Parser::advance(), so
-        // unwrap should be safe.
-        debug_assert!(self.current_token.is_some());
-        &self.current_token.as_ref().unwrap().token_type
-    }
-
     fn advance(&mut self) -> Result<()> {
         self._advance(false)
     }
@@ -87,7 +86,7 @@ impl<'a> Parser<'a> {
 
         if token_type != expected {
             return Err(ParserError::UnexpectedTokenType {
-                context: self.get_current_context(),
+                context: self.current_context(),
                 expected: expected.clone(),
                 found: token_type.clone(),
             });
@@ -108,7 +107,7 @@ impl<'a> Parser<'a> {
 
         if !matches!(token_type, TokenType::ID(..)) {
             return Err(ParserError::UnexpectedTokenType {
-                context: self.get_current_context(),
+                context: self.current_context(),
                 expected: TokenType::ID(String::new()),
                 found: token_type.clone(),
             });
@@ -129,7 +128,7 @@ impl<'a> Parser<'a> {
 
         if !matches!(token_type, TokenType::String(..)) {
             return Err(ParserError::UnexpectedTokenType {
-                context: self.get_current_context(),
+                context: self.current_context(),
                 expected: TokenType::String(String::new()),
                 found: token_type.clone(),
             });
@@ -150,7 +149,7 @@ impl<'a> Parser<'a> {
 
         if !matches!(token_type, TokenType::Integer(..)) {
             return Err(ParserError::UnexpectedTokenType {
-                context: self.get_current_context(),
+                context: self.current_context(),
                 expected: TokenType::Integer(0),
                 found: token_type.clone(),
             });
@@ -265,7 +264,7 @@ impl<'a> Parser<'a> {
                     Some(token)
                 } else {
                     return Err(ParserError::InvalidDefault(
-                        self.get_current_context(),
+                        self.current_context(),
                         self.current_type().to_owned(),
                     ));
                 }
@@ -497,7 +496,7 @@ impl<'a> Parser<'a> {
 
                 if expressions.is_empty() {
                     return Err(ParserError::EmptyGroup(
-                        self.get_current_context(),
+                        self.current_context(),
                     ));
                 }
 
@@ -539,7 +538,7 @@ impl<'a> Parser<'a> {
             }
             _ => {
                 return Err(ParserError::UnrecognizedToken(
-                    self.get_current_context(),
+                    self.current_context(),
                     ttype.clone(),
                 ))
             }

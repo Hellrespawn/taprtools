@@ -2,7 +2,7 @@ use crate::file::audio_file::AudioFile;
 use crate::helpers;
 use crate::tfmt::ast::node::*;
 use crate::tfmt::ast::{Parser, Visitor};
-use crate::tfmt::error::InterpreterError;
+use crate::tfmt::error::{ErrorContext, InterpreterError};
 use crate::tfmt::function::handle_function;
 use crate::tfmt::token::{
     Token, TokenType, DIRECTORY_SEPARATORS, FORBIDDEN_GRAPHEMES,
@@ -14,6 +14,7 @@ type Result<T> = std::result::Result<T, InterpreterError>;
 
 /// Interprets an [AST](ast::Program) based on tags from an [AudioFile].
 pub struct Interpreter {
+    input_text: String,
     program: Program,
     symbol_table: SymbolTable,
 }
@@ -27,6 +28,7 @@ impl Interpreter {
         let symbol_table = SemanticAnalyzer::analyze(&program, arguments)?;
 
         Ok(Self {
+            input_text: String::from(input_text.as_ref()),
             program,
             symbol_table,
         })
@@ -40,6 +42,7 @@ impl Interpreter {
             "{}.{}",
             helpers::normalize_separators(&self.program.accept(
                 &mut IntpVisitor {
+                    input_text: &self.input_text,
                     symbol_table: &self.symbol_table,
                     audio_file
                 }
@@ -64,6 +67,7 @@ impl Interpreter {
 }
 
 struct IntpVisitor<'a> {
+    input_text: &'a str,
     symbol_table: &'a SymbolTable,
     audio_file: &'a dyn AudioFile,
 }
@@ -160,10 +164,14 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
                 l.parse::<i64>()?.pow(r.parse::<u32>()?).to_string()
             }
             other => {
-                return Err(InterpreterError::InvalidTokenType(
-                    other.clone(),
-                    "BinaryOp",
-                ))
+                return Err(InterpreterError::InvalidTokenType {
+                    context: ErrorContext::from_token(
+                        self.input_text,
+                        token.clone(),
+                    ),
+                    invalid_type: other.clone(),
+                    name: "BinaryOp",
+                })
             }
         })
     }
@@ -178,10 +186,14 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
             TokenType::Plus => o,
             TokenType::Hyphen => (-o.parse::<i64>()?).to_string(),
             other => {
-                return Err(InterpreterError::InvalidTokenType(
-                    other.clone(),
-                    "UnaryOp",
-                ))
+                return Err(InterpreterError::InvalidTokenType {
+                    context: ErrorContext::from_token(
+                        self.input_text,
+                        token.clone(),
+                    ),
+                    invalid_type: other.clone(),
+                    name: "UnaryOp",
+                })
             }
         })
     }
@@ -256,6 +268,7 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
         FORBIDDEN_GRAPHEMES
             .iter()
             .for_each(|g| tag = tag.replace(g, ""));
+
         DIRECTORY_SEPARATORS
             .iter()
             .for_each(|g| tag = tag.replace(g, ""));

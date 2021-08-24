@@ -9,7 +9,7 @@ type Result<T> = std::result::Result<T, LexerError>;
 
 /// Reads a string and returns a stream of [Token]s.
 pub struct Lexer<'a> {
-    input_text: &'a str,
+    pub input_text: &'a str,
     buffer: BufferedIterator<Graphemes<'a>>,
     line_no: usize,
     col_no: usize,
@@ -80,7 +80,7 @@ impl<'a> Lexer<'a> {
         Ok(lexer)
     }
 
-    fn get_context(&self) -> ErrorContext {
+    fn current_context(&self) -> ErrorContext {
         ErrorContext::new(self.input_text, self.line_no, self.col_no)
     }
 
@@ -112,7 +112,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn handle_single_line_string(&mut self, quote: &str) -> Result<String> {
-        let mut ctx = self.get_context();
+        let mut ctx = self.current_context();
 
         self.advance(1);
 
@@ -130,7 +130,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn handle_multiline_string(&mut self, quote: &str) -> Result<String> {
-        let ctx = self.get_context();
+        let ctx = self.current_context();
 
         self.advance(3);
 
@@ -150,7 +150,7 @@ impl<'a> Lexer<'a> {
 
             if peek.len() != 3 {
                 return Err(LexerError::WrongTerminatorAtEOF {
-                    context: self.get_context(),
+                    context: self.current_context(),
                     found: quote.to_string(),
                     expected: triple_quote,
                 });
@@ -168,7 +168,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn handle_string(&mut self) -> Result<Token> {
-        let ctx = self.get_context();
+        let ctx = self.current_context();
 
         // self.next() already checks for None, so this unwrap should be safe.
         debug_assert!(self.buffer.peek().is_some());
@@ -218,7 +218,7 @@ impl<'a> Lexer<'a> {
     fn handle_multiline_comment(&mut self) -> Result<String> {
         let mut string = String::new();
 
-        let ctx = self.get_context();
+        let ctx = self.current_context();
 
         loop {
             match self.crawl(|s| *s == "*", 0) {
@@ -235,7 +235,7 @@ impl<'a> Lexer<'a> {
 
             if peek.len() != 2 {
                 return Err(LexerError::WrongTerminatorAtEOF {
-                    context: self.get_context(),
+                    context: self.current_context(),
                     found: "*".to_string(),
                     expected: "*/".to_string(),
                 });

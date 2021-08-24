@@ -89,17 +89,9 @@ pub enum ParserError {
     #[error("{0}Encountered group without expressions!")]
     EmptyGroup(ErrorContext),
 
-    /// Iterator has run out of tokens.
-    #[error("Iterator has run out of tokens!")]
-    ExhaustedTokens,
-
     /// Parameter default is neither int nor string.
     #[error("{0}Parameter default is neither int nor string but {1:?}")]
     InvalidDefault(ErrorContext, TokenType),
-
-    /// Maximum iteration depth exceeded!
-    #[error("Maximum iteration depth, {0}, exceeded!")]
-    MaxIteration(u64),
 
     /// Unexpected [TokenType].
     #[error("Expected {expected:?}, got {found:?}")]
@@ -112,6 +104,14 @@ pub enum ParserError {
     /// Unable to parse [TokenType].
     #[error("Unable to parse token type {0:?}!")]
     UnrecognizedToken(ErrorContext, TokenType),
+
+    /// Iterator has run out of tokens.
+    #[error("Iterator has run out of tokens!")]
+    ExhaustedTokens,
+
+    /// Maximum iteration depth exceeded!
+    #[error("Maximum iteration depth, {0}, exceeded!")]
+    MaxIteration(u64),
 
     #[error(transparent)]
     Lexer(#[from] LexerError),
@@ -141,10 +141,10 @@ pub enum FunctionError {
     /// Wrong number of arguments for function
     UnknownFunction(String),
 
-    #[error("ParseInt error: {0}")]
+    #[error(transparent)]
     ParseInt(#[from] std::num::ParseIntError),
 
-    #[error("ParseChar error: {0}")]
+    #[error(transparent)]
     ParseChar(#[from] std::char::ParseCharError),
 }
 
@@ -171,34 +171,33 @@ pub enum SemanticError {
 #[derive(Error, Debug)]
 /// Error from the [parser] module.
 pub enum InterpreterError {
-    /// Non-specific error.
-    #[error("Error in Interpreter: {0}")]
-    Generic(String),
-
     /// Invalid [TokenType].
-    #[error("Invalid TokenType in {0:?}: {1}!")]
-    InvalidTokenType(TokenType, &'static str),
+    #[error("{context}Invalid TokenType in {name}: {invalid_type:?}!")]
+    InvalidTokenType {
+        context: ErrorContext,
+        invalid_type: TokenType,
+        name: &'static str,
+    },
 
-    /// Forbidden grapheme in ID.
-    #[error(r#"Encountered forbidden grapheme "{0}" in tag!"#)]
-    TagForbidden(String),
+    // /// Forbidden grapheme in ID.
+    // #[error(r#"Encountered forbidden grapheme "{0}" in tag!"#)]
+    // TagForbidden(String),
 
-    /// Directory separator in ID.
-    #[error(r#"Encountered directory separator "{0}" in tag!"#)]
-    TagDirSep(String),
-
-    #[error("Lexer error: {0}")]
+    // /// Directory separator in ID.
+    // #[error(r#"Encountered directory separator "{0}" in tag!"#)]
+    // TagDirSep(String),
+    #[error(transparent)]
     Lexer(#[from] LexerError),
 
-    #[error("Parser error: {0}")]
+    #[error(transparent)]
     Parser(#[from] ParserError),
 
-    #[error("Semantic error: {0}")]
+    #[error(transparent)]
     Semantic(#[from] SemanticError),
 
-    #[error("Function error: {0}")]
+    #[error(transparent)]
     Function(#[from] FunctionError),
 
-    #[error("ParseInt error: {0}")]
+    #[error(transparent)]
     ParseInt(#[from] std::num::ParseIntError),
 }
