@@ -1,43 +1,25 @@
-use crate::tfmt::error::FunctionError;
-use crate::tfmt::token;
+use crate::tfmt::error::{ErrorContext, FunctionError};
+use crate::tfmt::token::{Token, DIRECTORY_SEPARATORS, FORBIDDEN_GRAPHEMES};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::convert::TryFrom;
 
 type Result<T> = std::result::Result<T, FunctionError>;
 
-fn validate(name: &str, amount: usize) -> Result<()> {
-    let required = match name {
-        "prepend" => 3,
-        "num" => 2,
-        "replace" => 3,
-        "split" => 4,
-        "validate" => 1,
-        "year_from_date" => 1,
-        "andif" => 2,
-        "if" => 3,
-        _ => return Err(FunctionError::UnknownFunction(name.to_string())),
-    };
-
-    if required != amount {
-        Err(FunctionError::WrongArguments {
-            name: name.to_string(),
-            expected: required,
-            found: amount,
-        })
-    } else {
-        Ok(())
-    }
-}
-
 /// Wrapper function that delegates to TFMT functions.
-pub fn handle_function<S: AsRef<str>>(
-    name: &str,
-    arguments: &[S],
-) -> Result<String> {
-    let arguments: Vec<&str> = arguments.iter().map(|a| a.as_ref()).collect();
+pub fn handle_function<S, T>(
+    input_text: &S,
+    start_token: &Token,
+    arguments: &[T],
+) -> Result<String>
+where
+    S: AsRef<str>,
+    T: AsRef<str>,
+{
+    validate(input_text, start_token, arguments)?;
 
-    validate(name, arguments.len())?;
+    let name = start_token.get_string_unchecked();
+    let arguments: Vec<&str> = arguments.iter().map(|a| a.as_ref()).collect();
 
     let function_output = match name {
         "prepend" => function_prepend(
@@ -58,10 +40,52 @@ pub fn handle_function<S: AsRef<str>>(
         "andif" => function_andif(arguments[0], arguments[1]),
         "if" => function_if(arguments[0], arguments[1], arguments[2]),
 
-        _ => return Err(FunctionError::UnknownFunction(name.to_string())),
+        _ => panic!("Handled by validate!"),
     };
 
     Ok(function_output)
+}
+
+fn validate<S, T>(
+    input_text: &S,
+    start_token: &Token,
+    arguments: &[T],
+) -> Result<()>
+where
+    S: AsRef<str>,
+    T: AsRef<str>,
+{
+    let name = start_token.get_string_unchecked();
+
+    let required = match name {
+        "prepend" => 3,
+        "num" => 2,
+        "replace" => 3,
+        "split" => 4,
+        "validate" => 1,
+        "year_from_date" => 1,
+        "andif" => 2,
+        "if" => 3,
+        _ => {
+            return Err(FunctionError::UnknownFunction(
+                ErrorContext::from_token(input_text, start_token.clone()),
+                name.to_string(),
+            ))
+        }
+    };
+
+    let amount = arguments.len();
+
+    if required != amount {
+        Err(FunctionError::WrongArguments {
+            context: ErrorContext::from_token(input_text, start_token.clone()),
+            name: name.to_string(),
+            expected: required,
+            found: amount,
+        })
+    } else {
+        Ok(())
+    }
 }
 
 fn function_prepend(string: &str, length: usize, prefix: char) -> String {
@@ -99,10 +123,10 @@ fn function_split(
 fn function_validate(string: &str) -> String {
     let mut out = String::from(string);
 
-    token::FORBIDDEN_GRAPHEMES
+    FORBIDDEN_GRAPHEMES
         .iter()
         .for_each(|g| out = out.replace(g, ""));
-    token::DIRECTORY_SEPARATORS
+    DIRECTORY_SEPARATORS
         .iter()
         .for_each(|g| out = out.replace(g, ""));
 
@@ -152,11 +176,13 @@ fn function_if(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tfmt::token::TokenType;
     use anyhow::{bail, Result};
 
     #[test]
     fn function_test_wrong_arguments() -> Result<()> {
-        match handle_function("prepend", &["a", "b"]) {
+        let token = Token::new(TokenType::ID("prepend".to_string()), 0, 0);
+        match handle_function(&"", &token, &["a", "b"]) {
             Ok(_) => bail!("prepend with 2 arguments did not raise an error!"),
             Err(FunctionError::WrongArguments { .. }) => (),
             Err(err) => bail!(
@@ -165,13 +191,16 @@ mod tests {
             ),
         }
 
-        match handle_function("year_from_date", &["a", "b"]) {
+        let token =
+            Token::new(TokenType::ID("year_from_date".to_string()), 0, 0);
+        match handle_function(&"", &token, &["a", "b"]) {
             Ok(_) => bail!("year_from_date with 2 arguments did not raise an error!"),
             Err(FunctionError::WrongArguments{..}) => (),
             Err(err) => bail!("year_from_date with 2 arguments raised an unexpected error: {}!",err)
         }
 
-        match handle_function("fake", &["a"]) {
+        let token = Token::new(TokenType::ID("fake".to_string()), 0, 0);
+        match handle_function(&"", &token, &["a"]) {
             Ok(_) => bail!("Unknown function did not raise an error!"),
             Err(FunctionError::UnknownFunction(..)) => (),
             Err(err) => {

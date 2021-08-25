@@ -211,14 +211,12 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
         start_token: &Token,
         arguments: &[Expression],
     ) -> Result<String> {
-        let name = start_token.get_string_unchecked();
-
         let arguments: Vec<String> = arguments
             .iter()
             .map(|a| a.accept(self))
             .collect::<Result<Vec<String>>>()?;
 
-        Ok(handle_function(name, &arguments)?)
+        Ok(handle_function(&self.input_text, start_token, &arguments)?)
     }
 
     fn visit_integer(&mut self, integer: &Token) -> Result<String> {

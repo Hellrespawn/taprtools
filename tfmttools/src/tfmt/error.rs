@@ -129,17 +129,18 @@ pub enum DotError {
 #[derive(Error, Debug)]
 pub enum FunctionError {
     /// Error from the [function] module.
-    #[error(r#"Wrong number of arguments ({found}) for function "{name}", expected {expected}!"#)]
+    #[error(r#"{context}Wrong number of arguments ({found}) for function "{name}", expected {expected}!"#)]
     /// Wrong number of arguments for function
     WrongArguments {
+        context: ErrorContext,
         name: String,
         expected: usize,
         found: usize,
     },
 
-    #[error(r#"Unknown function "{0}"!"#)]
+    #[error(r#"{0}Unknown function "{1}"!"#)]
     /// Wrong number of arguments for function
-    UnknownFunction(String),
+    UnknownFunction(ErrorContext, String),
 
     #[error(transparent)]
     ParseInt(#[from] std::num::ParseIntError),
