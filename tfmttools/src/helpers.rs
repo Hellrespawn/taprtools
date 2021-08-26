@@ -45,12 +45,11 @@ pub fn get_scripts<P: AsRef<Path>>(config_folder: &P) -> Vec<PathBuf> {
 
     let config_folder = config_folder.as_ref();
 
-    // This condition is only called if p.is_file() is true, so
-    // p.extension().unwrap() should be safe.
-    let condition = |p: &Path| {
-        debug_assert!(p.is_file());
-        p.extension().unwrap() == "tfmt"
-    };
+    let condition = |p: &Path| p.extension().unwrap_or_default() == "tfmt";
+
+    if let Ok(cwd) = std::env::current_dir() {
+        scripts.extend(search_path(&cwd, condition, 1));
+    }
 
     scripts.extend(search_path(&config_folder, condition, 1));
     scripts.extend(search_path(&config_folder.join("script"), condition, 1));
@@ -65,12 +64,23 @@ pub fn get_script<P: AsRef<Path>>(
     name: &str,
     config_folder: &P,
 ) -> Result<PathBuf> {
-    let name = format!("{}.tfmt", name);
+    let name = if !name.ends_with(".tfmt") {
+        format!("{}.tfmt", name)
+    } else {
+        name.to_string()
+    };
+
+    let name_as_path = PathBuf::from(&name);
+
+    if name_as_path.is_file() {
+        return Ok(name_as_path);
+    }
+
     let scripts = get_scripts(config_folder);
-    // These were selected through path.is_file(), unwrap should be safe.
     scripts
         .into_iter()
         .find(|p| {
+            // These were selected through p.is_file(), unwrap should be safe.
             debug_assert!(p.is_file());
             p.file_name().unwrap() == name.as_str()
         })
