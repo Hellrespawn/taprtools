@@ -50,20 +50,19 @@ impl<'a> TFMTTools<'a> {
                 input_folder,
                 output_folder,
                 recursive,
-            } => {
-                let mut rename = Rename { args: self.args };
-
-                rename.rename(
-                    script_name,
-                    &arguments
-                        .iter()
-                        .map(std::ops::Deref::deref)
-                        .collect::<Vec<&str>>(),
-                    input_folder,
-                    output_folder,
-                    *recursive,
-                )
+            } => Rename {
+                script_name,
+                arguments: &arguments
+                    .iter()
+                    .map(std::ops::Deref::deref)
+                    .collect::<Vec<&str>>(),
+                input_folder,
+                output_folder,
+                config_folder: &self.args.config_folder,
+                recursive: *recursive,
+                preview: self.args.preview,
             }
+            .rename(),
         }
     }
 
@@ -90,7 +89,7 @@ impl<'a> TFMTTools<'a> {
     }
 
     fn list_scripts(&self) -> Result<()> {
-        let paths = &helpers::get_scripts(&self.args.config_folder);
+        let paths = &helpers::get_script_paths(&self.args.config_folder);
 
         if paths.is_empty() {
             let s = "Couldn't find any scripts.";
@@ -164,7 +163,7 @@ impl<'a> TFMTTools<'a> {
 
     fn inspect(&self, name: &str, render_ast: bool) -> Result<()> {
         Inspector::inspect(
-            &helpers::get_script(name, &self.args.config_folder)?,
+            &helpers::get_script_path(name, &self.args.config_folder)?,
             if render_ast {
                 InspectorMode::Dot
             } else {

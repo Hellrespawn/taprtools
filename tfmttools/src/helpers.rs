@@ -40,7 +40,7 @@ where
 }
 
 /// Reads all scripts from `config_folder`.
-pub fn get_scripts<P: AsRef<Path>>(config_folder: &P) -> Vec<PathBuf> {
+pub fn get_script_paths<P: AsRef<Path>>(config_folder: &P) -> Vec<PathBuf> {
     let mut scripts = Vec::new();
 
     let config_folder = config_folder.as_ref();
@@ -60,10 +60,11 @@ pub fn get_scripts<P: AsRef<Path>>(config_folder: &P) -> Vec<PathBuf> {
 }
 
 /// Try to find script `name` in `config_folder`.
-pub fn get_script<P: AsRef<Path>>(
+pub fn get_script_path<P: AsRef<Path>>(
     name: &str,
     config_folder: &P,
 ) -> Result<PathBuf> {
+    // Format name to include extension, if necessary.
     let name = if !name.ends_with(".tfmt") {
         format!("{}.tfmt", name)
     } else {
@@ -72,19 +73,20 @@ pub fn get_script<P: AsRef<Path>>(
 
     let name_as_path = PathBuf::from(&name);
 
-    if name_as_path.is_file() {
-        return Ok(name_as_path);
-    }
+    let script = if name_as_path.is_file() {
+        name_as_path
+    } else {
+        get_script_paths(config_folder)
+            .into_iter()
+            .find(|p| {
+                // Selected through p.is_file(), unwrap should be safe.
+                debug_assert!(p.is_file());
+                p.file_name().unwrap() == name.as_str()
+            })
+            .ok_or_else(|| anyhow!("Unable to find script {}", name))?
+    };
 
-    let scripts = get_scripts(config_folder);
-    scripts
-        .into_iter()
-        .find(|p| {
-            // These were selected through p.is_file(), unwrap should be safe.
-            debug_assert!(p.is_file());
-            p.file_name().unwrap() == name.as_str()
-        })
-        .ok_or_else(|| anyhow!("Unable to find script {}", name))
+    Ok(script)
 }
 
 /// Normalizes newlines in `string`.

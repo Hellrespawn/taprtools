@@ -58,15 +58,18 @@ pub fn get_audio_files<P: AsRef<Path>>(
     let mut audio_files: Vec<Box<dyn AudioFile>> = Vec::new();
 
     if let Ok(read_dir) = std::fs::read_dir(dir.as_ref()) {
+        // Result is an iterator, returning 1 item (Ok) or no items (Err).
+        // ReadDir iterates over results, thus flatten collects all Ok,
+        // discarding all err.
         for entry in read_dir.flatten() {
             let path = entry.path();
             if let Ok(file_type) = entry.file_type() {
                 if file_type.is_file() {
-                    if let Some(extension) = path.extension() {
-                        if let Some(spinner) = spinner {
-                            spinner.inc_length(1)
-                        };
+                    if let Some(spinner) = spinner {
+                        spinner.inc_length(1)
+                    };
 
+                    if let Some(extension) = path.extension() {
                         if extension == "mp3" {
                             audio_files.push(Box::new(MP3::try_from(&path)?));
                         } else if extension == "ogg" {

@@ -1,4 +1,3 @@
-use super::argparse::Args;
 use super::validate::validate;
 use crate::file::audio_file::{self, AudioFile};
 use crate::helpers::{self, pp};
@@ -19,25 +18,20 @@ use std::path::{Path, PathBuf};
 pub type SrcTgtPair = (PathBuf, PathBuf);
 
 pub struct Rename<'a> {
-    pub args: &'a Args,
+    pub script_name: &'a str,
+    pub arguments: &'a [&'a str],
+    pub input_folder: &'a Path,
+    pub output_folder: &'a Path,
+    pub config_folder: &'a Path,
+    pub recursive: bool,
+    pub preview: bool,
 }
 
 impl<'a> Rename<'a> {
-    pub fn rename<P, Q>(
-        &mut self,
-        script_name: &str,
-        arguments: &[&str],
-        input_folder: &P,
-        output_folder: &Q,
-        recursive: bool,
-    ) -> Result<()>
-    where
-        P: AsRef<Path>,
-        Q: AsRef<Path>,
-    {
+    pub fn rename(&self) -> Result<()> {
         // Get files
         let input_text = helpers::normalize_newlines(&std::fs::read_to_string(
-            helpers::get_script(script_name, &self.args.config_folder)?,
+            helpers::get_script_path(self.script_name, &self.config_folder)?,
         )?);
 
         let progress_bar = ProgressBar::new(0);
@@ -46,22 +40,22 @@ impl<'a> Rename<'a> {
             ProgressStyle::default_spinner()
                 .template(&format!(
                     "{}[{{pos}}/{{len}} audio files/total files] {{spinner}}",
-                    pp(self.args.preview)
+                    pp(self.preview)
                 ))
                 .on_finish(ProgressFinish::AtCurrentPos),
         );
         progress_bar.set_draw_target(ProgressDrawTarget::stdout());
 
         let audio_files = audio_file::get_audio_files(
-            input_folder,
-            if recursive { RECURSION_DEPTH } else { 1 },
+            &self.input_folder,
+            if self.recursive { RECURSION_DEPTH } else { 1 },
             Some(&progress_bar),
         )?;
 
         if audio_files.is_empty() {
             let s = format!(
                 "Couldn't find any files at {}.",
-                input_folder.as_ref().display()
+                self.input_folder.display()
             );
             println!("{}", s);
             warn!("{}", s);
@@ -75,7 +69,7 @@ impl<'a> Rename<'a> {
             ProgressStyle::default_bar()
                 .template(&format!(
                     "{}[{{pos}}/{{len}}] {{msg:<21}} {{wide_bar}}",
-                    pp(self.args.preview)
+                    pp(self.preview)
                 ))
                 .on_finish(ProgressFinish::WithMessage(
                     std::borrow::Cow::Borrowed("Interpreted."),
@@ -84,20 +78,16 @@ impl<'a> Rename<'a> {
         progress_bar.set_draw_target(ProgressDrawTarget::stdout());
         progress_bar.set_message("Interpreting files...");
 
-        let mut intp = Interpreter::new(&input_text, arguments)?;
+        let mut intp = Interpreter::new(&input_text, self.arguments)?;
 
-        let paths = self.interpret_destinations(
-            &audio_files,
-            output_folder,
-            &mut intp,
-            progress_bar,
-        )?;
+        let paths =
+            self.interpret_destinations(&audio_files, &mut intp, progress_bar)?;
 
         // TODO? Validate that *all* paths are absolute?
         if paths.iter().any(|p| p.1.is_absolute()) {
             let s = format!(
                 "Absolute path found, ignoring --output-folder {}",
-                output_folder.as_ref().display()
+                self.output_folder.display()
             );
             println!("{}", s);
             warn!("{}", s);
@@ -122,7 +112,7 @@ impl<'a> Rename<'a> {
             ProgressStyle::default_bar()
                 .template(&format!(
                     "{}[{{pos}}/{{len}}] {{msg:<21}} {{wide_bar}}",
-                    pp(self.args.preview)
+                    pp(self.preview)
                 ))
                 .on_finish(ProgressFinish::WithMessage(
                     std::borrow::Cow::Borrowed("Renamed."),
@@ -135,7 +125,7 @@ impl<'a> Rename<'a> {
 
         self.rename_audio_files(&to_move, &mut action_group, &progress_bar)?;
 
-        print!("{}Removing empty directories... ", pp(self.args.preview));
+        print!("{}Removing empty directories... ", pp(self.preview));
 
         self.remove_dir_recursive(
             &Rename::get_common_path(&paths),
@@ -146,28 +136,25 @@ impl<'a> Rename<'a> {
         println!("Done.");
 
         let mut history = History::load_file(
-            &self.args.config_folder.join(HISTORY_FILENAME),
+            &self.config_folder.join(HISTORY_FILENAME),
             false,
         )
         .unwrap_or_else(|_| History::new(false));
 
-        if !self.args.preview {
+        if !self.preview {
             history.insert(action_group)?;
 
             history.save().or_else(|_| {
-                history.save_to_file(
-                    &self.args.config_folder.join(HISTORY_FILENAME),
-                )
+                history.save_to_file(&self.config_folder.join(HISTORY_FILENAME))
             })?;
         }
 
         Ok(())
     }
 
-    fn interpret_destinations<P: AsRef<Path>>(
+    fn interpret_destinations(
         &self,
         audio_files: &'a [Box<dyn AudioFile>],
-        output_folder: &P,
         intp: &'a mut Interpreter,
         progress_bar: ProgressBar,
     ) -> Result<Vec<SrcTgtPair>> {
@@ -181,10 +168,9 @@ impl<'a> Rename<'a> {
             .iter()
             .progress_with(progress_bar)
             .map(|af| match intp.interpret(af.as_ref()) {
-                Ok(s) => Ok((
-                    PathBuf::from(af.path()),
-                    output_folder.as_ref().join(s),
-                )),
+                Ok(s) => {
+                    Ok((PathBuf::from(af.path()), self.output_folder.join(s)))
+                }
                 Err(e) => Err(e),
             })
             .collect::<IResult>()?;
@@ -238,7 +224,7 @@ impl<'a> Rename<'a> {
                 path: PathBuf::from(path),
             };
 
-            if !self.args.preview {
+            if !self.preview {
                 action.apply()?;
                 action_group.push(action);
             }
@@ -265,7 +251,7 @@ impl<'a> Rename<'a> {
 
                 let action = Action::RemoveDir { path };
 
-                if !self.args.preview {
+                if !self.preview {
                     if let Ok(()) = action.apply() {
                         action_group.push(action);
                     }
@@ -317,7 +303,7 @@ impl<'a> Rename<'a> {
             action_group
                 .extend(self.create_dir_recursive(&target.parent().unwrap())?);
 
-            if !self.args.preview {
+            if !self.preview {
                 action_group.push({
                     let action = Action::new_move(source, target, move_mode);
 
