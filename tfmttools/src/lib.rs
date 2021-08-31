@@ -22,6 +22,8 @@ pub const RECURSION_DEPTH: u64 = 4;
 pub mod cli;
 /// File handling modules.
 pub mod file;
+/// GUI
+pub mod gui;
 /// Helpers
 pub mod helpers;
 /// TagFormat-related modules.
