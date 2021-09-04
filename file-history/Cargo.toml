@@ -14,3 +14,7 @@ clap = "2"
 log = "0.4"
 serde = {version = "1.0", features = ["derive"]}
 thiserror = "1.0"
+
+[dev-dependencies]
+anyhow = "1.0"
+tempfile = "3"

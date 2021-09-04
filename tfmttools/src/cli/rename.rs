@@ -5,12 +5,12 @@ use crate::tfmt::error::InterpreterError;
 use crate::tfmt::visitors::Interpreter;
 use crate::{HISTORY_FILENAME, PREVIEW_AMOUNT, RECURSION_DEPTH};
 use anyhow::{bail, Result};
-use file_history::{Action, ActionGroup, History, MoveMode};
+use file_history::{Action, ActionGroup, History};
 use indicatif::{
     ProgressBar, ProgressDrawTarget, ProgressFinish, ProgressIterator,
     ProgressStyle,
 };
-use log::{debug, info, warn};
+use log::{debug, warn};
 use std::convert::TryInto;
 use std::path::{Path, PathBuf};
 
@@ -220,9 +220,7 @@ impl<'a> Rename<'a> {
                 action_group.extend(self.create_dir_recursive(&parent)?)
             }
 
-            let action = Action::CreateDir {
-                path: PathBuf::from(path),
-            };
+            let action = Action::CreateDir(PathBuf::from(path));
 
             if !self.preview {
                 action.apply()?;
@@ -249,7 +247,7 @@ impl<'a> Rename<'a> {
             if path.is_dir() {
                 self.remove_dir_recursive(&path, depth - 1, action_group)?;
 
-                let action = Action::RemoveDir { path };
+                let action = Action::RemoveDir(path);
 
                 if !self.preview {
                     if let Ok(()) = action.apply() {
@@ -293,8 +291,6 @@ impl<'a> Rename<'a> {
         progress_bar: &ProgressBar,
     ) -> Result<()> {
         // TODO Revert any actions taken if there was an error?
-        let mut move_mode = MoveMode::Rename;
-
         for (source, target) in paths {
             // These paths are all files, so should always have at
             // least one parent, making unwrap() safe.
@@ -305,35 +301,9 @@ impl<'a> Rename<'a> {
 
             if !self.preview {
                 action_group.push({
-                    let action = Action::new_move(source, target, move_mode);
-
-                    if let Err(err) = action.apply() {
-                        // Can't rename across filesystem boundaries. Checks for
-                        // the appropriate error and changes the mode henceforth.
-                        // Error codes are correct on Windows 10 20H2 and Arch
-                        // Linux.
-
-                        #[cfg(windows)]
-                        let condition = err.to_string().contains("os error 17");
-
-                        #[cfg(unix)]
-                        let condition = err.to_string().contains("os error 18");
-
-                        if condition {
-                            info!("Changing mode to copy/remove");
-                            move_mode = MoveMode::CopyRemove;
-
-                            let action =
-                                Action::new_move(source, target, move_mode);
-
-                            action.apply()?;
-                            action
-                        } else {
-                            bail!(err)
-                        }
-                    } else {
-                        action
-                    }
+                    let action = Action::move_file(source, target);
+                    action.apply()?;
+                    action
                 });
             }
 

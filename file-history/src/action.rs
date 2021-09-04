@@ -4,27 +4,12 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display};
 use std::path::{Path, PathBuf};
 
-/// Rename can't cross filesystems/mountpoints.
-#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
-pub enum MoveMode {
-    CopyRemove,
-    Rename,
-}
-
 /// Represents a single, undoable [Action].
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Action {
-    Move {
-        source: PathBuf,
-        target: PathBuf,
-        move_mode: MoveMode,
-    },
-    CreateDir {
-        path: PathBuf,
-    },
-    RemoveDir {
-        path: PathBuf,
-    },
+    Move { source: PathBuf, target: PathBuf },
+    CreateDir(PathBuf),
+    RemoveDir(PathBuf),
 }
 
 impl Display for Action {
@@ -38,31 +23,18 @@ impl Display for Action {
 
         write!(f, "{}", split.unwrap().0.trim())?;
         match self {
-            Self::CreateDir { path } | Self::RemoveDir { path } => {
+            Self::CreateDir(path) | Self::RemoveDir(path) => {
                 write!(f, ": {}", path.display())
             }
-            Self::Move {
-                source,
-                target,
-                move_mode,
-            } => {
-                write!(
-                    f,
-                    " ({}): {}\nto: {}",
-                    match move_mode {
-                        MoveMode::CopyRemove => "cp",
-                        MoveMode::Rename => "rn",
-                    },
-                    source.display(),
-                    target.display()
-                )
+            Self::Move { source, target } => {
+                write!(f, ": {}\nto: {}", source.display(), target.display())
             }
         }
     }
 }
 
 impl Action {
-    pub fn new_move<P, Q>(source: P, target: Q, move_mode: MoveMode) -> Self
+    pub fn move_file<P, Q>(source: P, target: Q) -> Self
     where
         P: AsRef<Path>,
         Q: AsRef<Path>,
@@ -70,23 +42,31 @@ impl Action {
         Action::Move {
             source: PathBuf::from(source.as_ref()),
             target: PathBuf::from(target.as_ref()),
-            move_mode,
         }
     }
 
-    fn move_file<P, Q>(source: P, target: Q, move_mode: MoveMode) -> Result<()>
+    fn copy_or_move_file<P, Q>(source: P, target: Q) -> Result<()>
     where
         P: AsRef<Path>,
         Q: AsRef<Path>,
     {
-        match move_mode {
-            MoveMode::CopyRemove => {
+        if let Err(err) = std::fs::rename(&source, &target) {
+            // Can't rename across filesystem boundaries. Checks for
+            // the appropriate error and changes the mode henceforth.
+            // Error codes are correct on Windows 10 20H2 and Arch
+            // Linux.
+
+            #[cfg(windows)]
+            let expected_error = err.to_string().contains("os error 17");
+
+            #[cfg(unix)]
+            let expected_error = err.to_string().contains("os error 18");
+
+            if !expected_error {
+                return Err(err.into());
+            } else {
                 std::fs::copy(&source, &target)?;
                 std::fs::remove_file(&source)?;
-            }
-
-            MoveMode::Rename => {
-                std::fs::rename(&source, &target)?;
             }
         }
 
@@ -96,12 +76,8 @@ impl Action {
     /// Applies or "does" the action.
     pub fn apply(&self) -> Result<()> {
         match self {
-            Action::Move {
-                source,
-                target,
-                move_mode,
-            } => {
-                Action::move_file(source, target, *move_mode)?;
+            Action::Move { source, target } => {
+                Action::copy_or_move_file(source, target)?;
 
                 trace!(
                     "Renamed:\n\"{}\"\n\"{}\"",
@@ -111,12 +87,12 @@ impl Action {
             }
 
             // TODO? Fail silently if dir already exists?
-            Action::CreateDir { path } => {
+            Action::CreateDir(path) => {
                 std::fs::create_dir(path)?;
                 trace!("Created directory {}", path.display());
             }
 
-            Action::RemoveDir { path } => {
+            Action::RemoveDir(path) => {
                 std::fs::remove_dir(path)?;
                 trace!("Removed directory {}", path.display());
             }
@@ -127,12 +103,8 @@ impl Action {
     /// Undoes the action.
     pub fn undo(&self) -> Result<()> {
         match self {
-            Action::Move {
-                source,
-                target,
-                move_mode,
-            } => {
-                Action::move_file(target, source, *move_mode)?;
+            Action::Move { source, target } => {
+                Action::copy_or_move_file(target, source)?;
 
                 trace!(
                     "Undid:\n\"{}\"\n\"{}\"",
@@ -141,7 +113,7 @@ impl Action {
                 );
             }
 
-            Action::CreateDir { path } => {
+            Action::CreateDir(path) => {
                 trace!("Undoing directory {}", path.display());
 
                 std::fs::remove_dir(path)?;
@@ -150,13 +122,18 @@ impl Action {
             }
 
             // TODO? Fail silently if dir already exists?
-            Action::RemoveDir { path } => {
+            Action::RemoveDir(path) => {
                 std::fs::create_dir(path)?;
 
                 trace!("Recreated directory {}", path.display());
             }
         }
         Ok(())
+    }
+
+    /// Alias for `self.apply`.
+    pub fn r#do(&self) -> Result<()> {
+        self.apply()
     }
 
     /// Redoes the action. Currently only delegates to `self.apply`.

@@ -458,10 +458,12 @@ dependencies = [
 name = "file-history"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "bincode",
  "clap",
  "log",
  "serde",
+ "tempfile",
  "thiserror",
 ]
 
