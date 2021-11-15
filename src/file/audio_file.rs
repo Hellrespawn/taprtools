@@ -20,8 +20,6 @@ pub trait AudioFile: std::fmt::Debug + Send + Sync {
 
     fn comments(&self) -> Option<&str>;
 
-    fn disc_number(&self) -> Option<&str>;
-
     fn duration(&self) -> Option<&str>;
 
     fn genre(&self) -> Option<&str>;
@@ -32,16 +30,70 @@ pub trait AudioFile: std::fmt::Debug + Send + Sync {
 
     fn title(&self) -> Option<&str>;
 
-    fn total_disc_number(&self) -> Option<&str>;
+    fn raw_disc_number(&self) -> Option<&str>;
 
-    fn total_track_number(&self) -> Option<&str>;
-
-    fn track_number(&self) -> Option<&str>;
+    fn raw_track_number(&self) -> Option<&str>;
 
     fn year(&self) -> Option<&str>;
 
     fn date(&self) -> Option<&str> {
         self.year()
+    }
+
+    fn total_number<'a>(&self, string: &'a str) -> Option<&'a str> {
+        if let Some((_, total)) = string.split_once("/") {
+            Some(total)
+        } else {
+            None
+        }
+    }
+
+    fn current_number<'a>(&self, string: &'a str) -> Option<&'a str> {
+        if let Some((current, _)) = string.split_once("/") {
+            Some(current)
+        } else {
+            Some(string)
+        }
+    }
+
+    fn total_track_number(&self) -> Option<&str> {
+        let opt = self.raw_track_number();
+
+        if let Some(string) = opt {
+            self.total_number(string)
+        } else {
+            None
+        }
+    }
+
+    fn track_number(&self) -> Option<&str> {
+        let opt = self.raw_track_number();
+
+        if let Some(string) = opt {
+            self.current_number(string)
+        } else {
+            None
+        }
+    }
+
+    fn total_disc_number(&self) -> Option<&str> {
+        let opt = self.raw_disc_number();
+
+        if let Some(string) = opt {
+            self.total_number(string)
+        } else {
+            None
+        }
+    }
+
+    fn disc_number(&self) -> Option<&str> {
+        let opt = self.raw_disc_number();
+
+        if let Some(string) = opt {
+            self.current_number(string)
+        } else {
+            None
+        }
     }
 }
 
@@ -142,7 +194,7 @@ mod tests {
                     assert_eq!(file.lyrics(), None);
                     assert_eq!(file.synchronised_lyrics(), None);
                     assert_eq!(file.total_disc_number(), None);
-                    assert_eq!(file.total_track_number(), None);
+                    assert_eq!(file.total_track_number(), Some("10"));
                     assert_eq!(file.synchronised_lyrics(), None);
                     assert_eq!(file.track_number(), Some("5"));
                     assert_eq!(file.year(), Some("2016"));

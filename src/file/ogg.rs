@@ -77,10 +77,6 @@ impl AudioFile for OGG {
         None
     }
 
-    fn disc_number(&self) -> Option<&str> {
-        self.get("discnumber")
-    }
-
     fn duration(&self) -> Option<&str> {
         self.get("duration")
     }
@@ -93,24 +89,20 @@ impl AudioFile for OGG {
         None
     }
 
+    fn raw_disc_number(&self) -> Option<&str> {
+        self.get("discnumber")
+    }
+
+    fn raw_track_number(&self) -> Option<&str> {
+        self.get("tracknumber")
+    }
+
     fn synchronised_lyrics(&self) -> Option<&str> {
         None
     }
 
     fn title(&self) -> Option<&str> {
         self.get("title")
-    }
-
-    fn total_disc_number(&self) -> Option<&str> {
-        None
-    }
-
-    fn total_track_number(&self) -> Option<&str> {
-        None
-    }
-
-    fn track_number(&self) -> Option<&str> {
-        self.get("tracknumber")
     }
 
     fn year(&self) -> Option<&str> {

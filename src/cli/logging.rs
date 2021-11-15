@@ -38,7 +38,7 @@ pub fn setup_logger(verbosity: usize, filename: &str) -> Result<()> {
                 chrono::Local::now().format("%H:%M:%S.%6f"),
                 // rsplitn returns the remainder as final element, so the
                 // first next().unwrap() is safe.
-                record.target().rsplitn(2, "::").next().unwrap(),
+                record.target().rsplit_once("::").unwrap().1,
                 record.line().unwrap_or(0),
                 message
             ))
