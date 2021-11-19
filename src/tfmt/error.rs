@@ -38,7 +38,8 @@ impl fmt::Display for ErrorContext {
         write!(
             f,
             "{}\n{}^\nError at line {}, col {}:\n",
-            self.script.lines().collect::<String>()[..self.line_no].to_string(),
+            &self.script.lines().collect::<String>()[..self.line_no]
+                .to_string(),
             " ".repeat(self.col_no),
             self.line_no,
             self.col_no
