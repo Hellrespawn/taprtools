@@ -68,10 +68,6 @@ impl AudioFile for MP3 {
         None
     }
 
-    fn disc_number(&self) -> Option<&str> {
-        self.get_raw("TPOS")
-    }
-
     fn duration(&self) -> Option<&str> {
         self.get_raw("TLEN")
     }
@@ -84,24 +80,20 @@ impl AudioFile for MP3 {
         None
     }
 
+    fn raw_disc_number(&self) -> Option<&str> {
+        self.get_raw("TPOS")
+    }
+
+    fn raw_track_number(&self) -> Option<&str> {
+        self.get_raw("TRCK")
+    }
+
     fn synchronised_lyrics(&self) -> Option<&str> {
         None
     }
 
     fn title(&self) -> Option<&str> {
         self.tags.title()
-    }
-
-    fn total_disc_number(&self) -> Option<&str> {
-        None
-    }
-
-    fn total_track_number(&self) -> Option<&str> {
-        None
-    }
-
-    fn track_number(&self) -> Option<&str> {
-        self.get_raw("TRCK")
     }
 
     fn year(&self) -> Option<&str> {
