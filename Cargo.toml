@@ -3,7 +3,7 @@ name = "tfmttools"
 version = "0.3.0"
 authors = ["Stef Korporaal <stefkorporaal@gmail.com>"]
 description = "Renames audio files according to their tags."
-edition = "2018"
+edition = "2021"
 license = "BSD-3-Clause"
 default-run = "tfmt"
 
