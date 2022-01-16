@@ -52,12 +52,11 @@ where
         self.buffer.push_front(value)
     }
 
+    /// Peeks at the front of the iterator.
     pub fn peek(&mut self) -> Option<&I::Item> {
         if self.buffer.is_empty() {
             if let Some(t) = self.iter.next() {
                 self.buffer.push_back(t)
-            } else {
-                return None;
             }
         }
 
