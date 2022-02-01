@@ -1,7 +1,7 @@
 use super::error::{ErrorContext, LexerError};
 use super::token::{Token, TokenType, FORBIDDEN_GRAPHEMES};
 use crate::helpers::normalize_newlines;
-use buffered_iterator::{Buffered, BufferedIterator};
+use buffered_iterator::{buffered, BufferedIterator};
 use log::{debug, trace};
 use unicode_segmentation::{Graphemes, UnicodeSegmentation};
 
@@ -74,7 +74,7 @@ impl<'a> Lexer<'a> {
 
         let lexer = Self {
             input_text,
-            buffer: input_text.graphemes(true).buffered(),
+            buffer: buffered(input_text.graphemes(true)),
             line_no: 1,
             col_no: 1,
         };
