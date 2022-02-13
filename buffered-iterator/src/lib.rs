@@ -1,6 +1,11 @@
+#![warn(missing_docs)]
+#![warn(clippy::pedantic)]
+#![allow(clippy::must_use_candidate)]
+//! Iterator with buffered lookahead.
 use std::collections::VecDeque;
 use std::iter::Fuse;
 
+/// Turns any `IntoIterator` into a `BufferedIterator`
 pub fn buffered<I>(iterable: I) -> BufferedIterator<I::IntoIter>
 where
     I: IntoIterator,
@@ -11,6 +16,7 @@ where
     }
 }
 
+/// Iterator that buffers lookahead.
 #[derive(Clone, Debug)]
 pub struct BufferedIterator<I: Iterator> {
     iter: Fuse<I>,
@@ -40,25 +46,22 @@ impl<I> BufferedIterator<I>
 where
     I: Iterator,
 {
-    pub fn unget(&mut self, value: I::Item) {
-        self.buffer.push_front(value)
-    }
-
     /// Peeks at the front of the iterator.
     pub fn peek(&mut self) -> Option<&I::Item> {
         if self.buffer.is_empty() {
             if let Some(t) = self.iter.next() {
-                self.buffer.push_back(t)
+                self.buffer.push_back(t);
             }
         }
 
         self.buffer.front()
     }
 
+    /// Peeks at the front `n` elements of the iterator.
     pub fn peekn(&mut self, n: usize) -> &[I::Item] {
         while self.buffer.len() < n {
             if let Some(t) = self.iter.next() {
-                self.buffer.push_back(t)
+                self.buffer.push_back(t);
             } else {
                 break;
             }
@@ -71,9 +74,13 @@ where
         &output[..std::cmp::min(n, output.len())]
     }
 
+    /// Peeks at the `i`th element of the iterator.
+
     pub fn peeki(&mut self, i: usize) -> Option<&I::Item> {
         self.peekn(i + 1).get(i)
     }
+
+    /// Tries to find the first index that matches `predicate`.
 
     pub fn findi<P>(&mut self, predicate: P) -> Option<usize>
     where
@@ -130,12 +137,6 @@ mod tests {
 
         assert_eq!(buf.peek(), None);
         assert_eq!(buf.peekn(8), &[]);
-
-        let n = 5;
-        buf.unget(n);
-        assert_eq!(buf.peek(), Some(&5));
-        assert_eq!(buf.peekn(8), &[5]);
-        assert_eq!(buf.next(), Some(5));
     }
 
     #[test]
@@ -159,7 +160,7 @@ mod tests {
         let numbers = [0, 1, 2, 3, 4];
         let mut buf = buffered(numbers);
 
-        let i = buf.findi(|s| *s == 3);
+        let i = buf.findi(|s| s == &3);
 
         assert_eq!(i, Some(3));
 
