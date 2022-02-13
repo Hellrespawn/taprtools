@@ -1,4 +1,4 @@
-use crate::{Action, HistoryError, Result};
+use crate::{Action, Result};
 use log::info;
 use std::convert::TryFrom;
 use std::io::Write;
@@ -13,9 +13,8 @@ pub type ActionGroup = Vec<Action>;
 pub struct History {
     pub done_stack: Stack,
     pub undone_stack: Stack,
-    pub path: Option<PathBuf>,
+    pub path: PathBuf,
     changed: bool,
-    quiet: bool,
 }
 
 enum Mode {
@@ -25,17 +24,7 @@ enum Mode {
 
 impl History {
     /// Create new [History]
-    pub fn new(quiet: bool) -> History {
-        History {
-            done_stack: Stack::new(),
-            undone_stack: Stack::new(),
-            path: None,
-            changed: false,
-            quiet,
-        }
-    }
-
-    pub fn load_file<P: AsRef<Path>>(path: &P, quiet: bool) -> Result<History> {
+    pub fn new<P: AsRef<Path>>(path: &P) -> Result<History> {
         let path = path.as_ref();
 
         info!("Loading history from {}.", path.display());
@@ -46,40 +35,18 @@ impl History {
         Ok(History {
             done_stack: undo_stack,
             undone_stack: redo_stack,
-            path: Some(PathBuf::from(path)),
+            path: PathBuf::from(path),
             changed: false,
-            quiet,
         })
     }
 
-    /// Save [History] to `self.path`
     pub fn save(&self) -> Result<()> {
         if !self.changed {
             info!("History was unchanged.");
             return Ok(());
         }
 
-        if let Some(path) = &self.path {
-            self._save(&path)
-        } else {
-            Err(HistoryError::NoPath)
-        }
-    }
-
-    /// Save [History] to `self.path` or `config_folder`.
-    pub fn save_to_file<P: AsRef<Path>>(&self, path: &P) -> Result<()> {
-        if !self.changed {
-            info!("History was unchanged.");
-            return Ok(());
-        }
-
-        self._save(path)
-    }
-
-    fn _save<P: AsRef<Path>>(&self, path: &P) -> Result<()> {
-        let path = path.as_ref();
-
-        info!("Saving history to {}", path.display());
+        info!("Saving history to {}", self.path.display());
 
         let serialized =
             bincode::serialize(&(&self.done_stack, &self.undone_stack))?;
@@ -88,7 +55,7 @@ impl History {
             .write(true)
             .create(true)
             .truncate(true)
-            .open(&path)?;
+            .open(&self.path)?;
 
         filehandle.write_all(&serialized)?;
 
@@ -99,21 +66,10 @@ impl History {
     pub fn delete(&mut self) -> Result<()> {
         self.done_stack = Vec::new();
         self.undone_stack = Vec::new();
-        self.path = None;
         self.changed = false;
 
-        let string = if let Some(path) = &self.path {
-            std::fs::remove_file(&path)?;
-            format!("Deleted history file at {}.", path.display())
-        } else {
-            "Deleted history file.".to_string()
-        };
-
-        info!("{}", string);
-
-        if !self.quiet {
-            println!("{}", string)
-        }
+        std::fs::remove_file(&self.path)?;
+        info!("Deleted history file at {}.", self.path.display());
 
         Ok(())
     }
@@ -158,9 +114,6 @@ impl History {
         };
 
         info!("{}", string);
-        if !self.quiet {
-            println!("{}", string)
-        }
 
         for i in 0..min {
             // We test the amount of actions to do,
@@ -178,9 +131,6 @@ impl History {
             );
 
             info!("{}", string);
-            if !self.quiet {
-                print!("{}", string)
-            }
 
             match mode {
                 Mode::Undo => {
@@ -188,10 +138,6 @@ impl History {
                 }
 
                 Mode::Redo => action_group.iter().try_for_each(|a| a.redo())?,
-            }
-
-            if !self.quiet {
-                println!(" Done.")
             }
 
             to.push(action_group);

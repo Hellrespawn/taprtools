@@ -1,132 +1,136 @@
-use clap::{
-    app_from_crate, crate_authors, crate_description, crate_name,
-    crate_version, Arg,
-};
-use file_history::{Action, History, Result, Stack};
-use std::path::Path;
+// use clap::{
+//     app_from_crate, crate_authors, crate_description, crate_name,
+//     crate_version, Arg,
+// };
+// use file_history::{Action, History, Result, Stack};
+// use std::path::Path;
 
-fn main() -> Result<()> {
-    let app = app_from_crate!()
-        .arg(
-            Arg::with_name("history-file")
-                .help("Sets the input file to use")
-                .required(true)
-                .index(1),
-        )
-        .arg(
-            Arg::with_name("verbose")
-                .help("Print everything.")
-                .short("v")
-                .long("verbose"),
-        );
+// fn main() -> Result<()> {
+//     let app = app_from_crate!()
+//         .arg(
+//             Arg::with_name("history-file")
+//                 .help("Sets the input file to use")
+//                 .required(true)
+//                 .index(1),
+//         )
+//         .arg(
+//             Arg::with_name("verbose")
+//                 .help("Print everything.")
+//                 .short("v")
+//                 .long("verbose"),
+//         );
 
-    let matches = app.get_matches();
-    let histfile = matches.value_of("history-file").expect("No file provided!");
-    let verbose = matches.is_present("verbose");
+//     let matches = app.get_matches();
+//     let histfile = matches.value_of("history-file").expect("No file provided!");
+//     let verbose = matches.is_present("verbose");
 
-    let string = histviewer(&histfile, verbose)?;
+//     let string = histviewer(&histfile, verbose)?;
 
-    print!("{}", string);
+//     print!("{}", string);
 
-    Ok(())
-}
+//     Ok(())
+// }
 
-fn histviewer<P: AsRef<Path>>(path: &P, verbose: bool) -> Result<String> {
-    let history = History::load_file(&path.as_ref(), true)?;
+// fn histviewer<P: AsRef<Path>>(path: &P, verbose: bool) -> Result<String> {
+//     let history = History::new(path)?;
 
-    let mut string = String::new();
+//     let mut string = String::new();
 
-    string += &stack_to_string(history.done_stack, "Done", verbose);
-    string += "\n";
-    string += &stack_to_string(history.undone_stack, "Undone", verbose);
+//     string += &stack_to_string(history.done_stack, "Done", verbose);
+//     string += "\n";
+//     string += &stack_to_string(history.undone_stack, "Undone", verbose);
 
-    Ok(string)
-}
+//     Ok(string)
+// }
 
-fn stack_to_string(stack: Stack, name: &str, verbose: bool) -> String {
-    let mut string = String::new();
+// fn stack_to_string(stack: Stack, name: &str, verbose: bool) -> String {
+//     let mut string = String::new();
 
-    if !verbose && !stack.is_empty() {
-        string += &format!("{} actions:\n", name);
-    }
+//     if !verbose && !stack.is_empty() {
+//         string += &format!("{} actions:\n", name);
+//     }
 
-    for (i, action_group) in stack.iter().enumerate() {
-        if verbose {
-            string +=
-                &format!("{} actions: [{}/{}]:\n", name, i + 1, stack.len());
-            for (i, action) in action_group.iter().enumerate() {
-                string +=
-                    &format!("[{}/{}] {}\n", i + 1, action_group.len(), action)
-            }
-        } else {
-            string += &format!(
-                "[{}/{}] {}\n",
-                i + 1,
-                stack.len(),
-                action_group_to_string(action_group)
-            )
-        }
-    }
+//     for (i, action_group) in stack.iter().enumerate() {
+//         if verbose {
+//             string +=
+//                 &format!("{} actions: [{}/{}]:\n", name, i + 1, stack.len());
+//             for (i, action) in action_group.iter().enumerate() {
+//                 string +=
+//                     &format!("[{}/{}] {:?}\n", i + 1, action_group.len(), action)
+//             }
+//         } else {
+//             string += &format!(
+//                 "[{}/{}] {}\n",
+//                 i + 1,
+//                 stack.len(),
+//                 action_group_to_string(action_group)
+//             )
+//         }
+//     }
 
-    string
-}
+//     string
+// }
 
-fn action_group_to_string(action_group: &[Action]) -> String {
-    let (mut create, mut remove, mut rename) = (0, 0, 0);
+// fn action_group_to_string(action_group: &[Action]) -> String {
+//     let (mut create, mut remove, mut rename) = (0, 0, 0);
 
-    for action in action_group {
-        match action {
-            Action::CreateDir { .. } => create += 1,
-            Action::RemoveDir { .. } => remove += 1,
-            Action::Move { .. } => rename += 1,
-        }
-    }
+//     for action in action_group {
+//         match action {
+//             Action::CreateDir { .. } => create += 1,
+//             Action::RemoveDir { .. } => remove += 1,
+//             Action::Move { .. } => rename += 1,
+//         }
+//     }
 
-    format!(
-        "ActionGroup: [{}: {} cr, {} rn, {} rm]",
-        action_group.len(),
-        create,
-        rename,
-        remove
-    )
-}
+//     format!(
+//         "ActionGroup: [{}: {} cr, {} rn, {} rm]",
+//         action_group.len(),
+//         create,
+//         rename,
+//         remove
+//     )
+// }
 
-#[cfg(test)]
-mod test {
-    use super::*;
+// #[cfg(test)]
+// mod test {
+//     use super::*;
 
-    /// Normalizes newlines in `string`.
-    pub fn normalize_newlines<S: AsRef<str>>(string: &S) -> String {
-        string.as_ref().replace("\r\n", "\n").replace("\r", "\n")
-    }
+//     /// Normalizes newlines in `string`.
+//     pub fn normalize_newlines<S: AsRef<str>>(string: &S) -> String {
+//         string.as_ref().replace("\r\n", "\n").replace("\r", "\n")
+//     }
 
-    #[test]
-    fn histviewer_verbose_test() -> Result<()> {
-        let string = histviewer(&"testdata/test.hist", true)?;
-        let reference = std::fs::read_to_string("testdata/verbose.hist.txt")?;
+//     #[test]
+//     fn histviewer_verbose_test() -> Result<()> {
+//         let string = histviewer(&"testdata/test.hist", true)?;
+//         let reference = std::fs::read_to_string("testdata/verbose.hist.txt")?;
 
-        println!("{}", string);
+//         println!("{}", string);
 
-        assert_eq!(
-            normalize_newlines(&string).trim(),
-            normalize_newlines(&reference).trim()
-        );
+//         assert_eq!(
+//             normalize_newlines(&string).trim(),
+//             normalize_newlines(&reference).trim()
+//         );
 
-        Ok(())
-    }
+//         Ok(())
+//     }
 
-    #[test]
-    fn histviewer_normal_test() -> Result<()> {
-        let string = histviewer(&"testdata/test.hist", false)?;
-        let reference = std::fs::read_to_string("testdata/ref.hist.txt")?;
+//     #[test]
+//     fn histviewer_normal_test() -> Result<()> {
+//         let string = histviewer(&"testdata/test.hist", false)?;
+//         let reference = std::fs::read_to_string("testdata/ref.hist.txt")?;
 
-        println!("{}", string);
+//         println!("{}", string);
 
-        assert_eq!(
-            normalize_newlines(&string).trim(),
-            normalize_newlines(&reference).trim()
-        );
+//         assert_eq!(
+//             normalize_newlines(&string).trim(),
+//             normalize_newlines(&reference).trim()
+//         );
 
-        Ok(())
-    }
+//         Ok(())
+//     }
+// }
+
+fn main() {
+    println!("histviewer");
 }

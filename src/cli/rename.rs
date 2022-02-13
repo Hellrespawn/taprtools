@@ -135,18 +135,14 @@ impl<'a> Rename<'a> {
 
         println!("Done.");
 
-        let mut history = History::load_file(
-            &self.config_folder.join(HISTORY_FILENAME),
-            false,
-        )
-        .unwrap_or_else(|_| History::new(false));
+        let mut history = History::new(
+            &self.config_folder.join(HISTORY_FILENAME)
+        )?;
 
         if !self.preview {
             history.insert(action_group)?;
 
-            history.save().or_else(|_| {
-                history.save_to_file(&self.config_folder.join(HISTORY_FILENAME))
-            })?;
+            history.save()?;
         }
 
         Ok(())
@@ -301,7 +297,10 @@ impl<'a> Rename<'a> {
 
             if !self.preview {
                 action_group.push({
-                    let action = Action::move_file(source, target);
+                    let action = Action::Move {
+                        source: source.to_path_buf(),
+                        target: target.to_path_buf(),
+                    };
                     action.apply()?;
                     action
                 });

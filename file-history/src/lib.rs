@@ -1,3 +1,7 @@
+//#![warn(missing_docs)]
+#![warn(clippy::pedantic)]
+//#![warn(clippy::cargo)]
+#![allow(clippy::must_use_candidate)]
 pub mod action;
 pub mod error;
 pub mod history;
@@ -6,7 +10,7 @@ pub use action::Action;
 pub use error::HistoryError;
 pub use history::{ActionGroup, History, Stack};
 
-pub type Result<T> = std::result::Result<T, error::HistoryError>;
+pub type Result<T> = std::result::Result<T, HistoryError>;
 
 /// Titlecases `string`.
 pub fn titlecase(string: &str) -> String {
