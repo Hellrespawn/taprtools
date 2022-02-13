@@ -1,10 +1,9 @@
 use crate::Result;
 use log::trace;
-use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 /// Represents a single, undoable [Action].
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug)]
 pub enum Action {
     Move { source: PathBuf, target: PathBuf },
     CreateDir(PathBuf),

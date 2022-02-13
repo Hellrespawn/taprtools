@@ -8,7 +8,6 @@ pub mod history;
 
 pub use action::Action;
 pub use error::HistoryError;
-pub use history::{ActionGroup, History, Stack};
 
 pub type Result<T> = std::result::Result<T, HistoryError>;
 
