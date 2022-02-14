@@ -1,37 +1,45 @@
-use crate::{Action, ActionGroup, Result};
-use std::path::{Path, PathBuf};
+use crate::{Action, ActionGroup, Database, Result};
 use std::collections::VecDeque;
+use std::path::Path;
 
 /// History is responsible for saving and loading ActionGroups
 pub struct History {
+    database: Database,
     current_group: ActionGroup,
     applied_groups: VecDeque<ActionGroup>,
     undone_groups: VecDeque<ActionGroup>,
-
-    path: PathBuf,
 }
 
 impl History {
     /// Load or create history file at `path`
     pub fn init(path: &Path) -> Result<Self> {
-        let (applied_groups, undone_groups) =
-            History::read_from_database(path)?;
+        let database = Database::connect(path)?;
+        let (applied_groups, undone_groups) = database.read()?;
 
         Ok(History {
+            database,
             current_group: ActionGroup::new(),
             applied_groups,
             undone_groups,
-            path: path.to_path_buf(),
         })
     }
 
-    fn read_from_database(
-        _path: &Path,
-    ) -> Result<(VecDeque<ActionGroup>, VecDeque<ActionGroup>)> {
-        Ok((VecDeque::new(), VecDeque::new()))
+    fn write_to_database(&self) -> Result<()> {
+        self.database.write()
     }
 
-    fn write_to_database(&self) -> Result<()> {
+    fn clear_database(&self) -> Result<()> {
+        self.database.clear()
+    }
+
+    /// Clears history
+    pub fn clear(&mut self) -> Result<()> {
+        self.current_group = ActionGroup::new();
+        self.applied_groups = VecDeque::new();
+        self.undone_groups = VecDeque::new();
+
+        self.clear_database()?;
+
         Ok(())
     }
 
@@ -68,7 +76,7 @@ impl History {
                 group.undo()?;
                 self.undone_groups.push_front(group);
             } else {
-                return Ok(i)
+                return Ok(i);
             }
         }
 
@@ -83,7 +91,7 @@ impl History {
                 group.redo()?;
                 self.applied_groups.push_front(group);
             } else {
-                return Ok(i)
+                return Ok(i);
             }
         }
 

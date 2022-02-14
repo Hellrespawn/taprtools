@@ -20,7 +20,7 @@ impl ActionGroup {
     }
 
     pub(crate) fn undo(&mut self) -> Result<()> {
-        for action in self.0.iter() {
+        for action in &self.0 {
             action.undo()?;
         }
 
@@ -28,7 +28,7 @@ impl ActionGroup {
     }
 
     pub(crate) fn redo(&mut self) -> Result<()> {
-        for action in self.0.iter() {
+        for action in &self.0 {
             action.apply()?;
         }
 

@@ -75,6 +75,7 @@ impl Action {
         }
         Ok(())
     }
+
     fn copy_or_move_file<P, Q>(source: P, target: Q) -> Result<()>
     where
         P: AsRef<Path>,
