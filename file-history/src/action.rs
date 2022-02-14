@@ -2,17 +2,25 @@ use crate::Result;
 use log::trace;
 use std::path::{Path, PathBuf};
 
-/// Represents a single, undoable [Action].
+/// Action is responsible for doing and undoing filesystem operations
 #[derive(Debug)]
 pub enum Action {
-    Move { source: PathBuf, target: PathBuf },
-    CreateDir(PathBuf),
+    /// Represents the moving of a file.
+    Move {
+        /// Source path
+        source: PathBuf,
+        /// Target path
+        target: PathBuf,
+    },
+    /// Represents the creating of a directory
+    MakeDir(PathBuf),
+    /// Represents the deletion of a directory
     RemoveDir(PathBuf),
 }
 
 impl Action {
-    /// Applies or "does" the action.
-    pub fn apply(&self) -> Result<()> {
+    /// Applies the action
+    pub(crate) fn apply(&self) -> Result<()> {
         match self {
             Action::Move { source, target } => {
                 Action::copy_or_move_file(source, target)?;
@@ -25,7 +33,7 @@ impl Action {
             }
 
             // TODO? Fail silently if dir already exists?
-            Action::CreateDir(path) => {
+            Action::MakeDir(path) => {
                 std::fs::create_dir(path)?;
                 trace!("Created directory {}", path.display());
             }
@@ -49,18 +57,21 @@ impl Action {
             // Linux.
             // FIXME Use ErrorKind::CrossesDevices when it enters stable
 
-            #[cfg(windows)]
-            let expected_error = err.to_string().contains("os error 17");
+            if let Some(error_code) = err.raw_os_error() {
+                #[cfg(windows)]
+                let expected_error_code = 17;
 
-            #[cfg(unix)]
-            let expected_error = err.to_string().contains("os error 18");
+                #[cfg(unix)]
+                let expected_error_code = 18;
 
-            if !expected_error {
-                return Err(err.into());
-            } else {
-                std::fs::copy(&source, &target)?;
-                std::fs::remove_file(&source)?;
+                if expected_error_code == error_code {
+                    std::fs::copy(&source, &target)?;
+                    std::fs::remove_file(&source)?;
+                    return Ok(());
+                }
             }
+
+            return Err(err.into());
         }
 
         Ok(())
@@ -79,7 +90,7 @@ impl Action {
                 );
             }
 
-            Action::CreateDir(path) => {
+            Action::MakeDir(path) => {
                 trace!("Undoing directory {}", path.display());
 
                 std::fs::remove_dir(path)?;
@@ -96,9 +107,9 @@ impl Action {
         }
         Ok(())
     }
+}
 
-    /// Redoes the action. Currently only delegates to `self.apply`.
-    pub fn redo(&self) -> Result<()> {
-        self.apply()
-    }
+#[cfg(test)]
+mod tests {
+    // use super::*;
 }

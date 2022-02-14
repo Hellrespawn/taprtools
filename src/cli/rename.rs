@@ -216,7 +216,7 @@ impl<'a> Rename<'a> {
                 action_group.extend(self.create_dir_recursive(&parent)?);
             }
 
-            let action = Action::CreateDir(PathBuf::from(path));
+            let action = Action::MakeDir(PathBuf::from(path));
 
             if !self.preview {
                 action.apply()?;
