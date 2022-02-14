@@ -1,10 +1,10 @@
-use crate::{Action, ActionGroup, Database, Result};
+use crate::{Action, ActionGroup, DiskHandler, Result};
 use std::collections::VecDeque;
 use std::path::Path;
 
 /// History is responsible for saving and loading ActionGroups
 pub struct History {
-    database: Database,
+    disk_handler: DiskHandler,
     current_group: ActionGroup,
     applied_groups: VecDeque<ActionGroup>,
     undone_groups: VecDeque<ActionGroup>,
@@ -13,23 +13,25 @@ pub struct History {
 impl History {
     /// Load or create history file at `path`
     pub fn init(path: &Path) -> Result<Self> {
-        let database = Database::connect(path)?;
-        let (applied_groups, undone_groups) = database.read()?;
+        let disk_handler = DiskHandler::init(path);
+        let (applied_groups, undone_groups) = disk_handler.read()?;
 
         Ok(History {
-            database,
+            disk_handler,
             current_group: ActionGroup::new(),
             applied_groups,
             undone_groups,
         })
     }
 
-    fn write_to_database(&self) -> Result<()> {
-        self.database.write()
+    fn save_to_disk(&self) -> Result<()> {
+        self.disk_handler
+            .write(&self.applied_groups, &self.undone_groups)
     }
 
-    fn clear_database(&self) -> Result<()> {
-        self.database.clear()
+    fn clear_on_disk(&self) -> Result<()> {
+        self.disk_handler.clear()?;
+        Ok(())
     }
 
     /// Clears history
@@ -38,7 +40,7 @@ impl History {
         self.applied_groups = VecDeque::new();
         self.undone_groups = VecDeque::new();
 
-        self.clear_database()?;
+        self.clear_on_disk()?;
 
         Ok(())
     }
@@ -53,7 +55,7 @@ impl History {
         let saved_group = std::mem::take(&mut self.current_group);
 
         self.applied_groups.push_front(saved_group);
-        self.write_to_database()?;
+        self.save_to_disk()?;
 
         Ok(())
     }
@@ -80,7 +82,7 @@ impl History {
             }
         }
 
-        self.write_to_database()?;
+        self.save_to_disk()?;
         Ok(amount)
     }
 
@@ -95,7 +97,7 @@ impl History {
             }
         }
 
-        self.write_to_database()?;
+        self.save_to_disk()?;
         Ok(amount)
     }
 }

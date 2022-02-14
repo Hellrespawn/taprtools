@@ -12,20 +12,14 @@ pub mod error;
 pub mod history;
 
 pub(crate) mod actiongroup;
-pub(crate) mod database;
+pub(crate) mod disk;
 pub(crate) use actiongroup::ActionGroup;
-pub(crate) use database::Database;
+pub(crate) use disk::DiskHandler;
 
 pub use action::Action;
 pub use history::History;
 
 pub use error::HistoryError;
-
-/// FIXME Test function
-pub fn test_db() -> Result<()> {
-    database::Database::connect("d:\\test.sqlite")?;
-    Ok(())
-}
 
 /// Wrapper for Result
 pub type Result<T> = std::result::Result<T, HistoryError>;

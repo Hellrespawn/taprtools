@@ -7,9 +7,13 @@ pub enum HistoryError {
     #[error("I/O error: {0}")]
     IO(#[from] std::io::Error),
 
-    /// Represents rusqlite::Error
-    #[error("Database error: {0}")]
-    Database(#[from] rusqlite::Error),
+    /// Represents serde_json::Error
+    // #[error("JSON error: {0}")]
+    // JSON(#[from] serde_json::Error),
+
+    /// Represents bincode::Error
+    #[error("Bincode error: {0}")]
+    Bincode(#[from] bincode::Error),
 
     /// Represents a generic error
     #[error("{0}")]

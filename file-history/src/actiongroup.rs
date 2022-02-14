@@ -1,7 +1,8 @@
 use crate::{Action, Result};
+use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 
-#[derive(Default)]
+#[derive(Default, Serialize, Deserialize, Debug, PartialEq)]
 pub(crate) struct ActionGroup(VecDeque<Action>);
 
 impl ActionGroup {
@@ -33,5 +34,10 @@ impl ActionGroup {
         }
 
         Ok(())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn insert(&mut self, action: Action) {
+        self.0.push_front(action);
     }
 }

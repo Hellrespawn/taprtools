@@ -1,8 +1,10 @@
 use crate::Result;
 use log::trace;
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 /// Action is responsible for doing and undoing filesystem operations
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub enum Action {
     /// Represents the moving of a file.
     Move {
@@ -59,8 +61,6 @@ impl Action {
             }
 
             Action::MakeDir(path) => {
-                trace!("Undoing directory {}", path.display());
-
                 std::fs::remove_dir(path)?;
 
                 trace!("Undid directory {}", path.display());
