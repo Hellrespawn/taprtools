@@ -9,7 +9,7 @@ impl ActionGroup {
         ActionGroup(VecDeque::new())
     }
 
-    pub(crate) fn is_empty(&self) -> bool {
+    pub(crate) fn changed(&self) -> bool {
         self.0.is_empty()
     }
 

@@ -21,12 +21,3 @@ pub use error::HistoryError;
 
 /// Wrapper for Result
 pub type Result<T> = std::result::Result<T, HistoryError>;
-
-/// Titlecases `string`.
-pub fn titlecase(string: &str) -> String {
-    let mut chars = string.chars();
-    match chars.next() {
-        None => String::new(),
-        Some(f) => f.to_uppercase().collect::<String>() + chars.as_str(),
-    }
-}

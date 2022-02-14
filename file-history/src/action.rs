@@ -3,7 +3,6 @@ use log::trace;
 use std::path::{Path, PathBuf};
 
 /// Action is responsible for doing and undoing filesystem operations
-#[derive(Debug)]
 pub enum Action {
     /// Represents the moving of a file.
     Move {
@@ -45,37 +44,6 @@ impl Action {
         }
         Ok(())
     }
-    fn copy_or_move_file<P, Q>(source: P, target: Q) -> Result<()>
-    where
-        P: AsRef<Path>,
-        Q: AsRef<Path>,
-    {
-        if let Err(err) = std::fs::rename(&source, &target) {
-            // Can't rename across filesystem boundaries. Checks for
-            // the appropriate error and changes the mode henceforth.
-            // Error codes are correct on Windows 10 20H2 and Arch
-            // Linux.
-            // FIXME Use ErrorKind::CrossesDevices when it enters stable
-
-            if let Some(error_code) = err.raw_os_error() {
-                #[cfg(windows)]
-                let expected_error_code = 17;
-
-                #[cfg(unix)]
-                let expected_error_code = 18;
-
-                if expected_error_code == error_code {
-                    std::fs::copy(&source, &target)?;
-                    std::fs::remove_file(&source)?;
-                    return Ok(());
-                }
-            }
-
-            return Err(err.into());
-        }
-
-        Ok(())
-    }
 
     /// Undoes the action.
     pub fn undo(&self) -> Result<()> {
@@ -105,6 +73,39 @@ impl Action {
                 trace!("Recreated directory {}", path.display());
             }
         }
+        Ok(())
+    }
+    fn copy_or_move_file<P, Q>(source: P, target: Q) -> Result<()>
+    where
+        P: AsRef<Path>,
+        Q: AsRef<Path>,
+    {
+        if let Err(err) = std::fs::rename(&source, &target) {
+            // Can't rename across filesystem boundaries. Checks for
+            // the appropriate error and copies/deletes instead.
+            // Error codes are correct on Windows 10 20H2 and Arch
+            // Linux.
+            // FIXME Use ErrorKind::CrossesDevices when it enters stable
+
+            if let Some(error_code) = err.raw_os_error() {
+                #[cfg(windows)]
+                let expected_error_code = 17;
+
+                #[cfg(unix)]
+                let expected_error_code = 18;
+
+                return if expected_error_code == error_code {
+                    std::fs::copy(&source, &target)?;
+                    std::fs::remove_file(&source)?;
+                    Ok(())
+                } else {
+                    Err(err.into())
+                };
+            }
+
+            return Err(err.into());
+        }
+
         Ok(())
     }
 }

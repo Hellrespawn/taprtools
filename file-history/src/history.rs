@@ -37,7 +37,7 @@ impl History {
 
     /// Save history, if necessary
     pub fn save(&mut self) -> Result<()> {
-        if self.current_group.is_empty() {
+        if self.current_group.changed() {
             // Do nothing
             return Ok(());
         }
@@ -72,6 +72,7 @@ impl History {
             }
         }
 
+        self.write_to_database()?;
         Ok(amount)
     }
 
@@ -86,6 +87,7 @@ impl History {
             }
         }
 
+        self.write_to_database()?;
         Ok(amount)
     }
 }
