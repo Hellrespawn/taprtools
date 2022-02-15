@@ -18,12 +18,12 @@ pub struct SemanticAnalyzer {
 }
 
 impl SemanticAnalyzer {
-    /// Public function for SemanticAnalyzer
+    /// Public function for [`SemanticAnalyzer`]
     pub fn analyze(
         program: &node::Program,
         arguments: &[&str],
     ) -> Result<SymbolTable, SemanticError> {
-        let mut sa: Self = Default::default();
+        let mut sa: Self = SemanticAnalyzer::default();
 
         program.accept(&mut sa);
 
@@ -50,13 +50,15 @@ impl SemanticAnalyzer {
         }
 
         for (symbol, argument) in sa.symbols.iter().zip(arguments) {
-            output.insert(symbol, Some(argument.to_string()));
+            // clippy::inefficient_to_string
+            output.insert(symbol, Some((*argument).to_string()));
         }
 
         for (key, val) in &output {
             if val.is_none() {
                 return Err(SemanticError::ArgumentRequired(
-                    key.to_string(),
+                    // clippy::inefficient_to_string
+                    (*key).to_string(),
                     sa.name,
                 ));
             }

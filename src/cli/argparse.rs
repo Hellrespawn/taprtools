@@ -50,15 +50,22 @@ pub enum Subcommand {
     Undo(u64),
     /// Inspect script `name`.
     Inspect {
+        /// Name of script
         script_name: String,
+        /// Whether or not to render AST
         render_ast: bool,
     },
     /// Rename files.
     Rename {
+        /// Name of script
         script_name: String,
+        /// Arguments for script
         arguments: Vec<String>,
+        /// Input folder
         input_folder: PathBuf,
+        /// Output folder
         output_folder: PathBuf,
+        /// Recursively descend into input_folder
         recursive: bool,
     },
 }
@@ -95,12 +102,10 @@ impl Subcommand {
                     .collect(),
                 input_folder: submatches
                     .value_of("input-folder")
-                    .map(PathBuf::from)
-                    .unwrap_or(std::env::current_dir()?),
+                    .map_or(std::env::current_dir()?, PathBuf::from),
                 output_folder: submatches
                     .value_of("output-folder")
-                    .map(PathBuf::from)
-                    .unwrap_or(std::env::current_dir()?),
+                    .map_or(std::env::current_dir()?, PathBuf::from),
                 recursive: submatches.is_present("recursive"),
             }),
             other => bail!("Unknown subcommand name: {}", other),

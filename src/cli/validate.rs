@@ -5,14 +5,14 @@ use log::warn;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-/// Returns (to_move, no_move)
+/// Returns (`to_move`, `no_move`)
 pub fn validate<P: AsRef<Path>>(
     paths: &[(P, P)],
 ) -> Result<(Vec<SrcTgtPair>, Vec<SrcTgtPair>)> {
     validate_collisions(paths)?;
     validate_existing_files(paths)?;
 
-    validate_movement(paths)
+    Ok(partition_src_tgt_pairs(paths))
 }
 
 fn format_collisions(collisions: &HashMap<&Path, Vec<&Path>>) -> String {
@@ -52,7 +52,7 @@ fn format_collisions(collisions: &HashMap<&Path, Vec<&Path>>) -> String {
             }
             string += &format!("{}\n", path.display());
         }
-        string += "\n"
+        string += "\n";
     }
 
     string
@@ -61,22 +61,22 @@ fn format_collisions(collisions: &HashMap<&Path, Vec<&Path>>) -> String {
 fn validate_collisions<P: AsRef<Path>>(paths: &[(P, P)]) -> Result<()> {
     let mut map = HashMap::new();
 
-    paths.iter().for_each(|(src, tgt)| {
+    for (src, tgt) in paths {
         map.entry(tgt.as_ref())
             .or_insert_with(Vec::new)
-            .push(src.as_ref())
-    });
+            .push(src.as_ref());
+    }
 
     let collisions: HashMap<&Path, Vec<&Path>> =
         map.into_iter().filter(|(_, v)| v.len() > 1).collect();
 
-    if !collisions.is_empty() {
+    if collisions.is_empty() {
+        Ok(())
+    } else {
         let string = format_collisions(&collisions);
 
         warn!("{}", string);
         bail!("{}", string)
-    } else {
-        Ok(())
     }
 }
 
@@ -113,9 +113,11 @@ fn validate_existing_files<P: AsRef<Path>>(paths: &[(P, P)]) -> Result<()> {
 
     Ok(())
 }
-fn validate_movement<P: AsRef<Path>>(
+fn partition_src_tgt_pairs<P: AsRef<Path>>(
     paths: &[(P, P)],
-) -> Result<(Vec<SrcTgtPair>, Vec<SrcTgtPair>)> {
+) -> (Vec<SrcTgtPair>, Vec<SrcTgtPair>) {
+    // "no_move" and "to_move" are just similar
+    #![allow(clippy::similar_names)]
     let (no_move, to_move): (Vec<SrcTgtPair>, Vec<SrcTgtPair>) = paths
         .iter()
         .map(|(src, tgt)| {
@@ -123,7 +125,7 @@ fn validate_movement<P: AsRef<Path>>(
         })
         .partition(|(src, tgt)| src == tgt);
 
-    Ok((to_move, no_move))
+    (to_move, no_move)
 }
 
 #[cfg(test)]
@@ -163,7 +165,7 @@ mod test {
             ("/c/d/e.file", "/b/c/d.file"),
         ];
 
-        let (to_move, no_move) = validate_movement(&paths)?;
+        let (to_move, no_move) = partition_src_tgt_pairs(&paths);
 
         assert_eq!(
             to_move,

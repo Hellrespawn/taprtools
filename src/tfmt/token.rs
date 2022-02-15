@@ -12,6 +12,7 @@ pub static DIRECTORY_SEPARATORS: [&str; 2] = ["/", "\\"];
 
 /// Represents the type of token, and optionally it's value.
 #[derive(Clone, Debug, PartialEq)]
+#[allow(missing_docs)]
 pub enum TokenType {
     Ampersand,
     AngleBracketLeft,
@@ -83,25 +84,28 @@ impl FromStr for TokenType {
 }
 
 impl TokenType {
-    /// Maximum length of [TokenType] string representation.
+    /// Maximum length of [`TokenType`] string representation.
     pub const LOOKAHEAD_DEPTH: usize = 2;
 
-    /// Whether or not this TokenType is ignored by [Parser].
+    /// Whether or not this [`TokenType`] is ignored by [`Parser`].
     pub fn is_ignored(&self) -> bool {
-        matches!(self, Self::Comment(..))
+        matches!(self, &Self::Comment(..))
     }
 }
 
 /// TFMT Token
 #[derive(Clone, Debug, PartialEq)]
 pub struct Token {
+    /// Type of token
     pub token_type: TokenType,
+    /// Line number
     pub line_no: usize,
+    /// Column number
     pub col_no: usize,
 }
 
 impl Token {
-    /// Create a new [Token].
+    /// Create a new [`Token`].
     pub fn new(token_type: TokenType, line_no: usize, col_no: usize) -> Self {
         Self {
             token_type,
@@ -110,7 +114,7 @@ impl Token {
         }
     }
 
-    /// Attempt to create a new [Token], parsing a string as [TokenType].
+    /// Attempt to create a new [`Token`], parsing a string as [`TokenType`].
     pub fn from_str<S: AsRef<str>>(
         token_type: &S,
         line_no: usize,
@@ -123,7 +127,7 @@ impl Token {
         })
     }
 
-    /// Gets value from [TokenType::{Comment, ID, String}], panicking if the
+    /// Gets value from [`TokenType::{Comment, ID, String}`], panicking if the
     /// the token is a different type.
     pub fn get_string_unchecked(&self) -> &str {
         match &self.token_type {
@@ -137,7 +141,7 @@ impl Token {
         }
     }
 
-    /// Gets value from [TokenType::Integer], panicking if the
+    /// Gets value from [`TokenType::Integer`], panicking if the
     /// the token is a different type.
     pub fn get_int_unchecked(&self) -> i64 {
         match &self.token_type {

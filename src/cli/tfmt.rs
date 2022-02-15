@@ -72,10 +72,10 @@ impl<'a> TFMTTools<'a> {
             false,
         ) {
             Ok(mut history) => {
-                if !self.args.preview {
-                    history.delete()?;
+                if self.args.preview {
+                    print!("[P] Deleted history file.");
                 } else {
-                    print!("[P] Deleted history file.")
+                    history.delete()?;
                 }
             }
             Err(err) => {
@@ -104,7 +104,7 @@ impl<'a> TFMTTools<'a> {
             };
 
             for path in paths {
-                Inspector::inspect(path, mode)?
+                Inspector::inspect(path, mode)?;
             }
         }
 
@@ -121,7 +121,9 @@ impl<'a> TFMTTools<'a> {
         )
         .unwrap_or_else(|_| History::new(false));
 
-        if !self.args.preview {
+        if self.args.preview {
+            println!("[P] Redoing {} times.", amount);
+        } else {
             history.redo(amount)?;
 
             history.save().or_else(|_| {
@@ -129,8 +131,6 @@ impl<'a> TFMTTools<'a> {
                     &self.args.config_folder.join(HISTORY_FILENAME),
                 )
             })?;
-        } else {
-            println!("[P] Redoing {} times.", amount)
         }
 
         Ok(())
@@ -146,7 +146,9 @@ impl<'a> TFMTTools<'a> {
         )
         .unwrap_or_else(|_| History::new(false));
 
-        if !self.args.preview {
+        if self.args.preview {
+            println!("[P] Undoing {} times.", amount);
+        } else {
             history.undo(amount)?;
 
             history.save().or_else(|_| {
@@ -154,8 +156,6 @@ impl<'a> TFMTTools<'a> {
                     &self.args.config_folder.join(HISTORY_FILENAME),
                 )
             })?;
-        } else {
-            println!("[P] Undoing {} times.", amount)
         }
 
         Ok(())

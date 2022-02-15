@@ -25,13 +25,13 @@ where
             let entry_path = entry.path();
 
             if entry_path.is_file() && predicate(&entry_path) {
-                found_paths.push(entry_path)
+                found_paths.push(entry_path);
             } else if entry_path.is_dir() {
                 found_paths.extend(search_path(
                     &entry_path,
                     predicate,
                     depth - 1,
-                ))
+                ));
             }
         }
     }
@@ -65,10 +65,12 @@ pub fn get_script_path<P: AsRef<Path>>(
     config_folder: &P,
 ) -> Result<PathBuf> {
     // Format name to include extension, if necessary.
-    let name = if !name.ends_with(".tfmt") {
-        format!("{}.tfmt", name)
-    } else {
+    // FIXME clippy::pedantic is unable to tell the use of to_lowercase()
+    #[allow(clippy::case_sensitive_file_extension_comparisons)]
+    let name = if name.to_lowercase().ends_with(".tfmt") {
         name.to_string()
+    } else {
+        format!("{}.tfmt", name)
     };
 
     let name_as_path = PathBuf::from(&name);
@@ -91,7 +93,7 @@ pub fn get_script_path<P: AsRef<Path>>(
 
 /// Normalizes newlines in `string`.
 pub fn normalize_newlines<S: AsRef<str>>(string: &S) -> String {
-    string.as_ref().replace("\r\n", "\n").replace("\r", "\n")
+    string.as_ref().replace("\r\n", "\n").replace('\r', "\n")
 }
 
 /// Normalizes separators for the platform in `string`.

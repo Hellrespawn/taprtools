@@ -9,13 +9,15 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-/// A [Visitor] used to construct a GraphViz dot-file.
+#[allow(clippy::doc_markdown)]
+/// A [`Visitor`] used to construct a GraphViz dot-file.
 pub struct Visualizer {
     counter: u64,
 }
 
 impl Visualizer {
-    /// Construct a GraphViz dot-file from a [node::Program] and render it as a png.
+    #[allow(clippy::doc_markdown)]
+    /// Construct a GraphViz dot-file from a [`node::Program`] and render it as a png.
     pub fn visualize_ast<P: AsRef<Path>>(
         program: &node::Program,
         directory: &P,
@@ -81,7 +83,7 @@ impl Visualizer {
             if hidden {
                 "[shape=point]".to_owned()
             } else {
-                format!(r#"[label="{}"]"#, label.replace("\n", "\\n"))
+                format!(r#"[label="{}"]"#, label.replace('\n', "\\n"))
             }
         };
 
@@ -100,7 +102,6 @@ impl Visualizer {
     }
 
     fn node_connector(
-        &mut self,
         node1: u64,
         node2: u64,
         label: Option<&str>,
@@ -111,15 +112,15 @@ impl Visualizer {
         let mut args: Vec<String> = Vec::new();
 
         if let Some(label) = label {
-            args.push(format!(r#"label="{}""#, label.replace("\n", "\\n")));
+            args.push(format!(r#"label="{}""#, label.replace('\n', "\\n")));
         }
 
         if !directed {
-            args.push("dir=none".to_owned())
+            args.push("dir=none".to_owned());
         }
 
         if !args.is_empty() {
-            string.push_str(&format!(" [{}]", args.join(", ")))
+            string.push_str(&format!(" [{}]", args.join(", ")));
         }
 
         string.push('\n');
@@ -127,17 +128,12 @@ impl Visualizer {
         string
     }
 
-    fn connect_nodes(&mut self, node1: u64, node2: u64) -> String {
-        self.node_connector(node1, node2, None, true)
+    fn connect_nodes(node1: u64, node2: u64) -> String {
+        Visualizer::node_connector(node1, node2, None, true)
     }
 
-    fn connect_nodes_with_label(
-        &mut self,
-        node1: u64,
-        node2: u64,
-        label: &str,
-    ) -> String {
-        self.node_connector(node1, node2, Some(label), true)
+    fn connect_nodes_with_label(node1: u64, node2: u64, label: &str) -> String {
+        Visualizer::node_connector(node1, node2, Some(label), true)
     }
 }
 
@@ -154,27 +150,30 @@ impl Visitor<String> for Visualizer {
 
         string += &program.parameters.accept(self);
 
-        string += &self.connect_nodes(parameters_node, program_node);
+        string += &Visualizer::connect_nodes(parameters_node, program_node);
 
         string += "}\nsubgraph block  {\nrankdir=\"LR\";\n";
 
         let block_node = self.counter;
         string += &program.block.accept(self);
-        string += &self.connect_nodes(block_node, program_node);
+        string += &Visualizer::connect_nodes(block_node, program_node);
 
         string += "}\n";
 
         string
     }
 
+    // "Parameters" and "Parameter" are simply that similar
+    #[allow(clippy::similar_names)]
     fn visit_parameters(&mut self, parameters: &node::Parameters) -> String {
         let (mut string, parameters_node) = self
             .new_node(&format!("Params:\n({})", parameters.parameters.len()));
 
-        for parameter in parameters.parameters.iter() {
+        for parameter in &parameters.parameters {
             let parameter_node = self.counter;
             string += &parameter.accept(self);
-            string += &self.connect_nodes(parameter_node, parameters_node);
+            string +=
+                &Visualizer::connect_nodes(parameter_node, parameters_node);
         }
 
         string
@@ -189,7 +188,7 @@ impl Visitor<String> for Visualizer {
                 self.new_node(default.get_string_unchecked());
 
             string += &default_string;
-            string += &self.connect_nodes(default_node, parameter_node);
+            string += &Visualizer::connect_nodes(default_node, parameter_node);
         }
 
         string
@@ -198,19 +197,19 @@ impl Visitor<String> for Visualizer {
     fn visit_block(&mut self, block: &node::Block) -> String {
         let (mut string, block_node) = self.new_node("Block");
 
-        let (expressions_string, expressions_node) = self.hidden_node();
-        string += &expressions_string;
-        string += &self.node_connector(
-            expressions_node,
+        let (hidden_node_string, hidden_node) = self.hidden_node();
+        string += &hidden_node_string;
+        string += &Visualizer::node_connector(
+            hidden_node,
             block_node,
             Some("expressions"),
             false,
         );
 
-        for expression in block.expressions.iter() {
+        for expression in &block.expressions {
             let expression_node = self.counter;
             string += &expression.accept(self);
-            string += &self.connect_nodes(expression_node, expressions_node)
+            string += &Visualizer::connect_nodes(expression_node, hidden_node);
         }
 
         string
@@ -226,7 +225,7 @@ impl Visitor<String> for Visualizer {
 
         let condition_node = self.counter;
         string += &condition.accept(self);
-        string += &self.connect_nodes_with_label(
+        string += &Visualizer::connect_nodes_with_label(
             condition_node,
             ternaryop_node,
             "cond",
@@ -234,13 +233,19 @@ impl Visitor<String> for Visualizer {
 
         let true_node = self.counter;
         string += &true_expr.accept(self);
-        string +=
-            &self.connect_nodes_with_label(true_node, ternaryop_node, "cond");
+        string += &Visualizer::connect_nodes_with_label(
+            true_node,
+            ternaryop_node,
+            "cond",
+        );
 
         let false_node = self.counter;
         string += &false_expr.accept(self);
-        string +=
-            &self.connect_nodes_with_label(false_node, ternaryop_node, "cond");
+        string += &Visualizer::connect_nodes_with_label(
+            false_node,
+            ternaryop_node,
+            "cond",
+        );
 
         string
     }
@@ -256,11 +261,11 @@ impl Visitor<String> for Visualizer {
 
         let left_node = self.counter;
         string += &left.accept(self);
-        string += &self.connect_nodes(left_node, binaryop_node);
+        string += &Visualizer::connect_nodes(left_node, binaryop_node);
 
         let right_node = self.counter;
         string += &right.accept(self);
-        string += &self.connect_nodes(right_node, binaryop_node);
+        string += &Visualizer::connect_nodes(right_node, binaryop_node);
 
         string
     }
@@ -271,7 +276,7 @@ impl Visitor<String> for Visualizer {
 
         let operand_node = self.counter;
         string += &operand.accept(self);
-        string += &self.connect_nodes(operand_node, unaryop_node);
+        string += &Visualizer::connect_nodes(operand_node, unaryop_node);
 
         string
     }
@@ -282,7 +287,7 @@ impl Visitor<String> for Visualizer {
         for expression in expressions.iter() {
             let expression_node = self.counter;
             string += &expression.accept(self);
-            string += &self.connect_nodes(expression_node, group_node);
+            string += &Visualizer::connect_nodes(expression_node, group_node);
         }
 
         string
@@ -301,7 +306,7 @@ impl Visitor<String> for Visualizer {
         for (i, expression) in arguments.iter().enumerate() {
             let expression_node = self.counter;
             string += &expression.accept(self);
-            string += &self.connect_nodes_with_label(
+            string += &Visualizer::connect_nodes_with_label(
                 expression_node,
                 function_node,
                 &format!("a{}", i + 1),

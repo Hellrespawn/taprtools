@@ -19,7 +19,8 @@ where
     validate(input_text, start_token, arguments)?;
 
     let name = start_token.get_string_unchecked();
-    let arguments: Vec<&str> = arguments.iter().map(|a| a.as_ref()).collect();
+    let arguments: Vec<&str> =
+        arguments.iter().map(std::convert::AsRef::as_ref).collect();
 
     let function_output = match name {
         "prepend" => function_prepend(
@@ -58,17 +59,13 @@ where
     let name = start_token.get_string_unchecked();
 
     let required = match name {
-        "prepend" => 3,
-        "num" => 2,
-        "replace" => 3,
+        "validate" | "year_from_date" => 1,
+        "andif" | "num" => 2,
+        "if" | "prepend" | "replace" => 3,
         "split" => 4,
-        "validate" => 1,
-        "year_from_date" => 1,
-        "andif" => 2,
-        "if" => 3,
         _ => {
             return Err(FunctionError::UnknownFunction(
-                ErrorContext::from_token(input_text, start_token.clone()),
+                ErrorContext::from_token(input_text, start_token),
                 name.to_string(),
             ))
         }
@@ -76,15 +73,15 @@ where
 
     let amount = arguments.len();
 
-    if required != amount {
+    if required == amount {
+        Ok(())
+    } else {
         Err(FunctionError::WrongArguments {
-            context: ErrorContext::from_token(input_text, start_token.clone()),
+            context: ErrorContext::from_token(input_text, start_token),
             name: name.to_string(),
             expected: required,
             found: amount,
         })
-    } else {
-        Ok(())
     }
 }
 
@@ -116,8 +113,7 @@ fn function_split(
     };
 
     vec.get(index)
-        .map(|s| s.to_string())
-        .unwrap_or_else(|| "".to_string())
+        .map_or_else(|| "".to_string(), |s| (*s).to_string())
 }
 
 fn function_validate(string: &str) -> String {
@@ -147,17 +143,16 @@ fn function_year_from_date(string: &str) -> String {
     REGEXES
         .iter()
         .map(|re| re.captures(string))
-        .find(|e| e.is_some())
+        .find(std::option::Option::is_some)
         .flatten()
-        .map(|c| c[1].to_string())
-        .unwrap_or_else(|| "".to_string())
+        .map_or_else(|| "".to_string(), |c| c[1].to_string())
 }
 
 fn function_andif(condition: &str, true_string: &str) -> String {
-    if !condition.is_empty() {
-        format!("{}{}", condition, true_string)
-    } else {
+    if condition.is_empty() {
         "".to_string()
+    } else {
+        format!("{}{}", condition, true_string)
     }
 }
 
@@ -166,10 +161,10 @@ fn function_if(
     true_string: &str,
     false_string: &str,
 ) -> String {
-    if !condition.is_empty() {
-        true_string.to_string()
-    } else {
+    if condition.is_empty() {
         false_string.to_string()
+    } else {
+        true_string.to_string()
     }
 }
 

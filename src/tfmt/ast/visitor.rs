@@ -1,3 +1,6 @@
+#![allow(missing_docs)]
+
+#[allow(clippy::wildcard_imports)]
 use crate::tfmt::ast::node::*;
 use crate::tfmt::token::Token;
 

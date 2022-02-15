@@ -41,7 +41,7 @@ pub fn setup_logger(verbosity: usize, filename: &str) -> Result<()> {
                 record.target().rsplit_once("::").unwrap().1,
                 record.line().unwrap_or(0),
                 message
-            ))
+            ));
         })
         .level(*level)
         //.chain(std::io::stderr())

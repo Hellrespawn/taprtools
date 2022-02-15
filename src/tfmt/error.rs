@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use crate::tfmt::token::{Token, TokenType};
 use std::fmt;
 use thiserror::Error;
@@ -24,7 +25,7 @@ impl ErrorContext {
         }
     }
 
-    pub fn from_token<S: AsRef<str>>(script: S, token: Token) -> Self {
+    pub fn from_token<S: AsRef<str>>(script: S, token: &Token) -> Self {
         Self {
             script: String::from(script.as_ref()),
             line_no: token.line_no,
@@ -121,6 +122,7 @@ pub enum ParserError {
 #[derive(Error, Debug)]
 /// Error from the [genastdot] module.
 pub enum DotError {
+    #[allow(clippy::doc_markdown)]
     /// Unable to run dot! Is GraphViz installed and is it in PATH?
     #[error("Unable to run dot! Is GraphViz installed and is it in PATH?")]
     CantRun,

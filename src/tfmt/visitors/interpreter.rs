@@ -1,5 +1,6 @@
 use crate::file::audio_file::AudioFile;
 use crate::helpers;
+#[allow(clippy::wildcard_imports)]
 use crate::tfmt::ast::node::*;
 use crate::tfmt::ast::{Parser, Visitor};
 use crate::tfmt::error::{ErrorContext, InterpreterError};
@@ -12,7 +13,7 @@ use log::trace;
 
 type Result<T> = std::result::Result<T, InterpreterError>;
 
-/// Interprets an [AST](ast::Program) based on tags from an [AudioFile].
+/// Interprets an `[AST](ast::Program)` based on tags from an [`AudioFile`].
 pub struct Interpreter {
     input_text: String,
     program: Program,
@@ -20,6 +21,7 @@ pub struct Interpreter {
 }
 
 impl Interpreter {
+    /// Create new interpreter
     pub fn new<S: AsRef<str>>(
         input_text: &S,
         arguments: &[&str],
@@ -117,31 +119,31 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
         let r = right.accept(self)?;
         Ok(match &token.token_type {
             TokenType::VerticalBar => {
-                if !l.is_empty() {
-                    l
-                } else {
+                if l.is_empty() {
                     r
+                } else {
+                    l
                 }
             }
             TokenType::DoubleVerticalBar => {
-                if !l.is_empty() {
-                    format!("{}{}", l, r)
-                } else {
+                if l.is_empty() {
                     r
+                } else {
+                    format!("{}{}", l, r)
                 }
             }
             TokenType::Ampersand => {
-                if !l.is_empty() {
-                    r
-                } else {
+                if l.is_empty() {
                     l
+                } else {
+                    r
                 }
             }
             TokenType::DoubleAmpersand => {
-                if !l.is_empty() {
-                    format!("{}{}", l, r)
-                } else {
+                if l.is_empty() {
                     l
+                } else {
+                    format!("{}{}", l, r)
                 }
             }
 
@@ -165,10 +167,7 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
             }
             other => {
                 return Err(InterpreterError::InvalidTokenType {
-                    context: ErrorContext::from_token(
-                        self.input_text,
-                        token.clone(),
-                    ),
+                    context: ErrorContext::from_token(self.input_text, token),
                     invalid_type: other.clone(),
                     name: "BinaryOp",
                 })
@@ -187,10 +186,7 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
             TokenType::Hyphen => (-o.parse::<i64>()?).to_string(),
             other => {
                 return Err(InterpreterError::InvalidTokenType {
-                    context: ErrorContext::from_token(
-                        self.input_text,
-                        token.clone(),
-                    ),
+                    context: ErrorContext::from_token(self.input_text, token),
                     invalid_type: other.clone(),
                     name: "UnaryOp",
                 })

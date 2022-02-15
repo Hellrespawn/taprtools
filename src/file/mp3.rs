@@ -4,7 +4,7 @@ use id3::Tag;
 use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
 
-/// Implementation of [AudioFile] for MP3 files.
+/// Implementation of [`AudioFile`] for MP3 files.
 #[derive(Debug)]
 pub struct MP3 {
     path: PathBuf,

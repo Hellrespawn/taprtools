@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use super::visitor::Visitor;
 use crate::tfmt::token::Token;
 

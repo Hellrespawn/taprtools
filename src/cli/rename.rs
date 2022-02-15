@@ -17,18 +17,18 @@ use std::path::{Path, PathBuf};
 /// Intermediate representation during interpreting.
 pub type SrcTgtPair = (PathBuf, PathBuf);
 
-pub struct Rename<'a> {
-    pub script_name: &'a str,
-    pub arguments: &'a [&'a str],
-    pub input_folder: &'a Path,
-    pub output_folder: &'a Path,
-    pub config_folder: &'a Path,
-    pub recursive: bool,
-    pub preview: bool,
+pub(crate) struct Rename<'a> {
+    pub(crate) script_name: &'a str,
+    pub(crate) arguments: &'a [&'a str],
+    pub(crate) input_folder: &'a Path,
+    pub(crate) output_folder: &'a Path,
+    pub(crate) config_folder: &'a Path,
+    pub(crate) recursive: bool,
+    pub(crate) preview: bool,
 }
 
 impl<'a> Rename<'a> {
-    pub fn rename(&self) -> Result<()> {
+    pub(crate) fn rename(&self) -> Result<()> {
         // Get files
         let input_text = helpers::normalize_newlines(&std::fs::read_to_string(
             helpers::get_script_path(self.script_name, &self.config_folder)?,
@@ -197,7 +197,7 @@ impl<'a> Rename<'a> {
             if i >= amount {
                 break;
             }
-            println!("{}", d.as_ref().display())
+            println!("{}", d.as_ref().display());
         }
 
         println!();
@@ -217,7 +217,7 @@ impl<'a> Rename<'a> {
             let mut action_group = ActionGroup::new();
 
             if let Some(parent) = path.parent() {
-                action_group.extend(self.create_dir_recursive(&parent)?)
+                action_group.extend(self.create_dir_recursive(&parent)?);
             }
 
             let action = Action::CreateDir(PathBuf::from(path));
@@ -272,7 +272,7 @@ impl<'a> Rename<'a> {
 
             for (a, b) in path.components().zip(common_path.components()) {
                 if a == b {
-                    new_common_path.push(a)
+                    new_common_path.push(a);
                 } else {
                     break;
                 }

@@ -39,7 +39,7 @@ impl<'a> Parser<'a> {
         debug_assert!(self.current_token.is_some());
         ErrorContext::from_token(
             self.lexer.input_text,
-            self.current_token.as_ref().unwrap().clone(),
+            self.current_token.as_ref().unwrap(),
         )
     }
 
@@ -58,16 +58,16 @@ impl<'a> Parser<'a> {
                 if let Some(token) = self.current_token.take() {
                     self.previous_token = Some(token);
                     return Ok(());
-                } else {
-                    return Err(ParserError::ExhaustedTokens);
                 }
+
+                return Err(ParserError::ExhaustedTokens);
             }
         };
 
         let prev = self.current_token.replace(new);
 
         if !ignore {
-            self.previous_token = prev
+            self.previous_token = prev;
         }
 
         if self.current_type().is_ignored() {
@@ -177,10 +177,8 @@ impl<'a> Parser<'a> {
     }
 
     // TODO? Error check for negative numbers?
-    fn dec_depth(&mut self) -> Result<()> {
+    fn dec_depth(&mut self) {
         self.depth -= 1;
-
-        Ok(())
     }
 
     /// Depth Prefix
@@ -214,7 +212,7 @@ impl<'a> Parser<'a> {
         let block = self.block()?;
         self.consume(&TokenType::CurlyBraceRight)?;
 
-        self.dec_depth()?;
+        self.dec_depth();
 
         Ok(node::Program {
             name,
@@ -242,7 +240,7 @@ impl<'a> Parser<'a> {
                 break;
             }
         }
-        self.dec_depth()?;
+        self.dec_depth();
         Ok(node::Parameters { parameters })
     }
 
@@ -265,14 +263,14 @@ impl<'a> Parser<'a> {
                 } else {
                     return Err(ParserError::InvalidDefault(
                         self.current_context(),
-                        self.current_type().to_owned(),
+                        self.current_type().clone(),
                     ));
                 }
             }
             Err(_) => None,
         };
 
-        self.dec_depth()?;
+        self.dec_depth();
 
         Ok(node::Parameter {
             token: identifier,
@@ -288,7 +286,7 @@ impl<'a> Parser<'a> {
         let expressions: Vec<Expression> =
             self.expressions(&[TokenType::CurlyBraceRight])?;
 
-        self.dec_depth()?;
+        self.dec_depth();
         Ok(node::Block { expressions })
     }
 
@@ -333,7 +331,7 @@ impl<'a> Parser<'a> {
             };
         }
 
-        self.dec_depth()?;
+        self.dec_depth();
         Ok(expression)
     }
 
@@ -362,7 +360,7 @@ impl<'a> Parser<'a> {
             };
         }
 
-        self.dec_depth()?;
+        self.dec_depth();
         Ok(ternary)
     }
 
@@ -389,7 +387,7 @@ impl<'a> Parser<'a> {
             };
         }
 
-        self.dec_depth()?;
+        self.dec_depth();
         Ok(disjunct)
     }
 
@@ -413,7 +411,7 @@ impl<'a> Parser<'a> {
             };
         }
 
-        self.dec_depth()?;
+        self.dec_depth();
         Ok(conjunct)
     }
 
@@ -441,7 +439,7 @@ impl<'a> Parser<'a> {
             };
         }
 
-        self.dec_depth()?;
+        self.dec_depth();
         Ok(term)
     }
 
@@ -468,7 +466,7 @@ impl<'a> Parser<'a> {
             };
         }
 
-        self.dec_depth()?;
+        self.dec_depth();
         Ok(factor)
     }
 
@@ -505,7 +503,7 @@ impl<'a> Parser<'a> {
             _ => self.statement()?,
         };
 
-        self.dec_depth()?;
+        self.dec_depth();
         Ok(exponent)
     }
 
@@ -544,7 +542,7 @@ impl<'a> Parser<'a> {
             }
         };
 
-        self.dec_depth()?;
+        self.dec_depth();
         Ok(statement)
     }
 
@@ -572,7 +570,7 @@ impl<'a> Parser<'a> {
             end_token: self.consume(&TokenType::ParenthesisRight)?,
         };
 
-        self.dec_depth()?;
+        self.dec_depth();
         Ok(function)
     }
 
@@ -591,7 +589,7 @@ impl<'a> Parser<'a> {
             token: identifier,
         };
 
-        self.dec_depth()?;
+        self.dec_depth();
         Ok(tag)
     }
 }

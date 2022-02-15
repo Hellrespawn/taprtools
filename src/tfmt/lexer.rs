@@ -9,6 +9,7 @@ type Result<T> = std::result::Result<T, LexerError>;
 
 /// Reads a string and returns a stream of [Token]s.
 pub struct Lexer<'a> {
+    /// Original text of Lexer.
     pub input_text: &'a str,
     buffer: BufferedIterator<Graphemes<'a>>,
     line_no: usize,
@@ -24,7 +25,7 @@ impl<'a> Iterator for Lexer<'a> {
             None => return None,
         };
 
-        if grapheme.chars().all(|c| c.is_whitespace()) {
+        if grapheme.chars().all(char::is_whitespace) {
             self.advance(1);
             self.next()
         } else {
@@ -46,6 +47,8 @@ impl<'a> Lexer<'a> {
         let input_text = input_text.as_ref();
 
         if let Some(cr_index) = input_text.find('\r') {
+            #[allow(clippy::unnecessary_to_owned)]
+            // Required to keep the reference in input_text
             let text_before_cr =
                 normalize_newlines(&input_text[..cr_index].to_string());
 
@@ -156,10 +159,10 @@ impl<'a> Lexer<'a> {
                 });
             } else if peek.join("") == triple_quote {
                 break;
-            } else {
-                string += quote;
-                self.advance(1)
             }
+
+            string += quote;
+            self.advance(1);
         }
 
         self.advance(3);
@@ -197,20 +200,20 @@ impl<'a> Lexer<'a> {
         ))
     }
 
-    fn handle_single_line_comment(&mut self) -> Result<String> {
+    fn handle_single_line_comment(&mut self) -> String {
         match self.crawl(|s| *s == "\n", 0) {
             // Ends on newline
-            Some(s) => Ok(s),
+            Some(s) => s,
             // Ends on EOF
             None => {
                 // Skips final "/"
                 let mut string = String::new();
                 while let Some(grapheme) = self.buffer.peek() {
                     string += grapheme;
-                    self.advance(1)
+                    self.advance(1);
                 }
 
-                Ok(string)
+                string
             }
         }
     }
@@ -241,10 +244,10 @@ impl<'a> Lexer<'a> {
                 });
             } else if peek == ["*", "/"] {
                 break;
-            } else {
-                string += "*";
-                self.advance(1)
             }
+
+            string += "*";
+            self.advance(1);
         }
 
         self.advance(2);
@@ -258,7 +261,7 @@ impl<'a> Lexer<'a> {
         if self.buffer.peekn(2) == ["/", "/"] {
             self.advance(2);
             Ok(Some(Token::new(
-                TokenType::Comment(self.handle_single_line_comment()?),
+                TokenType::Comment(self.handle_single_line_comment()),
                 line_no,
                 col_no,
             )))
@@ -319,11 +322,11 @@ impl<'a> Lexer<'a> {
                 string
             });
 
-        if string.starts_with(|c: char| c.is_alphabetic())
+        if string.starts_with(char::is_alphabetic)
             && string.chars().all(|c| c.is_alphanumeric() || c == '_')
         {
             Some(Token::new(TokenType::ID(string), line_no, col_no))
-        } else if string.chars().all(|c| c.is_numeric()) {
+        } else if string.chars().all(char::is_numeric) {
             // All chars are numeric, so should always be parsable.
             Some(Token::new(
                 TokenType::Integer(string.parse().unwrap()),

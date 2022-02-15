@@ -97,7 +97,7 @@ impl<'a> Inspector<'a> {
             for param in &self.parameters {
                 write!(f, "\n\t{}", param.0)?;
                 if let Some(default) = &param.1 {
-                    write!(f, r#": "{}""#, default)?
+                    write!(f, r#": "{}""#, default)?;
                 }
             }
         }
@@ -140,7 +140,7 @@ impl<'a> Visitor<()> for Inspector<'a> {
         self.name = program.name.get_string_unchecked().to_string();
 
         if let Some(description) = &program.description {
-            self.description = description.get_string_unchecked().to_string()
+            self.description = description.get_string_unchecked().to_string();
         }
 
         program.parameters.accept(self);
