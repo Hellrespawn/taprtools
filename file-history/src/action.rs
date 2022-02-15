@@ -113,5 +113,97 @@ impl Action {
 
 #[cfg(test)]
 mod tests {
-    // use super::*;
+    // TODO Write test for applying twice
+    // TODO Write test for undoing before applying
+    // TODO Write test for undoing file that's been moved
+    use super::*;
+    use tempfile::{Builder, NamedTempFile, TempDir};
+
+    static PREFIX: &str = "rust-file-history-action-";
+
+    fn get_temporary_dir() -> Result<TempDir> {
+        let dir = Builder::new().prefix(PREFIX).tempdir()?;
+        Ok(dir)
+    }
+
+    fn get_temporary_file(path: &Path) -> Result<NamedTempFile> {
+        let tempfile = NamedTempFile::new_in(path)?;
+        Ok(tempfile)
+    }
+
+    #[test]
+    fn test_make_dir() -> Result<()> {
+        let dir = get_temporary_dir()?;
+        let path = dir.path().join("test");
+        let mkdir = Action::MakeDir(path.to_path_buf());
+
+        // Before: doesn't exist
+        assert!(!path.is_dir());
+
+        mkdir.apply()?;
+
+        // Applied: exists
+        assert!(path.is_dir());
+
+        mkdir.undo()?;
+
+        // Undone: doesn't exist
+        assert!(!path.is_dir());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_remove_dir() -> Result<()> {
+        let dir = get_temporary_dir()?;
+
+        // Before: exists
+        assert!(dir.path().is_dir());
+
+        let rmdir = Action::RemoveDir(dir.path().to_path_buf());
+
+        rmdir.apply()?;
+
+        // Applied: doesn't exist
+        assert!(!dir.path().is_dir());
+
+        rmdir.undo()?;
+
+        // Undone: exists
+        assert!(dir.path().is_dir());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_move() -> Result<()> {
+        let dir = get_temporary_dir()?;
+        let file = get_temporary_file(dir.path())?;
+
+        let source = file.path().to_path_buf();
+        let target = file.path().with_file_name("test").to_path_buf();
+
+        // Before: source exists, target doesn't
+        assert!(source.is_file());
+        assert!(!target.is_file());
+
+        let mv = Action::Move {
+            source: source.to_path_buf(),
+            target: target.to_path_buf(),
+        };
+
+        mv.apply()?;
+
+        // Applied: source doesn't, target exists
+        assert!(!source.is_file());
+        assert!(target.is_file());
+
+        mv.undo()?;
+
+        // Undone: source exists, target doesn't
+        assert!(source.is_file());
+        assert!(!target.is_file());
+
+        Ok(())
+    }
 }

@@ -61,7 +61,7 @@ mod tests {
     use crate::Action;
     use tempfile::{Builder, NamedTempFile};
 
-    static PREFIX: &str = "rust-file-history-";
+    static PREFIX: &str = "rust-file-history-disk-";
 
     fn get_temporary_file() -> Result<NamedTempFile> {
         let file = Builder::new().prefix(PREFIX).tempfile()?;
