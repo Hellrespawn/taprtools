@@ -33,14 +33,23 @@ impl DiskHandler {
     pub(crate) fn read(
         &self,
     ) -> Result<(VecDeque<ActionGroup>, VecDeque<ActionGroup>)> {
-        let file_contents = std::fs::read(&self.path)?;
+        match std::fs::read(&self.path) {
+            Ok(file_contents) => {
+                let (applied_actions, undone_actions): (
+                    VecDeque<ActionGroup>,
+                    VecDeque<ActionGroup>,
+                ) = bincode::deserialize(&file_contents)?;
 
-        let (applied_actions, undone_actions): (
-            VecDeque<ActionGroup>,
-            VecDeque<ActionGroup>,
-        ) = bincode::deserialize(&file_contents)?;
-
-        Ok((applied_actions, undone_actions))
+                Ok((applied_actions, undone_actions))
+            }
+            Err(err) => {
+                if let ErrorKind::NotFound = err.kind() {
+                    Ok((VecDeque::new(), VecDeque::new()))
+                } else {
+                    Err(err.into())
+                }
+            }
+        }
     }
 
     pub(crate) fn write(
