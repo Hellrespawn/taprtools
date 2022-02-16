@@ -218,3 +218,10 @@ pub enum VisualizerError {
     #[error(transparent)]
     IO(#[from] std::io::Error),
 }
+
+#[derive(Error, Debug)]
+/// Error from the [`Visualizer`] module.
+pub enum ScriptError {
+    #[error(transparent)]
+    Parser(#[from] ParserError),
+}

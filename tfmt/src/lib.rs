@@ -20,6 +20,8 @@ pub(crate) mod token;
 pub mod audio_file;
 /// Crate errors.
 pub mod error;
+/// Script struct
+pub mod script;
 /// `Node` Visitors
 pub mod visitors;
 
