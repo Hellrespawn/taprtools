@@ -40,7 +40,8 @@ tempfile = "3"
 members = [
     "./buffered-iterator",
     "./file-history",
-    "./test-harness"
+    "./test-harness",
+    "./tfmt"
 ]
 
 [profile.release]
