@@ -10,7 +10,7 @@ type Result<T> = std::result::Result<T, ScriptError>;
 pub struct Script {
     input_text: String,
     name: String,
-    description: String,
+    description: Option<String>,
     parameters: Vec<ScriptParameter>,
     program: Program,
 }
@@ -48,8 +48,8 @@ impl Script {
     }
 
     /// Returns the description
-    pub fn description(&self) -> &str {
-        &self.description
+    pub fn description(&self) -> Option<&str> {
+        self.description.as_deref()
     }
 
     /// Returns the parameters

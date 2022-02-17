@@ -11,10 +11,10 @@ pub(crate) trait Node<T>: std::fmt::Debug {
 
 #[derive(Debug, PartialEq)]
 pub struct Program {
-    pub(crate) name: Token,
-    pub(crate) parameters: Parameters,
-    pub(crate) description: Option<Token>,
-    pub(crate) block: Block,
+    name: Token,
+    parameters: Parameters,
+    description: Option<Token>,
+    block: Block,
 }
 
 impl<T> Node<T> for Program {
@@ -23,9 +23,49 @@ impl<T> Node<T> for Program {
     }
 }
 
+impl Program {
+    pub(crate) fn new(
+        name: Token,
+        parameters: Parameters,
+        description: Option<Token>,
+        block: Block,
+    ) -> Self {
+        Program {
+            name,
+            parameters,
+            description,
+            block,
+        }
+    }
+    pub(crate) fn name(&self) -> String {
+        self.name.get_string_unchecked().to_string()
+    }
+    pub(crate) fn parameters(&self) -> &Parameters {
+        &self.parameters
+    }
+    pub(crate) fn description(&self) -> Option<String> {
+        self.description
+            .as_ref()
+            .map(|t| t.get_string_unchecked().to_string())
+    }
+    pub(crate) fn block(&self) -> &Block {
+        &self.block
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct Parameters {
-    pub(crate) parameters: Vec<Parameter>,
+    parameters: Vec<Parameter>,
+}
+
+impl Parameters {
+    pub(crate) fn new(parameters: Vec<Parameter>) -> Self {
+        Parameters { parameters }
+    }
+
+    pub(crate) fn parameters(&self) -> &[Parameter] {
+        &self.parameters
+    }
 }
 
 impl<T> Node<T> for Parameters {
@@ -36,8 +76,24 @@ impl<T> Node<T> for Parameters {
 
 #[derive(Debug, PartialEq)]
 pub struct Parameter {
-    pub(crate) token: Token,
-    pub(crate) default: Option<Token>,
+    name: Token,
+    default: Option<Token>,
+}
+
+impl Parameter {
+    pub(crate) fn new(name: Token, default: Option<Token>) -> Self {
+        Parameter { name, default }
+    }
+
+    pub(crate) fn name(&self) -> String {
+        self.name.get_string_unchecked().to_string()
+    }
+
+    pub(crate) fn default(&self) -> Option<String> {
+        self.default
+            .as_ref()
+            .map(|t| t.get_string_unchecked().to_string())
+    }
 }
 
 impl<T> Node<T> for Parameter {
@@ -48,7 +104,17 @@ impl<T> Node<T> for Parameter {
 
 #[derive(Debug, PartialEq)]
 pub struct Block {
-    pub(crate) expressions: Vec<Expression>,
+    expressions: Vec<Expression>,
+}
+
+impl Block {
+    pub(crate) fn new(expressions: Vec<Expression>) -> Self {
+        Block { expressions }
+    }
+
+    pub(crate) fn expressions(&self) -> &[Expression] {
+        &self.expressions
+    }
 }
 
 impl<T> Node<T> for Block {

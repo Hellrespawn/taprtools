@@ -96,12 +96,9 @@ impl TokenType {
 /// TFMT Token
 #[derive(Clone, Debug, PartialEq)]
 pub struct Token {
-    /// Type of token
-    pub(crate) token_type: TokenType,
-    /// Line number
-    pub(crate) line_no: usize,
-    /// Column number
-    pub(crate) col_no: usize,
+    token_type: TokenType,
+    line_no: usize,
+    col_no: usize,
 }
 
 impl Token {
@@ -116,6 +113,18 @@ impl Token {
             line_no,
             col_no,
         }
+    }
+
+    pub(crate) fn token_type(&self) -> &TokenType {
+        &self.token_type
+    }
+
+    pub(crate) fn line_no(&self) -> usize {
+        self.line_no
+    }
+
+    pub(crate) fn col_no(&self) -> usize {
+        self.col_no
     }
 
     /// Attempt to create a new [`Token`], parsing a string as [`TokenType`].

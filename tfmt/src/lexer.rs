@@ -10,7 +10,7 @@ type Result<T> = std::result::Result<T, LexerError>;
 /// Reads a string and returns a stream of [Token]s.
 pub(crate) struct Lexer<'a> {
     /// Original text of Lexer.
-    pub(crate) input_text: &'a str,
+    input_text: &'a str,
     buffer: BufferedIterator<Graphemes<'a>>,
     line_no: usize,
     col_no: usize,
@@ -81,6 +81,10 @@ impl<'a> Lexer<'a> {
 
         debug!("Creating lexer:\n{}", input_text);
         Ok(lexer)
+    }
+
+    pub(crate) fn input_text(&self) -> &str {
+        self.input_text
     }
 
     fn current_context(&self) -> ErrorContext {
@@ -373,7 +377,7 @@ mod tests {
     ) -> Result<()> {
         match option {
             Some(token) => {
-                assert_eq!(token.token_type, expected_type,);
+                assert_eq!(token.token_type().clone(), expected_type,);
                 Ok(())
             }
             None => {

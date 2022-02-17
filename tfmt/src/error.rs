@@ -17,8 +17,18 @@ use thiserror::Error;
 #[derive(Debug, PartialEq)]
 pub struct ErrorContext {
     script: String,
-    pub line_no: usize,
-    pub col_no: usize,
+    pub(crate) line_no: usize,
+    pub(crate) col_no: usize,
+}
+
+impl ErrorContext {
+    pub fn line_no(&self) -> usize {
+        self.line_no
+    }
+
+    pub fn col_no(&self) -> usize {
+        self.col_no
+    }
 }
 
 impl ErrorContext {
@@ -37,8 +47,8 @@ impl ErrorContext {
     pub(crate) fn from_token<S: AsRef<str>>(script: S, token: &Token) -> Self {
         Self {
             script: String::from(script.as_ref()),
-            line_no: token.line_no,
-            col_no: token.col_no,
+            line_no: token.line_no(),
+            col_no: token.col_no(),
         }
     }
 }

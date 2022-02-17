@@ -21,13 +21,13 @@ impl ScriptParameter {
     }
 }
 
-pub(crate) type Analysis = (String, String, Vec<ScriptParameter>);
+pub(crate) type Analysis = (String, Option<String>, Vec<ScriptParameter>);
 
 /// Walks AST and checks for symbols.
 #[derive(Default)]
 pub(crate) struct SemanticAnalyzer {
     name: String,
-    description: String,
+    description: Option<String>,
     parameters: HashMap<String, ScriptParameter>,
 }
 
@@ -50,9 +50,6 @@ impl SemanticAnalyzer {
             }
         }
 
-        // FIXME Get description in Semantic Analyzer
-        analyzer.description = String::new();
-
         Ok((
             analyzer.name,
             analyzer.description,
@@ -63,23 +60,21 @@ impl SemanticAnalyzer {
 
 impl Visitor<()> for SemanticAnalyzer {
     fn visit_program(&mut self, program: &node::Program) {
-        self.name = program.name.get_string_unchecked().to_string();
+        self.name = program.name();
+        self.description = program.description();
 
-        program.parameters.accept(self);
-        program.block.accept(self);
+        program.parameters().accept(self);
+        program.block().accept(self);
     }
 
     fn visit_parameters(&mut self, parameters: &node::Parameters) {
-        parameters.parameters.iter().for_each(|e| e.accept(self));
+        parameters.parameters().iter().for_each(|e| e.accept(self));
     }
 
     fn visit_parameter(&mut self, parameter: &node::Parameter) {
-        let name = parameter.token.get_string_unchecked().to_string();
+        let name = parameter.name();
 
-        let default = parameter
-            .default
-            .as_ref()
-            .map(|t| t.get_string_unchecked().to_string());
+        let default = parameter.default();
 
         let param = ScriptParameter {
             name: name.clone(),
@@ -91,7 +86,7 @@ impl Visitor<()> for SemanticAnalyzer {
     }
 
     fn visit_block(&mut self, block: &node::Block) {
-        block.expressions.iter().for_each(|e| e.accept(self));
+        block.expressions().iter().for_each(|e| e.accept(self));
     }
 
     fn visit_ternaryop(

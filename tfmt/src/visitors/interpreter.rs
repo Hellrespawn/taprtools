@@ -110,7 +110,7 @@ struct IntpVisitor<'a> {
 
 impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
     fn visit_program(&mut self, program: &Program) -> Result<String> {
-        program.block.accept(self)
+        program.block().accept(self)
     }
 
     fn visit_parameters(&mut self, _: &Parameters) -> Result<String> {
@@ -123,7 +123,7 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
 
     fn visit_block(&mut self, block: &Block) -> Result<String> {
         block
-            .expressions
+            .expressions()
             .iter()
             .map(|e| e.accept(self))
             .collect::<Result<Vec<String>>>()
@@ -151,7 +151,7 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
     ) -> Result<String> {
         let l = left.accept(self)?;
         let r = right.accept(self)?;
-        Ok(match &token.token_type {
+        Ok(match &token.token_type() {
             TokenType::VerticalBar => {
                 if l.is_empty() {
                     r
@@ -202,7 +202,7 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
             other => {
                 return Err(InterpreterError::InvalidTokenType {
                     context: ErrorContext::from_token(self.input_text, token),
-                    invalid_type: other.clone(),
+                    invalid_type: (*other).clone(),
                     name: "BinaryOp",
                 })
             }
@@ -215,7 +215,7 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
         operand: &Expression,
     ) -> Result<String> {
         let o = operand.accept(self)?;
-        Ok(match &token.token_type {
+        Ok(match token.token_type() {
             TokenType::Plus => o,
             TokenType::Hyphen => (-o.parse::<i64>()?).to_string(),
             other => {

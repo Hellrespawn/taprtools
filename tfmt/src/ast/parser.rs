@@ -40,7 +40,7 @@ impl<'a> Parser<'a> {
         // unwrap should be safe.
         debug_assert!(self.current_token.is_some());
         ErrorContext::from_token(
-            self.lexer.input_text,
+            self.lexer.input_text(),
             self.current_token.as_ref().unwrap(),
         )
     }
@@ -49,7 +49,7 @@ impl<'a> Parser<'a> {
         // current_token is guaranteed to be Some() by Parser::advance(), so
         // unwrap should be safe.
         debug_assert!(self.current_token.is_some());
-        &self.current_token.as_ref().unwrap().token_type
+        &self.current_token.as_ref().unwrap().token_type()
     }
 
     fn _advance(&mut self, ignore: bool) -> Result<()> {
@@ -214,12 +214,7 @@ impl<'a> Parser<'a> {
 
         self.dec_depth();
 
-        Ok(node::Program {
-            name,
-            parameters,
-            description,
-            block,
-        })
+        Ok(node::Program::new(name, parameters, description, block))
     }
 
     fn parameters(&mut self) -> Result<node::Parameters> {
@@ -241,17 +236,17 @@ impl<'a> Parser<'a> {
             }
         }
         self.dec_depth();
-        Ok(node::Parameters { parameters })
+        Ok(node::Parameters::new(parameters))
     }
 
     fn parameter(&mut self) -> Result<node::Parameter> {
         // ID ( "=" ( Integer | String ) )?
         self.inc_depth()?;
-        let identifier = self.consume_id()?;
+        let name = self.consume_id()?;
         trace!(
             r#"{} Parameter: "{}""#,
             self.dp(),
-            identifier.get_string_unchecked()
+            name.get_string_unchecked()
         );
 
         let default = match self.consume(&TokenType::Equals) {
@@ -272,10 +267,7 @@ impl<'a> Parser<'a> {
 
         self.dec_depth();
 
-        Ok(node::Parameter {
-            token: identifier,
-            default,
-        })
+        Ok(node::Parameter::new(name, default))
     }
 
     fn block(&mut self) -> Result<node::Block> {
@@ -287,7 +279,7 @@ impl<'a> Parser<'a> {
             self.expressions(&[TokenType::CurlyBraceRight])?;
 
         self.dec_depth();
-        Ok(node::Block { expressions })
+        Ok(node::Block::new(expressions))
     }
 
     fn expressions(
