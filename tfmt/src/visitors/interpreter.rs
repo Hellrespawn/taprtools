@@ -1,9 +1,9 @@
 #[allow(clippy::wildcard_imports)]
 use crate::ast::node::*;
 use crate::ast::{Parser, Visitor};
-use crate::audio_file::AudioFile;
 use crate::error::{ErrorContext, InterpreterError};
 use crate::function::handle_function;
+use crate::tags::Tags;
 use crate::token::{
     Token, TokenType, DIRECTORY_SEPARATORS, FORBIDDEN_GRAPHEMES,
 };
@@ -36,13 +36,7 @@ impl Interpreter {
     }
 
     /// Public function for interpreter.
-    pub fn interpret(&mut self, audio_file: &dyn AudioFile) -> Result<String> {
-        trace!(r#"In:  "{}""#, audio_file.path().display());
-
-        let string = format!(
-            "{}.{}",
-            crate::normalize_separators(&self.program.accept(
-                &mut IntpVisitor {
+    pub fn interpret(&mut self, audio_file: &dyn Tags) -> Result<String> {
                     input_text: &self.input_text,
                     symbol_table: &self.symbol_table,
                     audio_file
@@ -70,7 +64,7 @@ impl Interpreter {
 struct IntpVisitor<'a> {
     input_text: &'a str,
     symbol_table: &'a SymbolTable,
-    audio_file: &'a dyn AudioFile,
+    audio_file: &'a dyn Tags,
 }
 
 impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {

@@ -16,16 +16,16 @@ pub(crate) mod lexer;
 /// `Token` and `TokenType`
 pub(crate) mod token;
 
-/// [`AudioFile`] trait
-pub mod audio_file;
 /// Crate errors.
 pub mod error;
 /// Script struct
 pub mod script;
+/// [`AudioFile`] trait
+pub mod tags;
 /// `Node` Visitors
 pub mod visitors;
 
-pub use audio_file::AudioFile;
+pub use tags::Tags;
 
 use std::path::MAIN_SEPARATOR;
 
