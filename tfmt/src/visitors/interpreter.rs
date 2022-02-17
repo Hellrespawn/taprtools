@@ -52,8 +52,10 @@ impl Interpreter {
                     // parameter and no arg present
                     if let Some(default) = param.default() {
                         // default present
-                        symbol_table
-                            .insert(param.name().to_string(), default.to_string());
+                        symbol_table.insert(
+                            param.name().to_string(),
+                            default.to_string(),
+                        );
                     } else {
                         // default not present
                         return Err(InterpreterError::ArgumentRequired(

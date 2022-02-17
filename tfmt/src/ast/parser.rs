@@ -49,7 +49,7 @@ impl<'a> Parser<'a> {
         // current_token is guaranteed to be Some() by Parser::advance(), so
         // unwrap should be safe.
         debug_assert!(self.current_token.is_some());
-        &self.current_token.as_ref().unwrap().token_type()
+        self.current_token.as_ref().unwrap().token_type()
     }
 
     fn _advance(&mut self, ignore: bool) -> Result<()> {

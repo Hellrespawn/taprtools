@@ -366,18 +366,18 @@ mod tests {
     }
 
     fn dequote(string: &str) -> &str {
-        slice_ends(&string, 1, 1)
+        slice_ends(string, 1, 1)
     }
 
     fn generic_test(
         input: &str,
-        expected_type: TokenType,
+        expected_type: &TokenType,
         name: &str,
         option: Option<Token>,
     ) -> Result<()> {
         match option {
             Some(token) => {
-                assert_eq!(token.token_type().clone(), expected_type,);
+                assert_eq!(token.token_type(), expected_type,);
                 Ok(())
             }
             None => {
@@ -389,7 +389,7 @@ mod tests {
     mod handle_reserved {
         use super::*;
 
-        fn reserved_test(input: &str, expected_type: TokenType) -> Result<()> {
+        fn reserved_test(input: &str, expected_type: &TokenType) -> Result<()> {
             let mut lex = Lexer::new(&input)?;
 
             generic_test(
@@ -402,15 +402,15 @@ mod tests {
 
         #[test]
         fn new_lexer_single_char_test() -> Result<()> {
-            reserved_test("+", TokenType::Plus)?;
-            reserved_test("-", TokenType::Hyphen)?;
+            reserved_test("+", &TokenType::Plus)?;
+            reserved_test("-", &TokenType::Hyphen)?;
             Ok(())
         }
 
         #[test]
         fn new_lexer_double_char_test() -> Result<()> {
-            reserved_test("&&", TokenType::DoubleAmpersand)?;
-            reserved_test("||", TokenType::DoubleVerticalBar)?;
+            reserved_test("&&", &TokenType::DoubleAmpersand)?;
+            reserved_test("||", &TokenType::DoubleVerticalBar)?;
             Ok(())
         }
     }
@@ -418,7 +418,7 @@ mod tests {
     mod handle_bounded {
         use super::*;
 
-        fn bounded_test(input: &str, expected_type: TokenType) -> Result<()> {
+        fn bounded_test(input: &str, expected_type: &TokenType) -> Result<()> {
             let mut lex = Lexer::new(&input)?;
 
             generic_test(
@@ -431,12 +431,12 @@ mod tests {
 
         fn error_test(
             result: Result<()>,
-            expected_error: LexerError,
+            expected_error: &LexerError,
             name: &str,
         ) -> Result<()> {
             if let Err(err) = result {
                 match err.downcast_ref::<LexerError>() {
-                    Some(err) if *err == expected_error => Ok(()),
+                    Some(err) if err == expected_error => Ok(()),
                     Some(err) => {
                         bail!(
                             "Unexpected error in {}():\n{}\nExpected:\n{}",
@@ -457,7 +457,7 @@ mod tests {
             for string in &[SINGLE_QUOTED_STRING, DOUBLE_QUOTED_STRING] {
                 bounded_test(
                     string,
-                    TokenType::String(dequote(string).to_string()),
+                    &TokenType::String(dequote(string).to_string()),
                 )?;
             }
             Ok(())
@@ -467,7 +467,7 @@ mod tests {
         fn new_lexer_multiline_string_test() -> Result<()> {
             bounded_test(
                 MULTILINE_STRING,
-                TokenType::String(
+                &TokenType::String(
                     slice_ends(MULTILINE_STRING, 3, 3).to_string(),
                 ),
             )?;
@@ -479,9 +479,9 @@ mod tests {
             error_test(
                 bounded_test(
                     NEWLINE_IN_STRING,
-                    TokenType::String(String::new()),
+                    &TokenType::String(String::new()),
                 ),
-                LexerError::NewlineInString(ErrorContext::new(
+                &LexerError::NewlineInString(ErrorContext::new(
                     NEWLINE_IN_STRING,
                     1,
                     18,
@@ -495,9 +495,9 @@ mod tests {
             error_test(
                 bounded_test(
                     STRING_WITH_FORBIDDEN_GRAPHEMES,
-                    TokenType::String(String::new()),
+                    &TokenType::String(String::new()),
                 ),
-                LexerError::ForbiddenGrapheme(
+                &LexerError::ForbiddenGrapheme(
                     ErrorContext::new(STRING_WITH_FORBIDDEN_GRAPHEMES, 1, 1),
                     "|".to_string(),
                 ),
@@ -510,9 +510,9 @@ mod tests {
             error_test(
                 bounded_test(
                     UNTERMINATED_STRING,
-                    TokenType::String(String::new()),
+                    &TokenType::String(String::new()),
                 ),
-                LexerError::ExhaustedText(
+                &LexerError::ExhaustedText(
                     ErrorContext::new(UNTERMINATED_STRING, 1, 1),
                     "\"".to_string(),
                 ),
@@ -525,9 +525,9 @@ mod tests {
             error_test(
                 bounded_test(
                     UNTERMINATED_MULTILINE_STRING,
-                    TokenType::String(String::new()),
+                    &TokenType::String(String::new()),
                 ),
-                LexerError::WrongTerminatorAtEOF {
+                &LexerError::WrongTerminatorAtEOF {
                     context: ErrorContext::new(
                         UNTERMINATED_MULTILINE_STRING,
                         2,
@@ -542,9 +542,9 @@ mod tests {
             error_test(
                 bounded_test(
                     &(UNTERMINATED_MULTILINE_STRING.to_string() + "abcd"),
-                    TokenType::String(String::new()),
+                    &TokenType::String(String::new()),
                 ),
-                LexerError::ExhaustedText(
+                &LexerError::ExhaustedText(
                     ErrorContext::new(
                         UNTERMINATED_MULTILINE_STRING.to_string() + "abcd",
                         1,
@@ -560,7 +560,7 @@ mod tests {
         fn new_lexer_single_line_comment_eof_test() -> Result<()> {
             bounded_test(
                 slice_ends(SINGLE_LINE_COMMENT, 0, 1),
-                TokenType::Comment(
+                &TokenType::Comment(
                     slice_ends(SINGLE_LINE_COMMENT, 2, 1).to_string(),
                 ),
             )?;
@@ -571,7 +571,7 @@ mod tests {
         fn new_lexer_single_line_comment_newline_test() -> Result<()> {
             bounded_test(
                 SINGLE_LINE_COMMENT,
-                TokenType::Comment(
+                &TokenType::Comment(
                     slice_ends(SINGLE_LINE_COMMENT, 2, 1).to_string(),
                 ),
             )?;
@@ -582,7 +582,7 @@ mod tests {
         fn new_lexer_multiline_comment_test() -> Result<()> {
             bounded_test(
                 MULTILINE_COMMENT,
-                TokenType::Comment(
+                &TokenType::Comment(
                     slice_ends(MULTILINE_COMMENT, 2, 2).to_string(),
                 ),
             )?;
@@ -594,9 +594,9 @@ mod tests {
             error_test(
                 bounded_test(
                     UNTERMINATED_COMMENT,
-                    TokenType::Comment(String::new()),
+                    &TokenType::Comment(String::new()),
                 ),
-                LexerError::ExhaustedText(
+                &LexerError::ExhaustedText(
                     ErrorContext::new(UNTERMINATED_COMMENT, 1, 3),
                     "*/".to_string(),
                 ),
@@ -608,19 +608,19 @@ mod tests {
     mod handle_misc_tokens {
         use super::*;
 
-        fn misc_test(input: &str, expected_type: TokenType) -> Result<()> {
+        fn misc_test(input: &str, expected_type: &TokenType) -> Result<()> {
             let mut lex = Lexer::new(&input)?;
 
             generic_test(input, expected_type, "misc_test", lex.handle_misc())
         }
         #[test]
         fn new_lexer_id_test() -> Result<()> {
-            misc_test("id", TokenType::ID("id".to_string()))
+            misc_test("id", &TokenType::ID("id".to_string()))
         }
 
         #[test]
         fn new_lexer_integer_test() -> Result<()> {
-            misc_test("1", TokenType::Integer(1))
+            misc_test("1", &TokenType::Integer(1))
         }
     }
 }

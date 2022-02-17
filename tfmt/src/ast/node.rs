@@ -37,17 +37,21 @@ impl Program {
             block,
         }
     }
+
     pub(crate) fn name(&self) -> String {
         self.name.get_string_unchecked().to_string()
     }
+
     pub(crate) fn parameters(&self) -> &Parameters {
         &self.parameters
     }
+
     pub(crate) fn description(&self) -> Option<String> {
         self.description
             .as_ref()
             .map(|t| t.get_string_unchecked().to_string())
     }
+
     pub(crate) fn block(&self) -> &Block {
         &self.block
     }
