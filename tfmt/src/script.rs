@@ -1,15 +1,14 @@
 use crate::ast::node::{Node, Program};
-use crate::visitors::{SemanticAnalyzer, ScriptParameter};
+use crate::visitors::{ScriptParameter, SemanticAnalyzer};
 
 use crate::ast::{Parser, Visitor};
 use crate::error::ScriptError;
 
 type Result<T> = std::result::Result<T, ScriptError>;
 
-// FIXME Semantic Analyzer picks out name, parameters, stores them here
-
+/// Reads a script, parses an AST and gets the name, description and parameters.
 pub struct Script {
-    pub input_text: String,
+    input_text: String,
     name: String,
     description: String,
     parameters: Vec<ScriptParameter>,
@@ -17,6 +16,7 @@ pub struct Script {
 }
 
 impl Script {
+    /// Create a new Script instance.
     pub fn new<S>(input: S) -> Result<Self>
     where
         S: AsRef<str>,
@@ -25,7 +25,8 @@ impl Script {
         let mut parser = Parser::new(&input)?;
         let program = parser.parse()?;
 
-        let (name, description, parameters) = SemanticAnalyzer::analyze(&program)?;
+        let (name, description, parameters) =
+            SemanticAnalyzer::analyze(&program)?;
 
         Ok(Script {
             input_text,
@@ -36,33 +37,28 @@ impl Script {
         })
     }
 
-    pub(crate) fn accept_visitor<T>(&self, visitor: &mut dyn Visitor<T>) -> T {
-        self.program.accept(visitor)
+    /// Returns the original input text.
+    pub fn input_text(&self) -> &str {
+        &self.input_text
     }
 
-    // pub(crate) fn check_arguments() {
+    /// Returns the name
+    pub fn name(&self) -> &str {
+        &self.name
+    }
 
+    /// Returns the description
+    pub fn description(&self) -> &str {
+        &self.description
+    }
 
-    //     // Check that we have the right amount of arguments
-    //     if arguments.len() > analyzer.symbols.len() {
-    //         return Err(SemanticError::TooManyArguments {
-    //             found: arguments.len(),
-    //             expected: analyzer.symbols.len(),
-    //             name: analyzer.name,
-    //         });
-    //     }
+    /// Returns the parameters
+    pub fn parameters(&self) -> &[ScriptParameter] {
+        &self.parameters
+    }
 
-
-
-
-    //     for (key, val) in &output {
-    //         if val.is_none() {
-    //             return Err(SemanticError::ArgumentRequired(
-    //                 // clippy::inefficient_to_string
-    //                 (*key).to_string(),
-    //                 analyzer.name,
-    //             ));
-    //         }
-    //     }
-    // }
+    /// Accepts a visitor
+    pub fn accept_visitor<T>(&self, visitor: &mut dyn Visitor<T>) -> T {
+        self.program.accept(visitor)
+    }
 }

@@ -24,7 +24,7 @@ impl<T> Node<T> for Program {
 }
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct Parameters {
+pub struct Parameters {
     pub(crate) parameters: Vec<Parameter>,
 }
 
@@ -35,7 +35,7 @@ impl<T> Node<T> for Parameters {
 }
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct Parameter {
+pub struct Parameter {
     pub(crate) token: Token,
     pub(crate) default: Option<Token>,
 }
@@ -47,7 +47,7 @@ impl<T> Node<T> for Parameter {
 }
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct Block {
+pub struct Block {
     pub(crate) expressions: Vec<Expression>,
 }
 
@@ -58,7 +58,7 @@ impl<T> Node<T> for Block {
 }
 
 #[derive(Debug, PartialEq)]
-pub(crate) enum Expression {
+pub enum Expression {
     TernaryOp {
         condition: Box<Expression>,
         true_expr: Box<Expression>,

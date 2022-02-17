@@ -167,18 +167,6 @@ pub enum SemanticError {
     /// "Symbol never occurs in program."
     #[error(r#"Symbol "{0}" never occurs in program "{1}"!"#)]
     SymbolNotUsed(String, String),
-
-    /// Too many arguments for program.
-    #[error(r#"Too many arguments ({found}) for program "{name}", expected {expected}!"#)]
-    TooManyArguments {
-        found: usize,
-        expected: usize,
-        name: String,
-    },
-
-    /// Argument is required in program.
-    #[error(r#"Argument "{0}" is required in program "{1}"!"#)]
-    ArgumentRequired(String, String),
 }
 
 #[derive(Error, Debug)]
@@ -191,6 +179,18 @@ pub enum InterpreterError {
         invalid_type: TokenType,
         name: &'static str,
     },
+
+    /// Too many arguments for program.
+    #[error(r#"Too many arguments ({found}) for program "{name}", expected {expected}!"#)]
+    TooManyArguments {
+        found: usize,
+        expected: usize,
+        name: String,
+    },
+
+    /// Argument is required in program.
+    #[error(r#"Argument "{0}" is required in program "{1}"!"#)]
+    ArgumentRequired(String, String),
 
     #[error(transparent)]
     Lexer(#[from] LexerError),

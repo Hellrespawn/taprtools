@@ -8,35 +8,79 @@ use crate::tags::Tags;
 use crate::token::{
     Token, TokenType, DIRECTORY_SEPARATORS, FORBIDDEN_GRAPHEMES,
 };
-use crate::visitors::ScriptParameter;
+use itertools::EitherOrBoth::{Both, Left, Right};
+use itertools::Itertools;
 use log::trace;
 use std::collections::HashMap;
 
 type Result<T> = std::result::Result<T, InterpreterError>;
+type SymbolTable = HashMap<String, String>;
 
 /// Interprets an `[AST](ast::Program)` based on tags from an [`AudioFile`].
 pub struct Interpreter {
     script: Script,
-    symbol_table: Vec<ScriptParameter>,
+    symbol_table: SymbolTable,
 }
 
 impl Interpreter {
     /// Create new interpreter
-    pub fn new(script: Script, arguments: Vec<String>) -> Self {
+    pub fn new(script: Script, arguments: Vec<String>) -> Result<Self> {
         // FIXME Construct symbol table with arguments here.
-        let symbol_table = HashMap::new();
+        let symbol_table =
+            Interpreter::construct_symbol_table(&script, arguments)?;
 
-        Self {
+        Ok(Self {
             script,
             symbol_table,
+        })
+    }
+
+    fn construct_symbol_table(
+        script: &Script,
+        arguments: Vec<String>,
+    ) -> Result<SymbolTable> {
+        let amount_of_arguments = arguments.len();
+        let mut symbol_table = HashMap::new();
+
+        for pair in script.parameters().iter().zip_longest(arguments) {
+            match pair {
+                Both(param, arg) => {
+                    // parameter and arg present
+                    symbol_table.insert(param.name().to_string(), arg);
+                }
+                Left(param) => {
+                    // parameter and no arg present
+                    if let Some(default) = param.default() {
+                        // default present
+                        symbol_table
+                            .insert(param.name().to_string(), default.to_string());
+                    } else {
+                        // default not present
+                        return Err(InterpreterError::ArgumentRequired(
+                            param.name().to_string(),
+                            script.name().to_string(),
+                        ));
+                    }
+                }
+                Right(_) => {
+                    // no parameter but arg present
+                    return Err(InterpreterError::TooManyArguments {
+                        found: amount_of_arguments,
+                        expected: script.parameters().len(),
+                        name: script.name().to_string(),
+                    });
+                }
+            }
         }
+
+        Ok(symbol_table)
     }
 
     /// Public function for interpreter.
     pub fn interpret(&mut self, audio_file: &dyn Tags) -> Result<String> {
         let string = crate::normalize_separators(&self.script.accept_visitor(
             &mut IntpVisitor {
-                input_text: &self.script.input_text,
+                input_text: self.script.input_text(),
                 symbol_table: &self.symbol_table,
                 audio_file,
             },
@@ -215,9 +259,10 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
 
     fn visit_symbol(&mut self, symbol: &Token) -> Result<String> {
         let name = symbol.get_string_unchecked();
-        // This is checked by SemanticAnalyzer, should be safe.
         debug_assert!(self.symbol_table.get(name).is_some());
-        Ok(self.symbol_table.get(name).unwrap().to_string())
+
+        // FIXME Check unwrap
+        Ok(self.symbol_table.get(name).unwrap().clone())
     }
 
     fn visit_tag(&mut self, token: &Token) -> Result<String> {

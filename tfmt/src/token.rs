@@ -95,7 +95,7 @@ impl TokenType {
 
 /// TFMT Token
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct Token {
+pub struct Token {
     /// Type of token
     pub(crate) token_type: TokenType,
     /// Line number
