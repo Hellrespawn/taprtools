@@ -226,7 +226,7 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
         let audio_file = self.audio_file;
 
         let mut tag = match tag_name {
-            // TODO Add less common tags from AudioFile
+            // TODO? Parse less common tags.
             "album" => audio_file.album(),
             "albumartist" | "album_artist" => audio_file.album_artist(),
             "albumsort" | "album_sort" => audio_file.albumsort(),

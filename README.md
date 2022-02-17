@@ -15,4 +15,3 @@ Operators in order of precedence, from lowest to highest:
 | `+ a`<br>`- a`<br>`(expressions...)` |                                               |
 
 ## To-do
-FIXME "a/b" tracknumbers aren't parsed correctly!

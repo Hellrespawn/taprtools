@@ -78,7 +78,7 @@ impl FromStr for TokenType {
             "&&" => Self::DoubleAmpersand,
             "**" => Self::DoubleAsterisk,
             "||" => Self::DoubleVerticalBar,
-            s => return Err(TokenError::InvalidType(s.to_string())),
+            s => return Err(TokenError::InvalidTokenType(s.to_string())),
         })
     }
 }

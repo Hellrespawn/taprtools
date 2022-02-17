@@ -106,6 +106,7 @@ impl<'a> Inspector<'a> {
 
     fn fmt_dot(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // FIXME Construct dot-file here, return it to cli for rendering?
+
         // self.fmt_long(f)?;
 
         // let path = helpers::get_log_dir();

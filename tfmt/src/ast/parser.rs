@@ -6,6 +6,8 @@ use log::trace;
 
 type Result<T> = std::result::Result<T, ParserError>;
 
+const MAX_PARSING_DEPTH: u64 = 64;
+
 /// Reads a stream of [Token]s and build an Abstract Syntax Tree.
 pub(crate) struct Parser<'a> {
     lexer: Lexer<'a>,
@@ -167,15 +169,14 @@ impl<'a> Parser<'a> {
     fn inc_depth(&mut self) -> Result<()> {
         self.depth += 1;
 
-        // TODO? Set this somewhere?
-        if self.depth > 48 {
-            return Err(ParserError::MaxIteration(48));
+        if self.depth > MAX_PARSING_DEPTH {
+            return Err(ParserError::MaxDepth(MAX_PARSING_DEPTH));
         }
 
         Ok(())
     }
 
-    // TODO? Error check for negative numbers?
+    // TODO? Error check for negative numbers in parsing depth?
     fn dec_depth(&mut self) {
         self.depth -= 1;
     }

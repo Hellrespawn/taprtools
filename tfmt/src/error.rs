@@ -3,7 +3,16 @@ use crate::token::{Token, TokenType};
 use std::fmt;
 use thiserror::Error;
 
-// TODO Continue to expand tfmt error handling.
+// TODO Learn more about nested errors
+//
+// Like this?
+//
+// TFMTError
+// -> TokenError
+// -> LexerError
+// ...
+//
+// TODO? Or just shove everything under TFMTError?
 
 #[derive(Debug, PartialEq)]
 pub struct ErrorContext {
@@ -53,7 +62,7 @@ impl fmt::Display for ErrorContext {
 pub enum TokenError {
     #[error(r#""{0}" is not a valid TokenType!"#)]
     /// Invalid [TokenType].
-    InvalidType(String),
+    InvalidTokenType(String),
 }
 
 #[derive(Error, Debug, PartialEq)]
@@ -113,7 +122,7 @@ pub enum ParserError {
 
     /// Maximum iteration depth exceeded!
     #[error("Maximum iteration depth, {0}, exceeded!")]
-    MaxIteration(u64),
+    MaxDepth(u64),
 
     #[error(transparent)]
     Lexer(#[from] LexerError),
