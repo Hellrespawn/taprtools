@@ -3,47 +3,44 @@ use crate::ast::node::*;
 use crate::ast::{Parser, Visitor};
 use crate::error::{ErrorContext, InterpreterError};
 use crate::function::handle_function;
+use crate::script::Script;
 use crate::tags::Tags;
 use crate::token::{
     Token, TokenType, DIRECTORY_SEPARATORS, FORBIDDEN_GRAPHEMES,
 };
 use crate::visitors::{SemanticAnalyzer, SymbolTable};
 use log::trace;
+use std::collections::HashMap;
 
 type Result<T> = std::result::Result<T, InterpreterError>;
 
 /// Interprets an `[AST](ast::Program)` based on tags from an [`AudioFile`].
 pub struct Interpreter {
-    input_text: String,
-    program: Program,
+    script: Script,
     symbol_table: SymbolTable,
 }
 
 impl Interpreter {
     /// Create new interpreter
-    pub fn new<S: AsRef<str>>(
-        input_text: &S,
-        arguments: &[&str],
-    ) -> Result<Self> {
-        let program = Parser::new(input_text)?.parse()?;
-        let symbol_table = SemanticAnalyzer::analyze(&program, arguments)?;
+    pub fn new(script: Script, arguments: Vec<String>) -> Self {
+        // FIXME Construct symbol table with arguments here.
+        let symbol_table = HashMap::new();
 
-        Ok(Self {
-            input_text: String::from(input_text.as_ref()),
-            program,
+        Self {
+            script,
             symbol_table,
-        })
+        }
     }
 
     /// Public function for interpreter.
     pub fn interpret(&mut self, audio_file: &dyn Tags) -> Result<String> {
-                    input_text: &self.input_text,
-                    symbol_table: &self.symbol_table,
-                    audio_file
-                }
-            )?),
-            audio_file.extension()
-        );
+        let string = crate::normalize_separators(&self.script.accept_visitor(
+            &mut IntpVisitor {
+                input_text: &self.script.input_text,
+                symbol_table: &self.symbol_table,
+                audio_file,
+            },
+        )?);
 
         trace!(r#"Out: "{}""#, string);
 

@@ -1,31 +1,45 @@
-use crate::ast::node::Program;
-use crate::visitors::{SymbolTable, SemanticAnalyzer};
+use crate::ast::node::{Node, Program};
+use crate::visitors::{SemanticAnalyzer, SymbolTable};
 
+use crate::ast::{Parser, Visitor};
 use crate::error::ScriptError;
-use crate::ast::Parser;
 
 type Result<T> = std::result::Result<T, ScriptError>;
 
-pub(crate) struct Script {
-    input_text: String,
+// FIXME Semantic Analyzer picks out name, parameters, stores them here
+
+pub struct Script {
+    pub input_text: String,
+    name: String,
+    description: String,
+    parameters: Vec<String>,
     program: Program,
-    // symbol_table: SymbolTable,
 }
 
 impl Script {
-    pub(crate) fn new<S>(input: S) -> Result<Self>
+    pub fn new<S>(input: S) -> Result<Self>
     where
         S: AsRef<str>,
     {
         let input_text = input.as_ref().to_string();
         let mut parser = Parser::new(&input)?;
-        let program = parser.parse()?;
+        let entry_point = parser.parse()?;
+
+        let (name, description, parameters) =
+            (String::new(), String::new(), Vec::new());
 
         // FIXME get arguments here.
 
         Ok(Script {
             input_text,
-            program
+            name,
+            description,
+            parameters,
+            program: entry_point,
         })
+    }
+
+    pub(crate) fn accept_visitor<T>(&self, visitor: &mut dyn Visitor<T>) -> T {
+        self.program.accept(visitor)
     }
 }

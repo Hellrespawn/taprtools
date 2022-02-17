@@ -13,13 +13,13 @@ pub struct ErrorContext {
 }
 
 impl ErrorContext {
-    pub fn new<S: AsRef<str>>(
-        script: S,
+    pub(crate) fn new<S: AsRef<str>>(
+        input_text: S,
         line_no: usize,
         col_no: usize,
     ) -> Self {
         Self {
-            script: String::from(script.as_ref()),
+            script: String::from(input_text.as_ref()),
             line_no,
             col_no,
         }
