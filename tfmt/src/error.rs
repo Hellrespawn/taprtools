@@ -233,4 +233,7 @@ pub enum VisualizerError {
 pub enum ScriptError {
     #[error(transparent)]
     Parser(#[from] ParserError),
+
+    #[error(transparent)]
+    Semantic(#[from] SemanticError),
 }

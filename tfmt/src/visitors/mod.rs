@@ -9,5 +9,5 @@ pub(crate) mod visualizer;
 
 pub use inspector::{Inspector, InspectorMode};
 pub use interpreter::Interpreter;
-pub use semantic::{SemanticAnalyzer, SymbolTable};
 pub use visualizer::Visualizer;
+pub(crate) use semantic::{SemanticAnalyzer, ScriptParameter};

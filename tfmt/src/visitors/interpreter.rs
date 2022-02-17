@@ -1,6 +1,6 @@
 #[allow(clippy::wildcard_imports)]
 use crate::ast::node::*;
-use crate::ast::{Parser, Visitor};
+use crate::ast::Visitor;
 use crate::error::{ErrorContext, InterpreterError};
 use crate::function::handle_function;
 use crate::script::Script;
@@ -8,7 +8,7 @@ use crate::tags::Tags;
 use crate::token::{
     Token, TokenType, DIRECTORY_SEPARATORS, FORBIDDEN_GRAPHEMES,
 };
-use crate::visitors::{SemanticAnalyzer, SymbolTable};
+use crate::visitors::ScriptParameter;
 use log::trace;
 use std::collections::HashMap;
 
@@ -17,7 +17,7 @@ type Result<T> = std::result::Result<T, InterpreterError>;
 /// Interprets an `[AST](ast::Program)` based on tags from an [`AudioFile`].
 pub struct Interpreter {
     script: Script,
-    symbol_table: SymbolTable,
+    symbol_table: Vec<ScriptParameter>,
 }
 
 impl Interpreter {

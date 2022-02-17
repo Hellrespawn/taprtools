@@ -1,5 +1,5 @@
 use crate::ast::node::{Node, Program};
-use crate::visitors::{SemanticAnalyzer, SymbolTable};
+use crate::visitors::{SemanticAnalyzer, ScriptParameter};
 
 use crate::ast::{Parser, Visitor};
 use crate::error::ScriptError;
@@ -12,7 +12,7 @@ pub struct Script {
     pub input_text: String,
     name: String,
     description: String,
-    parameters: Vec<String>,
+    parameters: Vec<ScriptParameter>,
     program: Program,
 }
 
@@ -23,23 +23,46 @@ impl Script {
     {
         let input_text = input.as_ref().to_string();
         let mut parser = Parser::new(&input)?;
-        let entry_point = parser.parse()?;
+        let program = parser.parse()?;
 
-        let (name, description, parameters) =
-            (String::new(), String::new(), Vec::new());
-
-        // FIXME get arguments here.
+        let (name, description, parameters) = SemanticAnalyzer::analyze(&program)?;
 
         Ok(Script {
             input_text,
             name,
             description,
             parameters,
-            program: entry_point,
+            program,
         })
     }
 
     pub(crate) fn accept_visitor<T>(&self, visitor: &mut dyn Visitor<T>) -> T {
         self.program.accept(visitor)
     }
+
+    // pub(crate) fn check_arguments() {
+
+
+    //     // Check that we have the right amount of arguments
+    //     if arguments.len() > analyzer.symbols.len() {
+    //         return Err(SemanticError::TooManyArguments {
+    //             found: arguments.len(),
+    //             expected: analyzer.symbols.len(),
+    //             name: analyzer.name,
+    //         });
+    //     }
+
+
+
+
+    //     for (key, val) in &output {
+    //         if val.is_none() {
+    //             return Err(SemanticError::ArgumentRequired(
+    //                 // clippy::inefficient_to_string
+    //                 (*key).to_string(),
+    //                 analyzer.name,
+    //             ));
+    //         }
+    //     }
+    // }
 }

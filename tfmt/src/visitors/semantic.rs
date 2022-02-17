@@ -2,76 +2,50 @@ use crate::ast::node::{self, Node};
 use crate::ast::Visitor;
 use crate::error::SemanticError;
 use crate::token::Token;
-use log::info;
 use std::collections::HashMap;
 
-/// Holds symbols for [Interpreter].
-pub type SymbolTable = HashMap<String, String>;
+#[derive(Debug)]
+pub(crate) struct ScriptParameter {
+    name: String,
+    default: Option<String>,
+    count: u64,
+}
+
+pub(crate) type Analysis = (String, String, Vec<ScriptParameter>);
 
 /// Walks AST and checks for symbols.
 #[derive(Default)]
-pub struct SemanticAnalyzer {
+pub(crate) struct SemanticAnalyzer {
     name: String,
-    symbols: Vec<String>,
-    symbol_count: HashMap<String, u64>,
-    defaults: Vec<Option<String>>,
+    description: String,
+    parameters: HashMap<String, ScriptParameter>,
 }
 
 impl SemanticAnalyzer {
     /// Public function for [`SemanticAnalyzer`]
-    pub fn analyze(
-        program: &node::Program,
-        arguments: &[&str],
-    ) -> Result<SymbolTable, SemanticError> {
-        let mut sa: Self = SemanticAnalyzer::default();
+    pub(crate) fn analyze(program: &node::Program) -> Result<Analysis, SemanticError> {
+        let mut analyzer: Self = SemanticAnalyzer::default();
 
-        program.accept(&mut sa);
+        program.accept(&mut analyzer);
 
         // Check that all parameter occur in the program.
-        for (symbol, count) in sa.symbol_count {
-            if count == 0 {
-                return Err(SemanticError::SymbolNotUsed(symbol, sa.name));
-            }
-        }
-
-        // Check that we have the right amount of arguments
-        if arguments.len() > sa.symbols.len() {
-            return Err(SemanticError::TooManyArguments {
-                found: arguments.len(),
-                expected: sa.symbols.len(),
-                name: sa.name,
-            });
-        }
-
-        let mut output = HashMap::new();
-
-        for (symbol, default) in sa.symbols.iter().zip(sa.defaults) {
-            output.insert(symbol, default);
-        }
-
-        for (symbol, argument) in sa.symbols.iter().zip(arguments) {
-            // clippy::inefficient_to_string
-            output.insert(symbol, Some((*argument).to_string()));
-        }
-
-        for (key, val) in &output {
-            if val.is_none() {
-                return Err(SemanticError::ArgumentRequired(
-                    // clippy::inefficient_to_string
-                    (*key).to_string(),
-                    sa.name,
+        for param in analyzer.parameters.values() {
+            if param.count == 0 {
+                return Err(SemanticError::SymbolNotUsed(
+                    param.name,
+                    analyzer.name,
                 ));
             }
         }
-        let output = output
-            .into_iter()
-            // We tested for None, unwrap should be safe.
-            .map(|(k, v)| (k.to_string(), v.unwrap()))
-            .collect();
 
-        info!("Symbol Table: {:?}", output);
+        // FIXME Get description in Semantic Analyzer
+        analyzer.description = String::new();
 
-        Ok(output)
+        Ok((
+            analyzer.name,
+            analyzer.description,
+            analyzer.parameters.into_values().collect(),
+        ))
     }
 }
 
@@ -88,16 +62,20 @@ impl Visitor<()> for SemanticAnalyzer {
     }
 
     fn visit_parameter(&mut self, parameter: &node::Parameter) {
-        let key = parameter.token.get_string_unchecked();
+        let name = parameter.token.get_string_unchecked().to_string();
 
         let default = parameter
             .default
             .as_ref()
             .map(|t| t.get_string_unchecked().to_string());
 
-        self.symbols.push(key.to_string());
-        self.symbol_count.insert(key.to_string(), 0);
-        self.defaults.push(default);
+        let param = ScriptParameter {
+            name,
+            default,
+            count: 0,
+        };
+
+        self.parameters.insert(name, param);
     }
 
     fn visit_block(&mut self, block: &node::Block) {
@@ -146,43 +124,43 @@ impl Visitor<()> for SemanticAnalyzer {
     fn visit_string(&mut self, _string: &Token) {}
 
     fn visit_symbol(&mut self, symbol: &Token) {
-        let key = symbol.get_string_unchecked().to_string();
+        let name = symbol.get_string_unchecked().to_string();
 
-        self.symbol_count.entry(key).and_modify(|c| *c += 1);
+        self.parameters.entry(name).and_modify(|p| p.count += 1);
     }
 
     fn visit_tag(&mut self, _token: &Token) {}
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ast::{node, Parser};
-    use anyhow::Result;
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     use crate::ast::{node, Parser};
+//     use anyhow::Result;
 
-    fn get_script(path: &str) -> Result<node::Program> {
-        let input_text = crate::normalize_newlines(&std::fs::read_to_string(
-            format!("testdata/script/{}", path),
-        )?);
+//     fn get_script(path: &str) -> Result<node::Program> {
+//         let input_text = crate::normalize_newlines(&std::fs::read_to_string(
+//             format!("testdata/script/{}", path),
+//         )?);
 
-        Ok(Parser::new(&input_text)?.parse()?)
-    }
+//         Ok(Parser::new(&input_text)?.parse()?)
+//     }
 
-    fn script_test(name: &str, reference: &SymbolTable) -> Result<()> {
-        let program = get_script(name)?;
+//     fn script_test(name: &str, reference: &SymbolTable) -> Result<()> {
+//         let program = get_script(name)?;
 
-        let symbol_table = SemanticAnalyzer::analyze(&program, &[])?;
+//         let symbol_table = SemanticAnalyzer::analyze(&program, &[])?;
 
-        assert_eq!(&symbol_table, reference);
+//         assert_eq!(&symbol_table, reference);
 
-        Ok(())
-    }
+//         Ok(())
+//     }
 
-    #[test]
-    fn semantic_typical_input_test() -> Result<()> {
-        let mut map = HashMap::new();
-        map.insert("folder".to_string(), "destination".to_string());
+//     #[test]
+//     fn semantic_typical_input_test() -> Result<()> {
+//         let mut map = HashMap::new();
+//         map.insert("folder".to_string(), "destination".to_string());
 
-        script_test("typical_input.tfmt", &map)
-    }
-}
+//         script_test("typical_input.tfmt", &map)
+//     }
+// }
