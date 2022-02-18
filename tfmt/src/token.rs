@@ -141,8 +141,7 @@ impl Token {
             | TokenType::ID(string)
             | TokenType::String(string) => string.as_str(),
             token_type => panic!(
-                "get_string_unchecked was called on TokenType {:?}!",
-                token_type
+                "get_string_unchecked was called on TokenType {token_type:?}!"
             ),
         }
     }
@@ -153,8 +152,7 @@ impl Token {
         match &self.token_type {
             TokenType::Integer(int) => *int,
             token_type => panic!(
-                "get_int_unchecked was called on TokenType {:?}!",
-                token_type
+                "get_int_unchecked was called on TokenType {token_type:?}!"
             ),
         }
     }

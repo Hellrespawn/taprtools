@@ -2,7 +2,6 @@ use crate::error::{ErrorContext, FunctionError};
 use crate::token::Token;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use std::convert::TryFrom;
 
 type Result<T> = std::result::Result<T, FunctionError>;
 
