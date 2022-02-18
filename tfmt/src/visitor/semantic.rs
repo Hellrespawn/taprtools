@@ -171,7 +171,7 @@ mod tests {
     use anyhow::{bail, Result};
 
     #[test]
-    fn test_analysis_full() -> Result<()> {
+    fn test_full() -> Result<()> {
         let input_text = "typical_input(folder=\"destination\") \"This file is used to test tfmttools.\"{$(folder)}";
         let program = Parser::new(&input_text)?.parse()?;
 
@@ -195,7 +195,7 @@ mod tests {
     }
 
     #[test]
-    fn test_analysis_no_description() -> Result<()> {
+    fn test_no_description() -> Result<()> {
         let input_text = "typical_input(folder=\"destination\") {$(folder)}";
         let program = Parser::new(&input_text)?.parse()?;
 
@@ -203,10 +203,7 @@ mod tests {
 
         assert_eq!(analysis.name, "typical_input");
 
-        assert_eq!(
-            analysis.description,
-            None
-        );
+        assert_eq!(analysis.description, None);
 
         assert_eq!(analysis.parameters.len(), 1);
         let param = analysis.parameters.get_mut(0).unwrap();
@@ -219,12 +216,14 @@ mod tests {
     }
 
     #[test]
-    fn test_analysis_param_not_used() -> Result<()> {
+    fn test_param_not_used() -> Result<()> {
         let input_text = "typical_input(folder=\"destination\") \"This file is used to test tfmttools.\"{}";
         let program = Parser::new(&input_text)?.parse()?;
 
         let analysis = SemanticAnalyzer::analyze(&program);
 
+        // This is the intended behavior
+        #[allow(clippy::match_wildcard_for_single_variants)]
         match analysis {
             Ok(_) => bail!("Expected SymbolNotUsed, got Ok(_)"),
             Err(err) => match err {
@@ -238,12 +237,14 @@ mod tests {
     }
 
     #[test]
-    fn test_analysis_param_not_declared() -> Result<()> {
+    fn test_param_not_declared() -> Result<()> {
         let input_text = "typical_input() \"This file is used to test tfmttools.\"{$(folder)}";
         let program = Parser::new(&input_text)?.parse()?;
 
         let analysis = SemanticAnalyzer::analyze(&program);
 
+        // This is the intended behavior
+        #[allow(clippy::match_wildcard_for_single_variants)]
         match analysis {
             Ok(_) => bail!("Expected SymbolNotDeclared, got Ok(_)"),
             Err(err) => match err {

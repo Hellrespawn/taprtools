@@ -38,6 +38,7 @@ impl ScriptParameter {
 }
 
 /// Reads a script, parses an AST and gets the name, description and parameters.
+#[derive(Debug)]
 pub struct Script {
     input_text: String,
     name: String,

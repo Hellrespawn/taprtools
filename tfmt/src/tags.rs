@@ -12,9 +12,6 @@ pub trait Tags: std::fmt::Debug {
     /// The current `[AudioFile]`s artist, if any.
     fn artist(&self) -> Option<&str>;
 
-    /// The current `[AudioFile]`s duration, if any.
-    fn duration(&self) -> Option<&str>;
-
     /// The current `[AudioFile]`s genre, if any.
     fn genre(&self) -> Option<&str>;
 

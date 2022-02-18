@@ -14,6 +14,7 @@ type Result<T> = std::result::Result<T, InterpreterError>;
 type SymbolTable = HashMap<String, String>;
 
 /// Interprets an `[AST](ast::Program)` based on tags from an [`AudioFile`].
+#[derive(Debug)]
 pub struct Interpreter {
     script: Script,
     symbol_table: SymbolTable,
@@ -276,7 +277,6 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
             "albumartist" | "album_artist" => audio_file.album_artist(),
             "albumsort" | "album_sort" => audio_file.albumsort(),
             "artist" => audio_file.artist(),
-            "duration" | "length" => audio_file.duration(),
             "disc" | "disk" | "discnumber" | "disknumber" | "disc_number"
             | "disk_number" => audio_file
                 .disc_number()
@@ -303,5 +303,128 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
             .for_each(|g| tag = tag.replace(g, ""));
 
         Ok(tag)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anyhow::{bail, Result};
+    use std::path::MAIN_SEPARATOR;
+
+    #[derive(Debug)]
+    struct MockTags;
+
+    impl Tags for MockTags {
+        fn album(&self) -> Option<&str> {
+            Some("album")
+        }
+
+        fn album_artist(&self) -> Option<&str> {
+            Some("album_artist")
+        }
+
+        fn albumsort(&self) -> Option<&str> {
+            Some("9")
+        }
+
+        fn artist(&self) -> Option<&str> {
+            Some("artist")
+        }
+
+        fn genre(&self) -> Option<&str> {
+            Some("genre")
+        }
+
+        fn raw_disc_number(&self) -> Option<&str> {
+            Some("8/9")
+        }
+
+        fn raw_track_number(&self) -> Option<&str> {
+            Some("98/99")
+        }
+
+        fn title(&self) -> Option<&str> {
+            Some("title")
+        }
+
+        fn year(&self) -> Option<&str> {
+            Some("9999")
+        }
+    }
+
+    #[cfg(unix)]
+    const TYPICAL_INPUT: &str =
+        include_str!("../../testdata/typical_input.tfmt");
+
+    #[cfg(windows)]
+    const TYPICAL_INPUT: &str =
+        include_str!("..\\..\\testdata\\typical_input.tfmt");
+
+    fn expected_output() -> String {
+        "argument\\album_artist\\9999.09 - album\\898 - artist - title"
+            .replace('\\', &MAIN_SEPARATOR.to_string())
+            .replace('/', &MAIN_SEPARATOR.to_string())
+    }
+
+    #[test]
+    fn test_full() -> Result<()> {
+        let script = Script::new(TYPICAL_INPUT)?;
+        let mut interpreter =
+            Interpreter::new(script, vec!["argument".to_string()])?;
+
+        let file = MockTags;
+
+        let output = interpreter.interpret(&file)?;
+
+        assert_eq!(output, expected_output());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_too_few_arguments() -> Result<()> {
+        let script = Script::new(TYPICAL_INPUT)?;
+
+        match Interpreter::new(script, vec![]) {
+            Ok(out) => {
+                bail!("Expected InterpreterError::ArgumentRequired(\"folder\"), got Ok({out:?})")
+            }
+            Err(err) => match err {
+                InterpreterError::ArgumentRequired(param) => {
+                    assert_eq!(param, "folder".to_string());
+                    Ok(())
+                }
+                other => {
+                    bail!("Expected InterpreterError::ArgumentRequired(\"folder\"), got Err({other})")
+                }
+            },
+        }
+    }
+
+    #[test]
+    fn test_too_much_arguments() -> Result<()> {
+        let script = Script::new(TYPICAL_INPUT)?;
+
+        let result = Interpreter::new(
+            script,
+            vec!["a".to_string(), "b".to_string(), "c".to_string()],
+        );
+
+        match result {
+            Ok(out) => {
+                bail!("Expected TooManyArgument(3, 1), got Ok({out:?})")
+            }
+            Err(err) => match err {
+                InterpreterError::TooManyArguments { found, expected } => {
+                    assert_eq!(found, 3);
+                    assert_eq!(expected, 1);
+                    Ok(())
+                }
+                other => {
+                    bail!("Expected Expected TooManyArgument(3, 1), got Err({other})")
+                }
+            },
+        }
     }
 }
