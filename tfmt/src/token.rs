@@ -3,13 +3,6 @@ use std::str::FromStr;
 
 type Result<T> = std::result::Result<T, TokenError>;
 
-/// Forbidden graphemes that are part of TFMT.
-pub(crate) const FORBIDDEN_GRAPHEMES: [&str; 8] =
-    ["<", ">", ":", "\"", "|", "?", "*", "~"];
-
-/// Directory separators.
-pub(crate) static DIRECTORY_SEPARATORS: [&str; 2] = ["/", "\\"];
-
 /// Represents the type of token, and optionally it's value.
 #[derive(Clone, Debug, PartialEq)]
 #[allow(missing_docs)]

@@ -5,29 +5,30 @@
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::missing_panics_doc)]
 #![allow(clippy::module_name_repetitions)]
+#![allow(clippy::doc_markdown)]
 //! Constructs a string based on a script and audiofile tags
 
-/// Abstract syntax tree
-pub(crate) mod ast;
-/// Functions
-pub(crate) mod function;
-/// `Lexer`
-pub(crate) mod lexer;
-/// `Token` and `TokenType`
-pub(crate) mod token;
+mod ast;
+mod error;
+mod function;
+mod lexer;
+mod script;
+mod tags;
+mod token;
+mod visitor;
 
-/// Crate errors.
-pub mod error;
-/// Script struct
-pub mod script;
-/// [`AudioFile`] trait
-pub mod tags;
-/// `Node` Visitors
-pub mod visitor;
-
+pub use script::Script;
 pub use tags::Tags;
+pub use visitor::Interpreter;
 
 use std::path::MAIN_SEPARATOR;
+
+/// Forbidden graphemes that are part of TFMT.
+pub(crate) const FORBIDDEN_GRAPHEMES: [&str; 8] =
+    ["<", ">", ":", "\"", "|", "?", "*", "~"];
+
+/// Directory separators.
+pub(crate) static DIRECTORY_SEPARATORS: [&str; 2] = ["/", "\\"];
 
 /// Normalizes newlines in `string`.
 pub(crate) fn normalize_newlines<S: AsRef<str>>(string: &S) -> String {

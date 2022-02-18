@@ -1,12 +1,10 @@
 #[allow(clippy::wildcard_imports)]
 use crate::ast::node::*;
-use crate::visitor::Visitor;
 use crate::error::{ErrorContext, InterpreterError};
 use crate::script::Script;
 use crate::tags::Tags;
-use crate::token::{
-    Token, TokenType, DIRECTORY_SEPARATORS, FORBIDDEN_GRAPHEMES,
-};
+use crate::token::{Token, TokenType};
+use crate::visitor::Visitor;
 use itertools::EitherOrBoth::{Both, Left, Right};
 use itertools::Itertools;
 use log::trace;
@@ -24,7 +22,6 @@ pub struct Interpreter {
 impl Interpreter {
     /// Create new interpreter
     pub fn new(script: Script, arguments: Vec<String>) -> Result<Self> {
-        // FIXME Construct symbol table with arguments here.
         let symbol_table =
             Interpreter::construct_symbol_table(&script, arguments)?;
 
@@ -32,6 +29,21 @@ impl Interpreter {
             script,
             symbol_table,
         })
+    }
+
+    /// Public function for interpreter.
+    pub fn interpret(&mut self, audio_file: &dyn Tags) -> Result<String> {
+        let string = crate::normalize_separators(&self.script.accept_visitor(
+            &mut IntpVisitor {
+                input_text: self.script.input_text(),
+                symbol_table: &self.symbol_table,
+                audio_file,
+            },
+        )?);
+
+        trace!(r#"Out: "{}""#, string);
+
+        Ok(string)
     }
 
     fn construct_symbol_table(
@@ -59,7 +71,6 @@ impl Interpreter {
                         // default not present
                         return Err(InterpreterError::ArgumentRequired(
                             param.name().to_string(),
-                            script.name().to_string(),
                         ));
                     }
                 }
@@ -68,28 +79,12 @@ impl Interpreter {
                     return Err(InterpreterError::TooManyArguments {
                         found: amount_of_arguments,
                         expected: script.parameters().len(),
-                        name: script.name().to_string(),
                     });
                 }
             }
         }
 
         Ok(symbol_table)
-    }
-
-    /// Public function for interpreter.
-    pub fn interpret(&mut self, audio_file: &dyn Tags) -> Result<String> {
-        let string = crate::normalize_separators(&self.script.accept_visitor(
-            &mut IntpVisitor {
-                input_text: self.script.input_text(),
-                symbol_table: &self.symbol_table,
-                audio_file,
-            },
-        )?);
-
-        trace!(r#"Out: "{}""#, string);
-
-        Ok(string)
     }
 
     fn strip_leading_zeroes(number: &str) -> &str {
@@ -299,11 +294,11 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
 
         // TODO? Add strict mode, which allows/denies/errors on forbidden
         // characters/directory separators.
-        FORBIDDEN_GRAPHEMES
+        crate::FORBIDDEN_GRAPHEMES
             .iter()
             .for_each(|g| tag = tag.replace(g, ""));
 
-        DIRECTORY_SEPARATORS
+        crate::DIRECTORY_SEPARATORS
             .iter()
             .for_each(|g| tag = tag.replace(g, ""));
 

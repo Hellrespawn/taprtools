@@ -5,7 +5,7 @@ use crate::ast::node::*;
 use crate::token::Token;
 
 /// [Visitor] visits [Node]s and returns `T`.
-pub trait Visitor<T> {
+pub(crate) trait Visitor<T> {
     fn visit_program(&mut self, program: &Program) -> T;
 
     fn visit_parameters(&mut self, parameters: &Parameters) -> T;

@@ -1,10 +1,9 @@
-///Interpreter
-pub(crate) mod interpreter;
-/// Semantic Analysis
+pub(crate) mod dot;
 pub(crate) mod semantic;
-/// Visitor Trait
-pub(crate) mod visitor;
 
-pub(crate) use visitor::Visitor;
+mod interpreter;
+mod visitor_trait;
+
+pub(crate) use visitor_trait::Visitor;
 
 pub use interpreter::Interpreter;

@@ -1,5 +1,5 @@
 use crate::error::{ErrorContext, FunctionError};
-use crate::token::{Token, DIRECTORY_SEPARATORS, FORBIDDEN_GRAPHEMES};
+use crate::token::Token;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::convert::TryFrom;
@@ -119,10 +119,10 @@ fn function_split(
 fn function_validate(string: &str) -> String {
     let mut out = String::from(string);
 
-    FORBIDDEN_GRAPHEMES
+    crate::FORBIDDEN_GRAPHEMES
         .iter()
         .for_each(|g| out = out.replace(g, ""));
-    DIRECTORY_SEPARATORS
+    crate::DIRECTORY_SEPARATORS
         .iter()
         .for_each(|g| out = out.replace(g, ""));
 

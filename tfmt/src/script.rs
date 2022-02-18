@@ -1,11 +1,41 @@
 use crate::ast::node::{Node, Program};
+use crate::visitor::dot::DotGenerator;
+use crate::visitor::semantic::{Analysis, SemanticAnalyzer};
 use crate::visitor::Visitor;
-use crate::visitor::semantic::{Analysis, ScriptParameter, SemanticAnalyzer};
 
-use crate::ast::{Parser};
+use crate::ast::Parser;
 use crate::error::ScriptError;
 
 type Result<T> = std::result::Result<T, ScriptError>;
+
+#[derive(Debug)]
+pub struct ScriptParameter {
+    name: String,
+    default: Option<String>,
+    count: u64,
+}
+
+impl ScriptParameter {
+    pub(crate) fn new(name: String, default: Option<String>) -> Self {
+        ScriptParameter {
+            name,
+            default,
+            count: 0,
+        }
+    }
+
+    pub(crate) fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub(crate) fn default(&self) -> Option<&str> {
+        self.default.as_deref()
+    }
+
+    pub(crate) fn count(&mut self) -> &mut u64 {
+        &mut self.count
+    }
+}
 
 /// Reads a script, parses an AST and gets the name, description and parameters.
 pub struct Script {
@@ -62,7 +92,12 @@ impl Script {
     }
 
     /// Accepts a visitor
-    pub fn accept_visitor<T>(&self, visitor: &mut dyn Visitor<T>) -> T {
+    pub(crate) fn accept_visitor<T>(&self, visitor: &mut dyn Visitor<T>) -> T {
         self.program.accept(visitor)
+    }
+
+    /// Generate GraphViz .dot file of the Abstract Syntax Tree
+    pub fn create_ast_dot(&self) -> String {
+        DotGenerator::create_ast_dot(self)
     }
 }

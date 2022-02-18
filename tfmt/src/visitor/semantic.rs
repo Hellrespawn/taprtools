@@ -1,25 +1,9 @@
 use crate::ast::node::{self, Node};
-use crate::visitor::Visitor;
 use crate::error::SemanticError;
+use crate::script::ScriptParameter;
 use crate::token::Token;
+use crate::visitor::Visitor;
 use std::collections::HashMap;
-
-#[derive(Debug)]
-pub struct ScriptParameter {
-    name: String,
-    default: Option<String>,
-    count: u64,
-}
-
-impl ScriptParameter {
-    pub(crate) fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub(crate) fn default(&self) -> Option<&str> {
-        self.default.as_deref()
-    }
-}
 
 pub(crate) struct Analysis {
     pub(crate) name: String,
@@ -45,11 +29,10 @@ impl SemanticAnalyzer {
         program.accept(&mut analyzer);
 
         // Check that all parameter occur in the program.
-        for param in analyzer.parameters.values() {
-            if param.count == 0 {
+        for param in analyzer.parameters.values_mut() {
+            if (*param.count()) == 0 {
                 return Err(SemanticError::SymbolNotUsed(
-                    param.name.clone(),
-                    analyzer.name,
+                    param.name().to_string(),
                 ));
             }
         }
@@ -80,11 +63,7 @@ impl Visitor<()> for SemanticAnalyzer {
 
         let default = parameter.default();
 
-        let param = ScriptParameter {
-            name: name.clone(),
-            default,
-            count: 0,
-        };
+        let param = ScriptParameter::new(name.clone(), default);
 
         self.parameters.insert(name, param);
     }
@@ -137,7 +116,9 @@ impl Visitor<()> for SemanticAnalyzer {
     fn visit_symbol(&mut self, symbol: &Token) {
         let name = symbol.get_string_unchecked().to_string();
 
-        self.parameters.entry(name).and_modify(|p| p.count += 1);
+        self.parameters
+            .entry(name)
+            .and_modify(|p| (*p.count()) += 1);
     }
 
     fn visit_tag(&mut self, _token: &Token) {}

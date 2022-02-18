@@ -1,5 +1,5 @@
 use super::error::{ErrorContext, LexerError};
-use super::token::{Token, TokenType, FORBIDDEN_GRAPHEMES};
+use super::token::{Token, TokenType};
 use crate::normalize_newlines;
 use buffered_iterator::{buffered, BufferedIterator};
 use log::{debug, trace};
@@ -189,7 +189,7 @@ impl<'a> Lexer<'a> {
         }?;
 
         for grapheme in string.graphemes(true) {
-            if FORBIDDEN_GRAPHEMES.contains(&grapheme) {
+            if crate::FORBIDDEN_GRAPHEMES.contains(&grapheme) {
                 return Err(LexerError::ForbiddenGrapheme(
                     ctx,
                     grapheme.to_string(),

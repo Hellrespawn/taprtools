@@ -138,15 +138,6 @@ pub enum ParserError {
     Lexer(#[from] LexerError),
 }
 
-#[derive(Error, Debug)]
-/// Error from the [genastdot] module.
-pub enum DotError {
-    #[allow(clippy::doc_markdown)]
-    /// Unable to run dot! Is GraphViz installed and is it in PATH?
-    #[error("Unable to run dot! Is GraphViz installed and is it in PATH?")]
-    CantRun,
-}
-
 /// Errors in [function] module.
 #[derive(Error, Debug)]
 pub enum FunctionError {
@@ -175,8 +166,8 @@ pub enum FunctionError {
 /// Error from the [genastdot] module.
 pub enum SemanticError {
     /// "Symbol never occurs in program."
-    #[error(r#"Symbol "{0}" never occurs in program "{1}"!"#)]
-    SymbolNotUsed(String, String),
+    #[error(r#"Symbol "{0}" never occurs in program!"#)]
+    SymbolNotUsed(String),
 }
 
 #[derive(Error, Debug)]
@@ -191,16 +182,12 @@ pub enum InterpreterError {
     },
 
     /// Too many arguments for program.
-    #[error(r#"Too many arguments ({found}) for program "{name}", expected {expected}!"#)]
-    TooManyArguments {
-        found: usize,
-        expected: usize,
-        name: String,
-    },
+    #[error(r#"Found {found} arguments, expected {expected}!"#)]
+    TooManyArguments { found: usize, expected: usize },
 
     /// Argument is required in program.
-    #[error(r#"Argument "{0}" is required in program "{1}"!"#)]
-    ArgumentRequired(String, String),
+    #[error(r#"Argument "{0}" is required!"#)]
+    ArgumentRequired(String),
 
     #[error(transparent)]
     Lexer(#[from] LexerError),
@@ -216,26 +203,6 @@ pub enum InterpreterError {
 
     #[error(transparent)]
     ParseInt(#[from] std::num::ParseIntError),
-}
-
-#[derive(Error, Debug)]
-/// Error from the [`Inspector`] module.
-pub enum InspectorError {
-    #[error(transparent)]
-    IO(#[from] std::io::Error),
-
-    #[error(transparent)]
-    Parser(#[from] ParserError),
-}
-
-#[derive(Error, Debug)]
-/// Error from the [`Visualizer`] module.
-pub enum VisualizerError {
-    #[error(transparent)]
-    Dot(#[from] DotError),
-
-    #[error(transparent)]
-    IO(#[from] std::io::Error),
 }
 
 #[derive(Error, Debug)]
