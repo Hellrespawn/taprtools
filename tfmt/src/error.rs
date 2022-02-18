@@ -168,6 +168,10 @@ pub enum SemanticError {
     /// "Symbol never occurs in program."
     #[error(r#"Symbol "{0}" never occurs in program!"#)]
     SymbolNotUsed(String),
+
+    /// "Symbol never occurs in program."
+    #[error(r#"Symbol "{0}" is not declared in script!"#)]
+    SymbolNotDeclared(String),
 }
 
 #[derive(Error, Debug)]
