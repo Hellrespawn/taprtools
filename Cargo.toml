@@ -39,7 +39,8 @@ tempfile = "3"
 [workspace]
 members = [
     "./buffered-iterator",
-    "./file-history"
+    "./file-history",
+    "./test-harness"
 ]
 
 [profile.release]
