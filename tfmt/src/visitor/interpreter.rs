@@ -384,7 +384,9 @@ mod tests {
 
     #[test]
     fn test_too_few_arguments() -> Result<()> {
-        let script = Script::new(TYPICAL_INPUT)?;
+        // Remove default argument
+        let script =
+            Script::new(TYPICAL_INPUT.replace("=\"destination\"", ""))?;
 
         match Interpreter::new(script, vec![]) {
             Ok(out) => {

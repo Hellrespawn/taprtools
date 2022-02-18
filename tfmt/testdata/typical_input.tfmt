@@ -1,4 +1,4 @@
-typical_input(folder) "This file is used to test tfmttools."
+typical_input(folder="destination") "This file is used to test tfmttools."
 {
     $(folder) "/"
     <albumartist> | <artist>
