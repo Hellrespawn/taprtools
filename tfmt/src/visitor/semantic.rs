@@ -195,6 +195,30 @@ mod tests {
     }
 
     #[test]
+    fn test_analysis_no_description() -> Result<()> {
+        let input_text = "typical_input(folder=\"destination\") {$(folder)}";
+        let program = Parser::new(&input_text)?.parse()?;
+
+        let mut analysis = SemanticAnalyzer::analyze(&program)?;
+
+        assert_eq!(analysis.name, "typical_input");
+
+        assert_eq!(
+            analysis.description,
+            None
+        );
+
+        assert_eq!(analysis.parameters.len(), 1);
+        let param = analysis.parameters.get_mut(0).unwrap();
+
+        assert_eq!(param.name(), "folder");
+        assert_eq!(param.default(), Some("destination"));
+        assert_eq!((*param.count()), 1);
+
+        Ok(())
+    }
+
+    #[test]
     fn test_analysis_param_not_used() -> Result<()> {
         let input_text = "typical_input(folder=\"destination\") \"This file is used to test tfmttools.\"{}";
         let program = Parser::new(&input_text)?.parse()?;
