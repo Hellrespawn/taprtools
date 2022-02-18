@@ -11,14 +11,14 @@ pub mod error;
 /// Contains [History]
 pub mod history;
 
-pub(crate) mod actiongroup;
-pub(crate) mod disk;
-pub(crate) use actiongroup::ActionGroup;
-pub(crate) use disk::DiskHandler;
+mod actiongroup;
+mod disk;
+
+use actiongroup::ActionGroup;
+use disk::DiskHandler;
 
 pub use action::Action;
 pub use history::History;
-
 pub use error::HistoryError;
 
 /// Wrapper for Result
