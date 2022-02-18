@@ -98,6 +98,6 @@ impl Script {
 
     /// Generate GraphViz .dot file of the Abstract Syntax Tree
     pub fn create_ast_dot(&self) -> String {
-        DotGenerator::create_ast_dot(self)
+        DotGenerator::create_ast_dot(&self.program)
     }
 }

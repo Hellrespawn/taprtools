@@ -1,5 +1,4 @@
-use crate::ast::node::{self, Expression, Node};
-use crate::script::Script;
+use crate::ast::node::{self, Expression, Node, Program};
 use crate::token::Token;
 use crate::visitor::Visitor;
 
@@ -10,7 +9,7 @@ pub(crate) struct DotGenerator {
 
 impl DotGenerator {
     /// Construct a GraphViz dot-file from a [`node::Program`].
-    pub(crate) fn create_ast_dot(script: &Script) -> String {
+    pub(crate) fn create_ast_dot(program: &Program) -> String {
         let mut dot_builder = Self { counter: 0 };
 
         let mut dot = "digraph astgraph {\n  \
@@ -21,7 +20,7 @@ impl DotGenerator {
             ranksep=0.75;\n  "
             .to_string();
 
-        dot.push_str(&script.accept_visitor(&mut dot_builder));
+        dot.push_str(&program.accept(&mut dot_builder));
 
         dot.push('}');
 
