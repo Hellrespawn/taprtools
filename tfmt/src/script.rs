@@ -1,7 +1,8 @@
 use crate::ast::node::{Node, Program};
-use crate::visitors::{ScriptParameter, SemanticAnalyzer};
+use crate::visitor::Visitor;
+use crate::visitor::semantic::{Analysis, ScriptParameter, SemanticAnalyzer};
 
-use crate::ast::{Parser, Visitor};
+use crate::ast::{Parser};
 use crate::error::ScriptError;
 
 type Result<T> = std::result::Result<T, ScriptError>;
@@ -25,8 +26,11 @@ impl Script {
         let mut parser = Parser::new(&input)?;
         let program = parser.parse()?;
 
-        let (name, description, parameters) =
-            SemanticAnalyzer::analyze(&program)?;
+        let Analysis {
+            name,
+            description,
+            parameters,
+        } = SemanticAnalyzer::analyze(&program)?;
 
         Ok(Script {
             input_text,

@@ -1,8 +1,7 @@
 #[allow(clippy::wildcard_imports)]
 use crate::ast::node::*;
-use crate::ast::Visitor;
+use crate::visitor::Visitor;
 use crate::error::{ErrorContext, InterpreterError};
-use crate::function::handle_function;
 use crate::script::Script;
 use crate::tags::Tags;
 use crate::token::{
@@ -248,7 +247,11 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
             .map(|a| a.accept(self))
             .collect::<Result<Vec<String>>>()?;
 
-        Ok(handle_function(&self.input_text, start_token, &arguments)?)
+        Ok(crate::function::handle_function(
+            &self.input_text,
+            start_token,
+            &arguments,
+        )?)
     }
 
     fn visit_integer(&mut self, integer: &Token) -> Result<String> {

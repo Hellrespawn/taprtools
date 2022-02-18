@@ -23,7 +23,7 @@ pub mod script;
 /// [`AudioFile`] trait
 pub mod tags;
 /// `Node` Visitors
-pub mod visitors;
+pub mod visitor;
 
 pub use tags::Tags;
 

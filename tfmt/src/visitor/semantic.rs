@@ -1,5 +1,5 @@
 use crate::ast::node::{self, Node};
-use crate::ast::Visitor;
+use crate::visitor::Visitor;
 use crate::error::SemanticError;
 use crate::token::Token;
 use std::collections::HashMap;
@@ -21,7 +21,11 @@ impl ScriptParameter {
     }
 }
 
-pub(crate) type Analysis = (String, Option<String>, Vec<ScriptParameter>);
+pub(crate) struct Analysis {
+    pub(crate) name: String,
+    pub(crate) description: Option<String>,
+    pub(crate) parameters: Vec<ScriptParameter>,
+}
 
 /// Walks AST and checks for symbols.
 #[derive(Default)]
@@ -50,11 +54,11 @@ impl SemanticAnalyzer {
             }
         }
 
-        Ok((
-            analyzer.name,
-            analyzer.description,
-            analyzer.parameters.into_values().collect(),
-        ))
+        Ok(Analysis {
+            name: analyzer.name,
+            description: analyzer.description,
+            parameters: analyzer.parameters.into_values().collect(),
+        })
     }
 }
 

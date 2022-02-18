@@ -1,5 +1,5 @@
 #![allow(missing_docs)]
-use crate::ast::visitor::Visitor;
+use crate::visitor::Visitor;
 use crate::token::Token;
 
 /// [Node] accepts a [Visitor], according to the [Visitor pattern].
