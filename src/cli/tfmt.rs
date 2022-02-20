@@ -67,9 +67,8 @@ impl<'a> TFMTTools<'a> {
     }
 
     fn clear_history(&self) -> Result<()> {
-        match History::load_file(
-            &self.args.config_folder.join(HISTORY_FILENAME),
-            false,
+        match History::new(
+            &self.args.config_folder.join(HISTORY_FILENAME)
         ) {
             Ok(mut history) => {
                 if self.args.preview {
@@ -115,11 +114,9 @@ impl<'a> TFMTTools<'a> {
         // Creating a new history will make history.history_action() return
         // without doing anything, thus never setting history.changed.
         // We run history.save() purely for the side effects.
-        let mut history = History::load_file(
+        let mut history = History::new(
             &self.args.config_folder.join(HISTORY_FILENAME),
-            false,
-        )
-        .unwrap_or_else(|_| History::new(false));
+        )?;
 
         if self.args.preview {
             println!("[P] Redoing {} times.", amount);
@@ -140,11 +137,10 @@ impl<'a> TFMTTools<'a> {
         // Creating a new history will make history.history_action() return
         // without doing anything, thus never setting history.changed.
         // We run history.save() purely for the side effects.
-        let mut history = History::load_file(
+        let mut history = History::new(
             &self.args.config_folder.join(HISTORY_FILENAME),
-            false,
-        )
-        .unwrap_or_else(|_| History::new(false));
+
+        )?;
 
         if self.args.preview {
             println!("[P] Undoing {} times.", amount);

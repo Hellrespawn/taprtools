@@ -1,16 +1,21 @@
 use thiserror::Error;
 
 #[derive(Error, Debug)]
+/// Error relating to file-history
 pub enum HistoryError {
-    #[error("Unable to save history, there is no associated path!")]
-    NoPath,
-
+    /// Represents std::io::Error
     #[error("I/O error: {0}")]
     IO(#[from] std::io::Error),
 
-    #[error("SerDe error: {0}")]
-    SerDe(#[from] bincode::Error),
+    /// Represents serde_json::Error
+    // #[error("JSON error: {0}")]
+    // JSON(#[from] serde_json::Error),
 
-    #[error("TryFromInt error: {0}")]
-    TryFromInt(#[from] std::num::TryFromIntError),
+    /// Represents bincode::Error
+    #[error("Bincode error: {0}")]
+    Bincode(#[from] bincode::Error),
+
+    /// Represents a generic error
+    #[error("{0}")]
+    Generic(String),
 }

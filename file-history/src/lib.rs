@@ -1,18 +1,25 @@
+#![warn(missing_docs)]
+#![warn(clippy::pedantic)]
+//#![warn(clippy::cargo)]
+#![allow(clippy::must_use_candidate)]
+//! This crate tracks moving of files and creation and deletion of folders in a reversible
+
+/// Contains [Action]
 pub mod action;
+/// Contains [HistoryError]
 pub mod error;
+/// Contains [History]
 pub mod history;
 
+mod actiongroup;
+mod disk;
+
+use actiongroup::ActionGroup;
+use disk::DiskHandler;
+
 pub use action::Action;
+pub use history::History;
 pub use error::HistoryError;
-pub use history::{ActionGroup, History, Stack};
 
-pub type Result<T> = std::result::Result<T, error::HistoryError>;
-
-/// Titlecases `string`.
-pub fn titlecase(string: &str) -> String {
-    let mut chars = string.chars();
-    match chars.next() {
-        None => String::new(),
-        Some(f) => f.to_uppercase().collect::<String>() + chars.as_str(),
-    }
-}
+/// Wrapper for Result
+pub type Result<T> = std::result::Result<T, HistoryError>;

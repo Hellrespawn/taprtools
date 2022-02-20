@@ -1,80 +1,27 @@
 use crate::Result;
 use log::trace;
 use serde::{Deserialize, Serialize};
-use std::fmt::{self, Display};
 use std::path::{Path, PathBuf};
 
-/// Represents a single, undoable [Action].
-#[derive(Debug, Deserialize, Serialize)]
+/// Action is responsible for doing and undoing filesystem operations
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub enum Action {
-    Move { source: PathBuf, target: PathBuf },
-    CreateDir(PathBuf),
+    /// Represents the moving of a file.
+    Move {
+        /// Source path
+        source: PathBuf,
+        /// Target path
+        target: PathBuf,
+    },
+    /// Represents the creating of a directory
+    MakeDir(PathBuf),
+    /// Represents the deletion of a directory
     RemoveDir(PathBuf),
 }
 
-impl Display for Action {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // Printing a custom struct/enum seems to always include a curly brace
-        // after the name, so this unwrap should be safe.
-        let string = format!("{:?}", self);
-        let split = string.split_once("{");
-
-        debug_assert!(split.is_some());
-
-        write!(f, "{}", split.unwrap().0.trim())?;
-        match self {
-            Self::CreateDir(path) | Self::RemoveDir(path) => {
-                write!(f, ": {}", path.display())
-            }
-            Self::Move { source, target } => {
-                write!(f, ": {}\nto: {}", source.display(), target.display())
-            }
-        }
-    }
-}
-
 impl Action {
-    pub fn move_file<P, Q>(source: P, target: Q) -> Self
-    where
-        P: AsRef<Path>,
-        Q: AsRef<Path>,
-    {
-        Action::Move {
-            source: PathBuf::from(source.as_ref()),
-            target: PathBuf::from(target.as_ref()),
-        }
-    }
-
-    fn copy_or_move_file<P, Q>(source: P, target: Q) -> Result<()>
-    where
-        P: AsRef<Path>,
-        Q: AsRef<Path>,
-    {
-        if let Err(err) = std::fs::rename(&source, &target) {
-            // Can't rename across filesystem boundaries. Checks for
-            // the appropriate error and changes the mode henceforth.
-            // Error codes are correct on Windows 10 20H2 and Arch
-            // Linux.
-
-            #[cfg(windows)]
-            let expected_error = err.to_string().contains("os error 17");
-
-            #[cfg(unix)]
-            let expected_error = err.to_string().contains("os error 18");
-
-            if !expected_error {
-                return Err(err.into());
-            } else {
-                std::fs::copy(&source, &target)?;
-                std::fs::remove_file(&source)?;
-            }
-        }
-
-        Ok(())
-    }
-
-    /// Applies or "does" the action.
-    pub fn apply(&self) -> Result<()> {
+    /// Applies the action
+    pub(crate) fn apply(&self) -> Result<()> {
         match self {
             Action::Move { source, target } => {
                 Action::copy_or_move_file(source, target)?;
@@ -87,7 +34,7 @@ impl Action {
             }
 
             // TODO? Fail silently if dir already exists?
-            Action::CreateDir(path) => {
+            Action::MakeDir(path) => {
                 std::fs::create_dir(path)?;
                 trace!("Created directory {}", path.display());
             }
@@ -113,9 +60,7 @@ impl Action {
                 );
             }
 
-            Action::CreateDir(path) => {
-                trace!("Undoing directory {}", path.display());
-
+            Action::MakeDir(path) => {
                 std::fs::remove_dir(path)?;
 
                 trace!("Undid directory {}", path.display());
@@ -131,13 +76,134 @@ impl Action {
         Ok(())
     }
 
-    /// Alias for `self.apply`.
-    pub fn r#do(&self) -> Result<()> {
-        self.apply()
+    fn copy_or_move_file<P, Q>(source: P, target: Q) -> Result<()>
+    where
+        P: AsRef<Path>,
+        Q: AsRef<Path>,
+    {
+        if let Err(err) = std::fs::rename(&source, &target) {
+            // Can't rename across filesystem boundaries. Checks for
+            // the appropriate error and copies/deletes instead.
+            // Error codes are correct on Windows 10 20H2 and Arch
+            // Linux.
+            // FIXME Use ErrorKind::CrossesDevices when it enters stable
+
+            if let Some(error_code) = err.raw_os_error() {
+                #[cfg(windows)]
+                let expected_error_code = 17;
+
+                #[cfg(unix)]
+                let expected_error_code = 18;
+
+                return if expected_error_code == error_code {
+                    std::fs::copy(&source, &target)?;
+                    std::fs::remove_file(&source)?;
+                    Ok(())
+                } else {
+                    Err(err.into())
+                };
+            }
+
+            return Err(err.into());
+        }
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    // TODO Write test for applying twice
+    // TODO Write test for undoing before applying
+    // TODO Write test for undoing file that's been moved
+    use super::*;
+    use tempfile::{Builder, NamedTempFile, TempDir};
+
+    static PREFIX: &str = "rust-file-history-action-";
+
+    fn get_temporary_dir() -> Result<TempDir> {
+        let dir = Builder::new().prefix(PREFIX).tempdir()?;
+        Ok(dir)
     }
 
-    /// Redoes the action. Currently only delegates to `self.apply`.
-    pub fn redo(&self) -> Result<()> {
-        self.apply()
+    fn get_temporary_file(path: &Path) -> Result<NamedTempFile> {
+        let tempfile = NamedTempFile::new_in(path)?;
+        Ok(tempfile)
+    }
+
+    #[test]
+    fn test_make_dir() -> Result<()> {
+        let dir = get_temporary_dir()?;
+        let path = dir.path().join("test");
+        let mkdir = Action::MakeDir(path.to_path_buf());
+
+        // Before: doesn't exist
+        assert!(!path.is_dir());
+
+        mkdir.apply()?;
+
+        // Applied: exists
+        assert!(path.is_dir());
+
+        mkdir.undo()?;
+
+        // Undone: doesn't exist
+        assert!(!path.is_dir());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_remove_dir() -> Result<()> {
+        let dir = get_temporary_dir()?;
+
+        // Before: exists
+        assert!(dir.path().is_dir());
+
+        let rmdir = Action::RemoveDir(dir.path().to_path_buf());
+
+        rmdir.apply()?;
+
+        // Applied: doesn't exist
+        assert!(!dir.path().is_dir());
+
+        rmdir.undo()?;
+
+        // Undone: exists
+        assert!(dir.path().is_dir());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_move() -> Result<()> {
+        let dir = get_temporary_dir()?;
+        let file = get_temporary_file(dir.path())?;
+
+        let source = file.path().to_path_buf();
+        let target = file.path().with_file_name("test").to_path_buf();
+
+        // Before: source exists, target doesn't
+        assert!(source.is_file());
+        assert!(!target.is_file());
+
+        let mv = Action::Move {
+            source: source.to_path_buf(),
+            target: target.to_path_buf(),
+        };
+
+        mv.apply()?;
+
+        // Applied: source doesn't, target exists
+        assert!(!source.is_file());
+        assert!(target.is_file());
+
+        mv.undo()?;
+
+        // Undone: source exists, target doesn't
+        assert!(source.is_file());
+        assert!(!target.is_file());
+
+        Ok(())
     }
 }
