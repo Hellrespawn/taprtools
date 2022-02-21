@@ -1,6 +1,23 @@
+use crate::cli::Config;
 use anyhow::Result;
-use std::path::PathBuf;
+use file_history::History;
 
-pub(crate) fn main(preview: bool, config: PathBuf) -> Result<()> {
-    todo!()
+pub(crate) struct ClearHistory {
+    preview: bool,
+    config: Config,
+    history: History,
+}
+
+impl ClearHistory {
+    pub(crate) fn new(preview: bool, config: Config, history: History) -> Self {
+        Self {
+            preview,
+            config,
+            history,
+        }
+    }
+
+    pub(crate) fn run(&self) -> Result<()> {
+        todo!()
+    }
 }

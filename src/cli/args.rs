@@ -1,7 +1,9 @@
-use crate::cli::config::DEFAULT_RECURSION_DEPTH;
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
+
+const DEFAULT_PREVIEW_AMOUNT: usize = 8;
+const DEFAULT_RECURSION_DEPTH: usize = 4;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -17,7 +19,7 @@ pub struct Args {
     preview: bool,
 
     #[clap(subcommand)]
-    command: Command,
+    pub(crate) command: Command,
 }
 
 #[derive(Subcommand, Debug)]

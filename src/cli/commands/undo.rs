@@ -1,16 +1,28 @@
+use crate::cli::Config;
 use anyhow::Result;
-use std::path::PathBuf;
+use file_history::History;
 
-pub(crate) enum ActionType {
+pub(crate) enum UndoMode {
     Undo,
     Redo,
 }
 
-pub(crate) fn main(
-    action_type: ActionType,
+pub(crate) struct Undo {
     preview: bool,
-    times: usize,
-    config: PathBuf,
-) -> Result<()> {
-    todo!()
+    config: Config,
+    history: History,
+}
+
+impl Undo {
+    pub(crate) fn new(preview: bool, config: Config, history: History) -> Self {
+        Self {
+            preview,
+            config,
+            history,
+        }
+    }
+
+    pub(crate) fn run(&self, mode: UndoMode, times: usize) -> Result<()> {
+        todo!()
+    }
 }

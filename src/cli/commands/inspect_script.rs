@@ -1,6 +1,16 @@
+use crate::cli::Config;
 use anyhow::Result;
-use std::path::PathBuf;
 
-pub(crate) fn main(config: PathBuf, name: &str) -> Result<()> {
-    todo!()
+pub(crate) struct InspectScript {
+    config: Config,
+}
+
+impl InspectScript {
+    pub(crate) fn new(config: Config) -> Self {
+        Self { config }
+    }
+
+    pub(crate) fn run(&self, name: &str) -> Result<()> {
+        todo!()
+    }
 }

@@ -7,12 +7,7 @@ pub(crate) mod config;
 /// Validate interpreted paths
 pub(crate) mod validate;
 
-use anyhow::Result;
+pub(crate) use config::Config;
 
-/// Main entrypoint for tfmttools
-pub fn main(preview_override: bool) -> Result<()> {
-    let args = crate::cli::args::parse_args(preview_override);
-    dbg!(args);
-    println!("tfmt CLI");
-    Ok(())
-}
+mod main;
+pub use main::main;
