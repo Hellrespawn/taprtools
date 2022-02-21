@@ -1,5 +1,0 @@
-Done actions:
-[1/1] ActionGroup: [14: 9 cr, 5 rn, 0 rm]
-
-Undone actions:
-[1/1] ActionGroup: [22: 9 cr, 5 rn, 8 rm]

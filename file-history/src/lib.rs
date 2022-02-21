@@ -18,8 +18,8 @@ use actiongroup::ActionGroup;
 use disk::DiskHandler;
 
 pub use action::Action;
-pub use history::History;
 pub use error::HistoryError;
+pub use history::History;
 
 /// Wrapper for Result
 pub type Result<T> = std::result::Result<T, HistoryError>;

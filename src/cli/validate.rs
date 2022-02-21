@@ -1,9 +1,10 @@
-use super::rename::SrcTgtPair;
 use crate::PREVIEW_AMOUNT;
 use anyhow::{bail, Result};
 use log::warn;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+
+type SrcTgtPair = (PathBuf, PathBuf);
 
 /// Returns (`to_move`, `no_move`)
 pub fn validate<P: AsRef<Path>>(

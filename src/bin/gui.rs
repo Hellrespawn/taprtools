@@ -1,7 +1,6 @@
 use anyhow::Result;
-use tfmttools::gui;
 
 fn main() -> Result<()> {
-    gui::main()?;
+    println!("TFMT GUI");
     Ok(())
 }

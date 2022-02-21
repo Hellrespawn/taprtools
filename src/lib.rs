@@ -2,8 +2,6 @@
 #![warn(clippy::pedantic)]
 //#![warn(clippy::cargo)]
 #![allow(clippy::must_use_candidate)]
-#![allow(clippy::missing_errors_doc)]
-#![allow(clippy::missing_panics_doc)]
 #![allow(clippy::module_name_repetitions)]
 
 //! Tools to manage your music library using `TagFormat`.
@@ -13,6 +11,10 @@
 
 // TODO? Write proper config/settings module?
 
+mod cli;
+mod helpers;
+mod tags;
+
 const HISTORY_FILENAME: &str = "tfmttools.hist";
 
 /// Number of [`AudioFile`]s to preview.
@@ -21,17 +23,4 @@ pub const PREVIEW_AMOUNT: usize = 8;
 /// Number of folders to recurse from --input-dir
 pub const RECURSION_DEPTH: u64 = 4;
 
-/// TODO Mock this for tests.
-/// Minimum files before switching to parallel
-// pub const MIN_PARALLEL: usize = 128;
-
-/// CLI modules.
-pub mod cli;
-/// File handling modules.
-pub mod file;
-/// GUI
-pub mod gui;
-/// Helpers
-pub mod helpers;
-/// TagFormat-related modules.
-pub mod tfmt;
+pub const PREVIEW_PREFIX: &str = "[P] ";

@@ -1,10 +1,8 @@
-use anyhow::{anyhow, Result};
-use log::debug;
 use std::path::{Path, PathBuf, MAIN_SEPARATOR};
 
 /// Get the default logging directory.
 pub fn get_log_dir() -> PathBuf {
-    std::env::temp_dir().join("tfmttools")
+    todo!();
 }
 
 /// Search a path for files matching `predicate`, recursing for `depth`.
@@ -39,58 +37,6 @@ where
     found_paths
 }
 
-/// Reads all scripts from `config_folder`.
-pub fn get_script_paths<P: AsRef<Path>>(config_folder: &P) -> Vec<PathBuf> {
-    let mut scripts = Vec::new();
-
-    let config_folder = config_folder.as_ref();
-
-    let condition = |p: &Path| p.extension().unwrap_or_default() == "tfmt";
-
-    if let Ok(cwd) = std::env::current_dir() {
-        scripts.extend(search_path(&cwd, condition, 1));
-    }
-
-    scripts.extend(search_path(&config_folder, condition, 1));
-    scripts.extend(search_path(&config_folder.join("script"), condition, 1));
-    scripts.extend(search_path(&config_folder.join("scripts"), condition, 1));
-
-    debug!("Found scripts:\n{:#?}", scripts);
-    scripts
-}
-
-/// Try to find script `name` in `config_folder`.
-pub fn get_script_path<P: AsRef<Path>>(
-    name: &str,
-    config_folder: &P,
-) -> Result<PathBuf> {
-    // Format name to include extension, if necessary.
-    // FIXME clippy::pedantic is unable to tell the use of to_lowercase()
-    #[allow(clippy::case_sensitive_file_extension_comparisons)]
-    let name = if name.to_lowercase().ends_with(".tfmt") {
-        name.to_string()
-    } else {
-        format!("{}.tfmt", name)
-    };
-
-    let name_as_path = PathBuf::from(&name);
-
-    let script = if name_as_path.is_file() {
-        name_as_path
-    } else {
-        get_script_paths(config_folder)
-            .into_iter()
-            .find(|p| {
-                // Selected through p.is_file(), unwrap should be safe.
-                debug_assert!(p.is_file());
-                p.file_name().unwrap() == name.as_str()
-            })
-            .ok_or_else(|| anyhow!("Unable to find script {}", name))?
-    };
-
-    Ok(script)
-}
-
 /// Normalizes newlines in `string`.
 pub fn normalize_newlines<S: AsRef<str>>(string: &S) -> String {
     string.as_ref().replace("\r\n", "\n").replace('\r', "\n")
@@ -102,15 +48,6 @@ pub fn normalize_separators<S: AsRef<str>>(string: &S) -> String {
         if MAIN_SEPARATOR == '/' { '\\' } else { '/' },
         &MAIN_SEPARATOR.to_string(),
     )
-}
-
-/// Preview prefix
-pub fn pp(preview: bool) -> &'static str {
-    if preview {
-        "[P] "
-    } else {
-        ""
-    }
 }
 
 #[cfg(test)]

@@ -1,5 +1,42 @@
 # tfmttools
 
+## Modes of operations
+
+### Clear History
+
+Requires:
+
+- Preview
+- History File Location
+- History
+
+### List Scripts
+
+- Script File Location
+
+### Inspect Script
+
+- Script File Location
+- Name of script
+
+### Undo/Redo
+
+- Preview
+- History File Location
+- History
+- \# steps to undo
+
+### Rename files
+
+- Preview
+- Script File Location
+- History File Location
+- History
+- Name of script
+- Arguments of script
+
+
+
 ## Operators
 
 Operators in order of precedence, from lowest to highest:
