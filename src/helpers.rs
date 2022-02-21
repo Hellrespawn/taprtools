@@ -1,12 +1,11 @@
 use std::path::{Path, PathBuf, MAIN_SEPARATOR};
 
-/// Get the default logging directory.
-pub fn get_log_dir() -> PathBuf {
-    todo!();
-}
-
 /// Search a path for files matching `predicate`, recursing for `depth`.
-pub fn search_path<P, Q>(path: &P, predicate: Q, depth: u64) -> Vec<PathBuf>
+pub(crate) fn search_path<P, Q>(
+    path: &P,
+    predicate: Q,
+    depth: u64,
+) -> Vec<PathBuf>
 where
     P: AsRef<Path>,
     // TODO Find out why Copy is necessary.
@@ -38,12 +37,12 @@ where
 }
 
 /// Normalizes newlines in `string`.
-pub fn normalize_newlines<S: AsRef<str>>(string: &S) -> String {
+pub(crate) fn normalize_newlines<S: AsRef<str>>(string: &S) -> String {
     string.as_ref().replace("\r\n", "\n").replace('\r', "\n")
 }
 
 /// Normalizes separators for the platform in `string`.
-pub fn normalize_separators<S: AsRef<str>>(string: &S) -> String {
+pub(crate) fn normalize_separators<S: AsRef<str>>(string: &S) -> String {
     string.as_ref().replace(
         if MAIN_SEPARATOR == '/' { '\\' } else { '/' },
         &MAIN_SEPARATOR.to_string(),
@@ -55,12 +54,22 @@ mod tests {
     use super::*;
 
     #[test]
-    fn helpers_normalize_test() {
+    fn test_normalize_newlines() {
         let input =
             "This \n string \r has \r\n CRs and \r\r\n\n LFs mixed together!";
         assert_eq!(
             normalize_newlines(&input),
             "This \n string \n has \n CRs and \n\n\n LFs mixed together!"
         );
+    }
+
+    #[test]
+    fn test_normalize_separators() {
+        let input = "/alpha/beta\\gamma\\delta";
+
+        let reference = vec!["alpha", "beta", "gamma", "delta"]
+            .join(&MAIN_SEPARATOR.to_string());
+
+        assert_eq!(normalize_separators(&input), reference);
     }
 }

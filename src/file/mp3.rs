@@ -3,12 +3,11 @@ use id3::{Tag, TagLike};
 use std::path::Path;
 use tfmt::Tags;
 
-/// Implementation of [`AudioFile`] for MP3 files.
 #[derive(Debug)]
-pub struct MP3Tags(Tag);
+pub(crate) struct MP3Tags(Tag);
 
 impl MP3Tags {
-    pub fn new<P>(path: P) -> Result<Self>
+    pub(crate) fn new<P>(path: P) -> Result<Self>
     where
         P: AsRef<Path>,
     {

@@ -6,10 +6,10 @@ use tfmt::Tags;
 
 /// Implementation of [`AudioFile`] for Ogg files.
 #[derive(Debug)]
-pub struct OGGTags(HashMap<String, String>);
+pub(crate) struct OGGTags(HashMap<String, String>);
 
 impl OGGTags {
-    pub fn new<P>(path: P) -> Result<Self>
+    pub(crate) fn new<P>(path: P) -> Result<Self>
     where
         P: AsRef<Path>,
     {

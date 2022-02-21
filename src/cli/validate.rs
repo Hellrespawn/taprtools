@@ -1,6 +1,5 @@
-use crate::PREVIEW_AMOUNT;
+use crate::cli::config::DEFAULT_PREVIEW_AMOUNT;
 use anyhow::{bail, Result};
-use log::warn;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -23,15 +22,15 @@ fn format_collisions(collisions: &HashMap<&Path, Vec<&Path>>) -> String {
         length,
         if length > 1 { "s" } else { "" },
         if length > 1 { "were" } else { "was" },
-        if length > PREVIEW_AMOUNT {
-            format!("! Showing {}", PREVIEW_AMOUNT)
+        if length > DEFAULT_PREVIEW_AMOUNT {
+            format!("! Showing {}", DEFAULT_PREVIEW_AMOUNT)
         } else {
             String::new()
         },
     );
 
     for (i, (path, collisions)) in collisions.iter().enumerate() {
-        if i >= PREVIEW_AMOUNT {
+        if i >= DEFAULT_PREVIEW_AMOUNT {
             break;
         }
         let length = collisions.len();
@@ -40,15 +39,15 @@ fn format_collisions(collisions: &HashMap<&Path, Vec<&Path>>) -> String {
             path.display(),
             length,
             if length > 1 { "s" } else { "" },
-            if length > PREVIEW_AMOUNT {
-                format!("! Showing {}", PREVIEW_AMOUNT)
+            if length > DEFAULT_PREVIEW_AMOUNT {
+                format!("! Showing {}", DEFAULT_PREVIEW_AMOUNT)
             } else {
                 String::new()
             },
         );
 
         for (i, path) in collisions.iter().enumerate() {
-            if i >= PREVIEW_AMOUNT {
+            if i >= DEFAULT_PREVIEW_AMOUNT {
                 break;
             }
             string += &format!("{}\n", path.display());
@@ -75,9 +74,7 @@ fn validate_collisions<P: AsRef<Path>>(paths: &[(P, P)]) -> Result<()> {
         Ok(())
     } else {
         let string = format_collisions(&collisions);
-
-        warn!("{}", string);
-        bail!("{}", string)
+        bail!(string)
     }
 }
 
@@ -90,26 +87,24 @@ fn validate_existing_files<P: AsRef<Path>>(paths: &[(P, P)]) -> Result<()> {
     let length = existing.len();
 
     if !existing.is_empty() {
-        let s = format!(
+        let string = format!(
             "{} file{} already exist{}{}:\n{}",
             length,
             if length > 1 { "s" } else { "" },
             if length > 1 { "" } else { "s" },
-            if length > PREVIEW_AMOUNT {
-                format!("! Showing {}", PREVIEW_AMOUNT)
+            if length > DEFAULT_PREVIEW_AMOUNT {
+                format!("! Showing {}", DEFAULT_PREVIEW_AMOUNT)
             } else {
                 String::new()
             },
             existing
                 .iter()
-                .take(PREVIEW_AMOUNT)
+                .take(DEFAULT_PREVIEW_AMOUNT)
                 .map(|p| p.display().to_string())
                 .collect::<Vec<String>>()
                 .join("\n")
         );
-
-        warn!("{}", s);
-        bail!("{}", s);
+        bail!(string);
     }
 
     Ok(())

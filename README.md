@@ -35,8 +35,6 @@ Requires:
 - Name of script
 - Arguments of script
 
-
-
 ## Operators
 
 Operators in order of precedence, from lowest to highest:

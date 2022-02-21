@@ -1,11 +1,11 @@
 [package]
-name = "tfmttools"
-version = "0.3.0"
 authors = ["Stef Korporaal <stefkorporaal@gmail.com>"]
+default-run = "tfmt"
 description = "Renames audio files according to their tags."
 edition = "2021"
 license = "BSD-3-Clause"
-default-run = "tfmt"
+name = "tfmttools"
+version = "0.3.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -13,21 +13,18 @@ default-run = "tfmt"
 # default = ["history"]
 
 [dependencies]
-buffered-iterator = { path = "./buffered-iterator" }
-file-history = { path = "./file-history" }
-tfmt = { path = "./tfmt" }
+buffered-iterator = {path = "./buffered-iterator"}
+file-history = {path = "./file-history"}
+tfmt = {path = "./tfmt"}
 
 anyhow = "1.0"
-# clap = {version = "2", features = ["yaml"]}
-chrono = "0.4"
-# # colored = "2"
-# dirs = "3.0.2"
+clap = {version = "3", features = ["derive", "wrap_help"]}
+directories = "4.0"
 dunce = "1.0.2"
-fern = "0.6.0"
 id3 = "1.0.2"
+lewton = "0.10"
+# dirs = "3.0.2"
 # indicatif = {version = "0.16.2"}
-lewton = "0.10.2"
-log = "0.4"
 # once_cell = "1.8.0"
 # rayon = "1.5"
 # regex = "1"
@@ -39,12 +36,11 @@ tempfile = "3"
 
 [workspace]
 members = [
-    "./buffered-iterator",
-    "./file-history",
-    "./test-harness",
-    "./tfmt"
+  "./buffered-iterator",
+  "./file-history",
+  "./test-harness",
+  "./tfmt",
 ]
 
 [profile.release]
 panic = "abort"
-

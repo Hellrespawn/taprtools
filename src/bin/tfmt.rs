@@ -1,6 +1,5 @@
 use anyhow::Result;
 
 fn main() -> Result<()> {
-    println!("tfmt CLI");
-    Ok(())
+    tfmttools::cli::main(false)
 }
