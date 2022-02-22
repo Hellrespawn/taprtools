@@ -2,7 +2,7 @@
 #![warn(clippy::pedantic)]
 //#![warn(clippy::cargo)]
 #![allow(clippy::must_use_candidate)]
-#![allow(dead_code)]
+#![allow(clippy::missing_errors_doc)]
 
 //! Tools to manage your music library using `TagFormat`.
 //!

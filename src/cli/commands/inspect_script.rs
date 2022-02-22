@@ -1,33 +1,28 @@
 use std::io::Write;
 use std::process::{Command, Stdio};
 
-use crate::cli::Config;
 use anyhow::{anyhow, Result};
 use tfmt::Script;
 
-pub(crate) struct InspectScript<'a> {
-    config: &'a Config,
-}
+use crate::cli::Filesystem;
 
-impl<'a> InspectScript<'a> {
-    pub(crate) fn new(config: &'a Config) -> Self {
-        Self { config }
-    }
+pub(crate) struct InspectScript;
 
-    pub(crate) fn run(&self, name: &str, render_ast: bool) -> Result<()> {
-        let script = self.config.get_script(name)?;
+impl InspectScript {
+    pub(crate) fn run(name: &str, render_ast: bool) -> Result<()> {
+        let script = Filesystem::get_script(name)?;
 
-        self.print_script_info(&script);
+        InspectScript::print_script_info(&script);
 
         if render_ast {
             let dot = script.create_ast_dot();
-            self.render_ast(dot, script.name())?;
+            InspectScript::render_ast(&dot, script.name())?;
         }
 
         Ok(())
     }
 
-    fn print_script_info(&self, script: &Script) {
+    fn print_script_info(script: &Script) {
         print!("{}(", script.name());
 
         let parameters = script.parameters();
@@ -53,7 +48,7 @@ impl<'a> InspectScript<'a> {
         println!();
     }
 
-    fn render_ast(&self, dot: String, name: &str) -> Result<()> {
+    fn render_ast(dot: &str, name: &str) -> Result<()> {
         let cwd = std::env::current_dir()?;
         let name = format!("{}-ast.png", name);
 

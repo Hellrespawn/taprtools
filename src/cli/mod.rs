@@ -2,12 +2,12 @@
 pub(crate) mod args;
 /// Handles commands
 pub(crate) mod commands;
-/// Contains configuration code
-pub(crate) mod config;
+/// Contains filesystem code
+pub(crate) mod fs;
 /// Validate interpreted paths
 pub(crate) mod validate;
 
-pub(crate) use config::Config;
+pub(crate) use fs::Filesystem;
 
 mod main;
 pub use main::main;

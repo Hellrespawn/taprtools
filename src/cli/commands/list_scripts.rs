@@ -1,18 +1,12 @@
-use crate::cli::Config;
+use crate::cli::Filesystem;
 use anyhow::Result;
 use tfmt::Script;
 
-pub(crate) struct ListScripts<'a> {
-    config: &'a Config,
-}
+pub(crate) struct ListScripts;
 
-impl<'a> ListScripts<'a> {
-    pub(crate) fn new(config: &'a Config) -> Self {
-        Self { config }
-    }
-
-    pub(crate) fn run(&self) -> Result<()> {
-        let scripts = self.config.get_scripts()?;
+impl ListScripts {
+    pub(crate) fn run() -> Result<()> {
+        let scripts = Filesystem::get_scripts()?;
 
         if scripts.is_empty() {
             println!("Couldn't find any scripts.");
@@ -21,13 +15,13 @@ impl<'a> ListScripts<'a> {
         }
 
         for script in scripts {
-            self.print_script_info(&script);
+            Self::print_script_info(&script);
         }
 
         Ok(())
     }
 
-    fn print_script_info(&self, script: &Script) {
+    fn print_script_info(script: &Script) {
         print!("{}", script.name());
 
         if let Some(description) = script.description() {

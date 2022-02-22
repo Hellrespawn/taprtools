@@ -2,9 +2,6 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
-const DEFAULT_PREVIEW_AMOUNT: usize = 8;
-const DEFAULT_RECURSION_DEPTH: usize = 4;
-
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 
@@ -65,7 +62,7 @@ pub enum Command {
         /// Only preview current action.
         preview: bool,
 
-        #[clap(short, long, default_value_t=DEFAULT_RECURSION_DEPTH)]
+        #[clap(short, long, default_value_t=Args::DEFAULT_RECURSION_DEPTH)]
         /// Maximum recursion depth when gathering files.
         recursion_depth: usize,
 
@@ -78,6 +75,9 @@ pub enum Command {
 }
 
 impl Args {
+    pub const DEFAULT_PREVIEW_AMOUNT: usize = 8;
+    pub const DEFAULT_RECURSION_DEPTH: usize = 4;
+
     fn handle_preview(mut self, preview_override: bool) -> Self {
         let preview_aggregate = preview_override
             || self.preview

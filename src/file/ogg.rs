@@ -75,18 +75,15 @@ impl Tags for OGGTags {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
 
     fn get_test_file(name: &str) -> Result<OGGTags> {
-        let path = PathBuf::from(
-            dunce::canonicalize(file!())?
-                .ancestors()
-                .nth(3)
-                .unwrap()
-                .join("testdata")
-                .join("music")
-                .join(name),
-        );
+        let path = dunce::canonicalize(file!())?
+            .ancestors()
+            .nth(3)
+            .unwrap()
+            .join("testdata")
+            .join("music")
+            .join(name);
 
         assert!(path.is_file());
 

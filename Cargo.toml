@@ -42,5 +42,5 @@ members = [
   "./tfmt",
 ]
 
-[profile.release]
-panic = "abort"
+# [profile.release]
+# panic = "abort"

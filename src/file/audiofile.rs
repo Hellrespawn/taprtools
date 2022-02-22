@@ -9,6 +9,8 @@ pub(crate) struct AudioFile {
 }
 
 impl AudioFile {
+    pub(crate) const SUPPORTED_EXTENSIONS: [&'static str; 2] = ["mp3", "ogg"];
+
     pub(crate) fn new<P>(path: P) -> Result<AudioFile>
     where
         P: AsRef<Path>,
@@ -17,6 +19,15 @@ impl AudioFile {
         let tags = AudioFile::read_tags(&path)?;
 
         Ok(AudioFile { path, tags })
+    }
+
+    pub(crate) fn path(&self) -> &Path {
+        &self.path
+    }
+
+    pub(crate) fn tags(&self) -> &dyn Tags {
+        // stackoverflow.com/questions/41273041
+        &*self.tags
     }
 
     fn read_tags(path: &Path) -> Result<Box<dyn Tags>> {
