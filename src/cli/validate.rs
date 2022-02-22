@@ -1,25 +1,25 @@
 use crate::cli::args::Args;
-use crate::cli::commands::SrcTgtPair;
 use anyhow::{bail, Result};
+use file_history::Action;
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::Path;
 
-/// Returns (`to_move`, `no_move`)
-pub(crate) fn validate(pairs: &[SrcTgtPair]) -> Result<()> {
-    validate_collisions(pairs)?;
-    validate_existing_files(pairs)?;
+pub(crate) fn validate(actions: &[Action]) -> Result<()> {
+    validate_collisions(actions)?;
+    validate_existing_files(actions)?;
 
     Ok(())
 }
 
-fn validate_collisions(pairs: &[SrcTgtPair]) -> Result<()> {
+fn validate_collisions(actions: &[Action]) -> Result<()> {
     let mut map = HashMap::new();
 
-    for SrcTgtPair { source, target } in pairs {
+    for action in actions {
+        let (source, target) = action.get_src_tgt_unchecked();
         map.entry(target).or_insert_with(Vec::new).push(source);
     }
 
-    let collisions: HashMap<&PathBuf, Vec<&PathBuf>> =
+    let collisions: HashMap<&Path, Vec<&Path>> =
         map.into_iter().filter(|(_, v)| v.len() > 1).collect();
 
     if collisions.is_empty() {
@@ -30,7 +30,7 @@ fn validate_collisions(pairs: &[SrcTgtPair]) -> Result<()> {
     }
 }
 
-fn format_collisions(collisions: &HashMap<&PathBuf, Vec<&PathBuf>>) -> String {
+fn format_collisions(collisions: &HashMap<&Path, Vec<&Path>>) -> String {
     let length = collisions.len();
     let mut string = format!(
         "{} collision{} {} detected{}:\n",
@@ -73,10 +73,13 @@ fn format_collisions(collisions: &HashMap<&PathBuf, Vec<&PathBuf>>) -> String {
     string
 }
 
-fn validate_existing_files(pairs: &[SrcTgtPair]) -> Result<()> {
-    let existing: Vec<&PathBuf> = pairs
+fn validate_existing_files(actions: &[Action]) -> Result<()> {
+    let existing: Vec<&Path> = actions
         .iter()
-        .filter_map(|SrcTgtPair { target, .. }| target.exists().then(|| target))
+        .filter_map(|action| {
+            let (_, target) = action.get_src_tgt_unchecked();
+            target.exists().then(|| target)
+        })
         .collect();
 
     let length = existing.len();
@@ -108,6 +111,7 @@ fn validate_existing_files(pairs: &[SrcTgtPair]) -> Result<()> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::path::PathBuf;
 
     #[test]
     fn validate_collisions_test() -> Result<()> {
@@ -115,7 +119,7 @@ mod test {
             ("/a/b/c.file", "/b/c/d.file"),
             ("/c/d/e.file", "/b/c/d.file"),
         ]
-        .map(|(source, target)| SrcTgtPair {
+        .map(|(source, target)| Action::Move {
             source: PathBuf::from(source),
             target: PathBuf::from(target),
         });
@@ -128,7 +132,7 @@ mod test {
             ("/a/b/c.file", "/b/c/d.file"),
             ("/c/d/e.file", "/d/e/f.file"),
         ]
-        .map(|(source, target)| SrcTgtPair {
+        .map(|(source, target)| Action::Move {
             source: PathBuf::from(source),
             target: PathBuf::from(target),
         });

@@ -3,6 +3,7 @@
 //#![warn(clippy::cargo)]
 #![allow(clippy::must_use_candidate)]
 #![allow(clippy::missing_errors_doc)]
+#![allow(clippy::missing_panics_doc)]
 
 //! Tools to manage your music library using `TagFormat`.
 //!

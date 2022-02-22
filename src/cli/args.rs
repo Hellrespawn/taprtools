@@ -1,15 +1,15 @@
-use std::path::PathBuf;
+// use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, PartialEq)]
 #[clap(author, version, about, long_about = None)]
 
 /// Holds application-wide command line arguments.
 pub struct Args {
     /// Sets a custom config file
-    #[clap(short, long, parse(from_os_str), value_name = "FILE")]
-    config: Option<PathBuf>,
+    // #[clap(short, long, parse(from_os_str), value_name = "FILE")]
+    // config: Option<PathBuf>,
 
     #[clap(short, long)]
     /// Only preview current action.
@@ -19,7 +19,7 @@ pub struct Args {
     pub(crate) command: Command,
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, PartialEq)]
 /// Holds per-subcommand command line arguments.
 pub enum Command {
     /// Clears the history
@@ -78,7 +78,7 @@ impl Args {
     pub const DEFAULT_PREVIEW_AMOUNT: usize = 8;
     pub const DEFAULT_RECURSION_DEPTH: usize = 4;
 
-    fn handle_preview(mut self, preview_override: bool) -> Self {
+    fn aggregate_preview(mut self, preview_override: bool) -> Self {
         let preview_aggregate = preview_override
             || self.preview
             || match self.command {
@@ -105,5 +105,34 @@ impl Args {
 
 /// Parses arguments
 pub(crate) fn parse_args(preview_override: bool) -> Args {
-    Args::parse().handle_preview(preview_override)
+    Args::parse().aggregate_preview(preview_override)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn parse_custom_args(args: &[&str], preview_override: bool) -> Args {
+        Args::parse_from(args).aggregate_preview(preview_override)
+    }
+
+    #[test]
+    fn test_preview_aggregate() {
+        let args_in =
+            ["tfmttest clear-history -p", "tfmttest -p clear-history"];
+
+        let args_out: Vec<Args> = args_in
+            .into_iter()
+            .map(|a| {
+                parse_custom_args(
+                    &a.split_whitespace().collect::<Vec<&str>>(),
+                    false,
+                )
+            })
+            .collect();
+
+        let equal = args_out.windows(2).all(|w| w[0] == w[1]);
+
+        assert!(equal)
+    }
 }

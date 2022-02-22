@@ -3,13 +3,7 @@ use crate::cli::Filesystem;
 use crate::file::AudioFile;
 use anyhow::Result;
 use file_history::{Action, History};
-use std::path::PathBuf;
 use tfmt::{Interpreter, Script};
-
-pub(crate) struct SrcTgtPair {
-    pub(crate) source: PathBuf,
-    pub(crate) target: PathBuf,
-}
 
 pub(crate) struct Rename;
 
@@ -20,26 +14,18 @@ impl Rename {
         name: &str,
         arguments: &[String],
     ) -> Result<()> {
+        let history_path = Filesystem::get_history_path()?;
+        let mut history = History::load(&history_path)?;
+
         let script = Filesystem::get_script(name)?;
 
         let files = Rename::gather_files(recursion_depth)?;
 
-        let pairs = Rename::interpret_files(script, arguments, &files)?;
+        let actions = Rename::interpret_files(script, arguments, &files)?;
 
-        let (pairs, _filtered_pairs) = Rename::partition_src_tgt_pair(pairs);
+        Rename::validate_actions(&actions)?;
 
-        Rename::validate_src_tgt_pairs(&pairs)?;
-
-        let history_path = Filesystem::get_history_path()?;
-        let mut history = History::load(&history_path)?;
-
-        let actions: Vec<Action> = pairs
-            .into_iter()
-            .map(|SrcTgtPair { source, target }| Action::Move {
-                source,
-                target,
-            })
-            .collect();
+        let (actions, _filtered_actions) = Rename::partition_actions(actions);
 
         let result: Result<()> = {
             for action in actions {
@@ -69,23 +55,23 @@ impl Rename {
         script: Script,
         arguments: &[String],
         files: &[AudioFile],
-    ) -> Result<Vec<SrcTgtPair>> {
+    ) -> Result<Vec<Action>> {
         let mut interpreter = Interpreter::new(script, arguments.to_vec())?;
 
-        let actions: Result<Vec<SrcTgtPair>> = files
+        let actions: Result<Vec<Action>> = files
             .iter()
             .map(|audiofile| {
-                Rename::src_target_pair_from_file(&mut interpreter, audiofile)
+                Rename::action_from_file(&mut interpreter, audiofile)
             })
             .collect();
 
         actions
     }
 
-    fn src_target_pair_from_file(
+    fn action_from_file(
         interpreter: &mut Interpreter,
         audiofile: &AudioFile,
-    ) -> Result<SrcTgtPair> {
+    ) -> Result<Action> {
         let string = interpreter.interpret(audiofile.tags())?;
 
         let source = audiofile.path().to_path_buf();
@@ -101,20 +87,19 @@ impl Rename {
             .join(string)
             .with_extension(extension);
 
-        let pair = SrcTgtPair { source, target };
+        let action = Action::Move { source, target };
 
-        Ok(pair)
+        Ok(action)
     }
 
-    fn partition_src_tgt_pair(
-        actions: Vec<SrcTgtPair>,
-    ) -> (Vec<SrcTgtPair>, Vec<SrcTgtPair>) {
-        actions
-            .into_iter()
-            .partition(|pair| pair.source != pair.target)
+    fn validate_actions(actions: &[Action]) -> Result<()> {
+        validate(actions)
     }
 
-    fn validate_src_tgt_pairs(pairs: &[SrcTgtPair]) -> Result<()> {
-        validate(pairs)
+    fn partition_actions(actions: Vec<Action>) -> (Vec<Action>, Vec<Action>) {
+        actions.into_iter().partition(|action| {
+            let (source, target) = action.get_src_tgt_unchecked();
+            source != target
+        })
     }
 }

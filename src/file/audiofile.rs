@@ -26,7 +26,7 @@ impl AudioFile {
     }
 
     pub(crate) fn tags(&self) -> &dyn Tags {
-        // stackoverflow.com/questions/41273041
+        // https://stackoverflow.com/questions/41273041
         &*self.tags
     }
 

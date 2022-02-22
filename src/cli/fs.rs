@@ -12,11 +12,10 @@ impl Filesystem {
     pub(crate) const SCRIPT_EXTENSION: &'static str = "tfmt";
 
     /// Search a path for files matching `predicate`, recursing for `depth`.
-    fn search_path<P, Q>(path: &P, depth: usize, predicate: Q) -> Vec<PathBuf>
+    fn search_path<P, Q>(path: &P, depth: usize, predicate: &Q) -> Vec<PathBuf>
     where
         P: AsRef<Path>,
-        // TODO Find out why Copy is necessary.
-        Q: Copy + Fn(&Path) -> bool,
+        Q: Fn(&Path) -> bool,
     {
         let mut found_paths = Vec::new();
 
@@ -24,7 +23,9 @@ impl Filesystem {
             for entry in iter.flatten() {
                 let entry_path = entry.path();
 
-                if entry_path.is_file() && predicate(&entry_path) {
+                let matches_predicate = predicate(&entry_path);
+
+                if entry_path.is_file() && matches_predicate {
                     found_paths.push(entry_path);
                 } else if entry_path.is_dir() && depth > 0 {
                     found_paths.extend(Filesystem::search_path(
@@ -64,7 +65,7 @@ impl Filesystem {
         // FIXME also get scripts in cwd?
         let path = Filesystem::get_project_dir()?;
 
-        let paths = Filesystem::search_path(&path, 0, |p| {
+        let paths = Filesystem::search_path(&path, 0, &|p| {
             p.extension()
                 .map_or(false, |s| s == Filesystem::SCRIPT_EXTENSION)
         });
@@ -106,7 +107,7 @@ impl Filesystem {
     ) -> Result<Vec<AudioFile>> {
         let path = std::env::current_dir()?;
 
-        let paths = Filesystem::search_path(&path, recursion_depth, |p| {
+        let paths = Filesystem::search_path(&path, recursion_depth, &|p| {
             p.extension().map_or(false, |extension| {
                 for supported_extension in AudioFile::SUPPORTED_EXTENSIONS {
                     if extension == supported_extension {

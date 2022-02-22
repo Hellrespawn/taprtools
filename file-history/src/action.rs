@@ -109,6 +109,19 @@ impl Action {
 
         Ok(())
     }
+
+    /// Gets source and target from this action.
+    ///
+    /// # Panics
+    ///
+    /// This function panics if this action is not Action::Move
+    pub fn get_src_tgt_unchecked(&self) -> (&Path, &Path) {
+        if let Action::Move { source, target } = self {
+            (&source, &target)
+        } else {
+            panic!("Current Action is not Action::Move!")
+        }
+    }
 }
 
 #[cfg(test)]
