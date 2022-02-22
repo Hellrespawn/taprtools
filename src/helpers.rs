@@ -3,18 +3,14 @@ use std::path::{Path, PathBuf, MAIN_SEPARATOR};
 /// Search a path for files matching `predicate`, recursing for `depth`.
 pub(crate) fn search_path<P, Q>(
     path: &P,
-    predicate: Q,
     depth: u64,
+    predicate: Q,
 ) -> Vec<PathBuf>
 where
     P: AsRef<Path>,
     // TODO Find out why Copy is necessary.
     Q: Copy + Fn(&Path) -> bool,
 {
-    if depth == 0 {
-        return Vec::new();
-    }
-
     let mut found_paths = Vec::new();
 
     if let Ok(iter) = std::fs::read_dir(path) {
@@ -24,11 +20,13 @@ where
             if entry_path.is_file() && predicate(&entry_path) {
                 found_paths.push(entry_path);
             } else if entry_path.is_dir() {
-                found_paths.extend(search_path(
-                    &entry_path,
-                    predicate,
-                    depth - 1,
-                ));
+                if depth > 0 {
+                    found_paths.extend(search_path(
+                        &entry_path,
+                        depth - 1,
+                        predicate,
+                    ));
+                }
             }
         }
     }

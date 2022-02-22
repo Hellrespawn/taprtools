@@ -2,14 +2,18 @@ use crate::cli::Config;
 use anyhow::Result;
 use file_history::History;
 
-pub(crate) struct Rename {
+pub(crate) struct Rename<'a> {
     preview: bool,
-    config: Config,
-    history: History,
+    config: &'a Config,
+    history: &'a mut History,
 }
 
-impl Rename {
-    pub(crate) fn new(preview: bool, config: Config, history: History) -> Self {
+impl<'a> Rename<'a> {
+    pub(crate) fn new(
+        preview: bool,
+        config: &'a Config,
+        history: &'a mut History,
+    ) -> Self {
         Self {
             preview,
             config,
@@ -18,7 +22,7 @@ impl Rename {
     }
 
     pub(crate) fn run(
-        &self,
+        &mut self,
         recursion_depth: usize,
         name: &str,
         arguments: &[String],

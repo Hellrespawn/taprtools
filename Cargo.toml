@@ -19,7 +19,7 @@ tfmt = {path = "./tfmt"}
 
 anyhow = "1.0"
 clap = {version = "3", features = ["derive", "wrap_help"]}
-directories = "4.0"
+dirs = "4.0"
 dunce = "1.0.2"
 id3 = "1.0.2"
 lewton = "0.10"

@@ -15,35 +15,44 @@ pub fn main(preview_override: bool) -> Result<()> {
         let config = Config::load()?;
 
         let history_path = config.get_history_path()?;
-        let history = History::init(&history_path)?;
+        let mut history = History::init(&history_path)?;
 
-        match args.command {
+        let result = match args.command {
             Command::ClearHistory { preview } => {
-                ClearHistory::new(preview, config, history).run()
+                ClearHistory::new(preview, &mut history).run()
             }
-            Command::ListScripts => ListScripts::new(config).run(),
+            Command::ListScripts => ListScripts::new(&config).run(),
             Command::InspectScript { name } => {
-                InspectScript::new(config).run(&name)
+                InspectScript::new(&config).run(&name)
             }
             Command::Undo { preview, times } => {
-                Undo::new(preview, config, history).run(UndoMode::Undo, times)
+                Undo::new(preview, &config, &mut history)
+                    .run(UndoMode::Undo, times)
             }
             Command::Redo { preview, times } => {
-                Undo::new(preview, config, history).run(UndoMode::Redo, times)
+                Undo::new(preview, &config, &mut history)
+                    .run(UndoMode::Redo, times)
             }
             Command::Rename {
                 preview,
                 recursion_depth,
                 name,
                 arguments,
-            } => Rename::new(preview, config, history).run(
+            } => Rename::new(preview, &config, &mut history).run(
                 recursion_depth,
                 &name,
                 &arguments,
             ),
-        }?;
+        };
 
-        Ok(())
+        // FIXME Handle nested Error
+        if result.is_err() {
+            history.rollback()?;
+        } else {
+            history.save()?;
+        }
+
+        result
     };
 
     if let Err(err) = result {

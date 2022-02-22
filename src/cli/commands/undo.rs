@@ -7,14 +7,18 @@ pub(crate) enum UndoMode {
     Redo,
 }
 
-pub(crate) struct Undo {
+pub(crate) struct Undo<'a> {
     preview: bool,
-    config: Config,
-    history: History,
+    config: &'a Config,
+    history: &'a mut History,
 }
 
-impl Undo {
-    pub(crate) fn new(preview: bool, config: Config, history: History) -> Self {
+impl<'a> Undo<'a> {
+    pub(crate) fn new(
+        preview: bool,
+        config: &'a Config,
+        history: &'a mut History,
+    ) -> Self {
         Self {
             preview,
             config,
@@ -22,7 +26,7 @@ impl Undo {
         }
     }
 
-    pub(crate) fn run(&self, mode: UndoMode, times: usize) -> Result<()> {
+    pub(crate) fn run(&mut self, mode: UndoMode, times: usize) -> Result<()> {
         todo!()
     }
 }

@@ -1,12 +1,12 @@
 use crate::cli::Config;
 use anyhow::Result;
 
-pub(crate) struct InspectScript {
-    config: Config,
+pub(crate) struct InspectScript<'a> {
+    config: &'a Config,
 }
 
-impl InspectScript {
-    pub(crate) fn new(config: Config) -> Self {
+impl<'a> InspectScript<'a> {
+    pub(crate) fn new(config: &'a Config) -> Self {
         Self { config }
     }
 
