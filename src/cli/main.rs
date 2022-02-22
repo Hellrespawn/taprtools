@@ -22,8 +22,8 @@ pub fn main(preview_override: bool) -> Result<()> {
                 ClearHistory::new(preview, &mut history).run()
             }
             Command::ListScripts => ListScripts::new(&config).run(),
-            Command::InspectScript { name } => {
-                InspectScript::new(&config).run(&name)
+            Command::InspectScript { name, render_ast } => {
+                InspectScript::new(&config).run(&name, render_ast)
             }
             Command::Undo { preview, times } => {
                 Undo::new(preview, &config, &mut history)

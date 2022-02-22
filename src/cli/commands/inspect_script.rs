@@ -10,7 +10,7 @@ impl<'a> InspectScript<'a> {
         Self { config }
     }
 
-    pub(crate) fn run(&self, name: &str) -> Result<()> {
+    pub(crate) fn run(&self, name: &str, render_ast: bool) -> Result<()> {
         todo!()
     }
 }

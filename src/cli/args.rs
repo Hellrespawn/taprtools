@@ -37,6 +37,11 @@ pub enum Command {
     InspectScript {
         /// Name of script.
         name: String,
+
+        /// Render Abstract Syntax Tree
+        #[clap(short, long)]
+        render_ast: bool
+
     },
     /// Undo {times} times.
     Undo {
