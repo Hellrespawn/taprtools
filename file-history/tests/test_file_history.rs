@@ -2,6 +2,8 @@ use file_history::{Action, History, Result};
 use std::path::Path;
 use tempfile::{Builder, NamedTempFile, TempDir};
 
+// TODO Write undo/redo tests
+
 static PREFIX: &str = "rust-file-history-history-";
 
 fn get_temporary_dir() -> Result<TempDir> {
@@ -19,7 +21,7 @@ fn test_new_history() -> Result<()> {
     let dir = get_temporary_dir()?;
     let path = dir.path().join("test.histfile");
 
-    History::init(&path)?;
+    History::load(&path)?;
 
     assert!(!path.is_file());
 
@@ -31,7 +33,7 @@ fn test_save_unchanged_history() -> Result<()> {
     let dir = get_temporary_dir()?;
     let path = dir.path().join("test.histfile");
 
-    let mut history = History::init(&path)?;
+    let mut history = History::load(&path)?;
 
     assert!(!path.is_file());
 
@@ -50,7 +52,7 @@ fn test_save_after_rollback() -> Result<()> {
     assert!(file.path().is_file());
 
     let history_path = dir.path().join("test.histfile");
-    let mut history = History::init(&history_path)?;
+    let mut history = History::load(&history_path)?;
     assert!(!history_path.is_file());
 
     history.save()?;

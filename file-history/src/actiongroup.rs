@@ -10,10 +10,6 @@ impl ActionGroup {
         ActionGroup(VecDeque::new())
     }
 
-    pub(crate) fn changed(&self) -> bool {
-        self.0.is_empty()
-    }
-
     pub(crate) fn apply(&mut self, action: Action) -> Result<()> {
         action.apply()?;
         self.0.push_front(action);
