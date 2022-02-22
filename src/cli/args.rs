@@ -40,8 +40,7 @@ pub enum Command {
 
         /// Render Abstract Syntax Tree
         #[clap(short, long)]
-        render_ast: bool
-
+        render_ast: bool,
     },
     /// Undo {times} times.
     Undo {
@@ -49,6 +48,7 @@ pub enum Command {
         /// Only preview current action.
         preview: bool,
         /// Times to undo.
+        #[clap(default_value_t = 1)]
         times: usize,
     },
     /// Redo {times} times.

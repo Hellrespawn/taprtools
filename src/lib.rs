@@ -12,4 +12,3 @@
 /// Controls the command line interface
 pub mod cli;
 mod file;
-mod helpers;

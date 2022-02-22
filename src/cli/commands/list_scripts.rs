@@ -12,24 +12,28 @@ impl<'a> ListScripts<'a> {
     }
 
     pub(crate) fn run(&self) -> Result<()> {
-        let script_paths = self.config.get_script_paths()?;
-        let mut scripts = Vec::new();
+        let scripts = self.config.get_scripts()?;
 
-        for path in script_paths {
-            let input_text = std::fs::read_to_string(path)?;
-            scripts.push(Script::new(&input_text)?);
+        if scripts.is_empty() {
+            println!("Couldn't find any scripts.");
+        } else {
+            println!("Scripts:");
         }
 
         for script in scripts {
-            print!("{}", script.name());
-
-            if let Some(description) = script.description() {
-                print!(": {}", description)
-            }
-
-            println!();
+            self.print_script_info(&script);
         }
 
         Ok(())
+    }
+
+    fn print_script_info(&self, script: &Script) {
+        print!("{}", script.name());
+
+        if let Some(description) = script.description() {
+            print!(": {}", description);
+        }
+
+        println!();
     }
 }

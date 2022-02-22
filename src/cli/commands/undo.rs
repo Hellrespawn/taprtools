@@ -26,7 +26,7 @@ impl<'a> Undo<'a> {
         }
     }
 
-    pub(crate) fn run(&mut self, mode: UndoMode, times: usize) -> Result<()> {
+    pub(crate) fn run(&mut self, _mode: UndoMode, _times: usize) -> Result<()> {
         todo!()
     }
 }

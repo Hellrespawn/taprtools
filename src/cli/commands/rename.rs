@@ -23,9 +23,9 @@ impl<'a> Rename<'a> {
 
     pub(crate) fn run(
         &mut self,
-        recursion_depth: usize,
-        name: &str,
-        arguments: &[String],
+        _recursion_depth: usize,
+        _name: &str,
+        _arguments: &[String],
     ) -> Result<()> {
         todo!()
     }

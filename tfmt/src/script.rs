@@ -24,11 +24,11 @@ impl ScriptParameter {
         }
     }
 
-    pub(crate) fn name(&self) -> &str {
+    pub fn name(&self) -> &str {
         &self.name
     }
 
-    pub(crate) fn default(&self) -> Option<&str> {
+    pub fn default(&self) -> Option<&str> {
         self.default.as_deref()
     }
 
@@ -53,8 +53,8 @@ impl Script {
     where
         S: AsRef<str>,
     {
-        let input_text = input.as_ref().to_string();
-        let mut parser = Parser::new(&input)?;
+        let input_text = crate::normalize_newlines(&input);
+        let mut parser = Parser::new(&input_text)?;
         let program = parser.parse()?;
 
         let Analysis {
