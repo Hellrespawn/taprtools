@@ -2,7 +2,7 @@ use crate::{Action, ActionGroup, DiskHandler, Result};
 use std::collections::VecDeque;
 use std::path::Path;
 
-/// History is responsible for saving and loading ActionGroups
+/// History is responsible for saving and loading `ActionGroup`s
 pub struct History {
     disk_handler: DiskHandler,
     current_group: ActionGroup,
@@ -63,14 +63,14 @@ impl History {
         Ok(())
     }
 
-    /// Apply an action to the current [ActionGroup].
+    /// Apply an action to the current `ActionGroup`.
     pub fn apply(&mut self, action: Action) -> Result<()> {
         self.current_group.apply(action)?;
         self.changed = true;
         Ok(())
     }
 
-    /// Rollback all changes in the current [ActionGroup].
+    /// Rollback all changes in the current `ActionGroup`.
     pub fn rollback(&mut self) -> Result<()> {
         let mut current_group = std::mem::take(&mut self.current_group);
         current_group.undo()?;
@@ -78,7 +78,7 @@ impl History {
         Ok(())
     }
 
-    /// Undo `n` amount of [ActionGroup]s. Returns amount actually undone
+    /// Undo `n` amount of `ActionGroup`s. Returns amount actually undone
     pub fn undo(&mut self, amount: usize) -> Result<usize> {
         for i in 0..amount {
             if let Some(mut group) = self.applied_groups.pop_front() {
@@ -95,7 +95,7 @@ impl History {
         Ok(amount)
     }
 
-    /// Redo `n` amount of [ActionGroup]s. Returns amount actually redone
+    /// Redo `n` amount of `ActionGroup`s. Returns amount actually redone
     pub fn redo(&mut self, amount: usize) -> Result<usize> {
         for i in 0..amount {
             if let Some(mut group) = self.undone_groups.pop_front() {

@@ -18,6 +18,8 @@ pub struct Args {
     pub(crate) command: Command,
 }
 
+// TODO Make subcommands shorter, e.g. clear-history -> clear, list-scripts -> list
+
 #[derive(Subcommand, Debug, PartialEq)]
 /// Holds per-subcommand command line arguments.
 pub enum Command {
@@ -78,6 +80,7 @@ impl Args {
     pub(crate) const DEFAULT_RECURSION_DEPTH: usize = 4;
 
     /// If one preview is true, also sets the other preview.
+    #[must_use]
     pub fn aggregate_preview(mut self, preview_override: bool) -> Self {
         let preview_aggregate = preview_override
             || self.preview
@@ -133,6 +136,6 @@ mod test {
 
         let equal = args_out.windows(2).all(|w| w[0] == w[1]);
 
-        assert!(equal)
+        assert!(equal);
     }
 }

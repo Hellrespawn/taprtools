@@ -1,5 +1,5 @@
 use crate::cli::args::Command;
-use crate::cli::commands::*;
+use crate::cli::commands::{self, UndoMode};
 use crate::cli::{Args, Config};
 use anyhow::Result;
 
@@ -19,22 +19,30 @@ pub fn with_custom_args(args: Args) -> Result<()> {
     };
 
     match args.command {
-        Command::ClearHistory { preview } => clear_history(preview, &config),
-        Command::ListScripts => list_scripts(&config),
+        Command::ClearHistory { preview } => {
+            commands::clear_history(preview, &config)
+        }
+        Command::ListScripts => commands::list_scripts(&config),
         Command::InspectScript { name, render_ast } => {
-            inspect_script(&config, &name, render_ast)
+            commands::inspect_script(&config, &name, render_ast)
         }
         Command::Undo { preview, times } => {
-            undo(preview, &config, UndoMode::Undo, times)
+            commands::undo(preview, &config, UndoMode::Undo, times)
         }
         Command::Redo { preview, times } => {
-            undo(preview, &config, UndoMode::Redo, times)
+            commands::undo(preview, &config, UndoMode::Redo, times)
         }
         Command::Rename {
             preview,
             recursion_depth,
             name,
             arguments,
-        } => rename(preview, &config, recursion_depth, &name, &arguments),
+        } => commands::rename(
+            preview,
+            &config,
+            recursion_depth,
+            &name,
+            &arguments,
+        ),
     }
 }

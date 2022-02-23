@@ -9,6 +9,7 @@ const DEFAULT_RECURSION_DEPTH: usize = 4;
 
 struct TestEnv {
     tempdir: TempDir,
+    cwd: PathBuf,
 }
 
 impl TestEnv {
@@ -17,8 +18,9 @@ impl TestEnv {
 
     fn new() -> Result<Self> {
         let tempdir = Builder::new().prefix("tfmttools-").tempdir()?;
+        let cwd = std::env::current_dir()?;
 
-        let env = TestEnv { tempdir };
+        let env = TestEnv { tempdir, cwd };
 
         std::fs::create_dir(env.get_config_dir())?;
         std::fs::create_dir(env.get_files_dir())?;
@@ -90,6 +92,8 @@ fn setup_environment() -> Result<TestEnv> {
 }
 
 fn teardown_environment(env: TestEnv) -> Result<()> {
+    // Must do this, otherwise we can't close the tempdir.
+    std::env::set_current_dir(env.cwd)?;
     env.tempdir.close()?;
     Ok(())
 }
@@ -97,9 +101,7 @@ fn teardown_environment(env: TestEnv) -> Result<()> {
 fn print_filetree(path: &Path, depth: usize) {
     println!(
         "{}{}{}",
-        std::iter::repeat(' ')
-            .take((4 * depth) as usize)
-            .collect::<String>(),
+        " ".repeat(4 * depth + 4),
         path.file_name().unwrap().to_string_lossy(),
         std::path::MAIN_SEPARATOR
     );
@@ -120,9 +122,7 @@ fn print_filetree(path: &Path, depth: usize) {
                     } else if p.is_file() {
                         println!(
                             "{}{}",
-                            std::iter::repeat(' ')
-                                .take((4 * depth + 4) as usize)
-                                .collect::<String>(),
+                            " ".repeat(4 * depth + 4),
                             p.file_name().unwrap().to_string_lossy()
                         );
                     }
@@ -173,17 +173,9 @@ where
 
     tfmttools::cli::with_custom_args(parsed_args)?;
 
-    check_paths(env.path(), &reference)?;
+    check_paths(env.path(), reference)?;
 
     Ok(())
-}
-
-#[test]
-fn test_environment() -> Result<()> {
-    test_runner(setup_environment, teardown_environment, |env| {
-        print_filetree(env.path(), DEFAULT_RECURSION_DEPTH);
-        Ok(())
-    })
 }
 // fn test_undo<P: AsRef<Path>>(
 //     name: &str,
@@ -260,26 +252,30 @@ fn test_simple_input() -> Result<()> {
     })
 }
 
-// #[test]
-// fn tfmttools_typical_input_test() -> Result<()> {
-//     let name = "typical_input";
-//     let tempdir = setup_environment(name)?;
+#[test]
+fn test_typical_input() -> Result<()> {
+    test_runner(setup_environment, teardown_environment, |env| {
+        let script_name = "typical_input";
 
-//     let args = "-- myname";
+        let args = "myname";
 
-//     let reference = [
-//         "myname/MASTER BOOT RECORD/WAREZ/Dune.mp3",
-//         "myname/MASTER BOOT RECORD/2016.03 - CEDIT AUTOEXEC.BAT/05 - SET MIDI=SYNTH1 MAPG MODE1.mp3",
-//         "myname/Amon Amarth/2013 - Deceiver of the Gods/105 - Under Siege.mp3",
-//         "myname/The Talos Principle/2015 - The Talos Principle OST/01 - Damjan Mravunac - Welcome To Heaven.ogg",
-//         "myname/Nightwish/While Your Lips Are Still Red.mp3",
-//     ];
+        let reference = [
+            "myname/MASTER BOOT RECORD/WAREZ/Dune.mp3",
+            "myname/MASTER BOOT RECORD/2016.03 - CEDIT AUTOEXEC.BAT/05 - SET MIDI=SYNTH1 MAPG MODE1.mp3",
+            "myname/Amon Amarth/2013 - Deceiver of the Gods/105 - Under Siege.mp3",
+            "myname/The Talos Principle/2015 - The Talos Principle OST/01 - Damjan Mravunac - Welcome To Heaven.ogg",
+            "myname/Nightwish/While Your Lips Are Still Red.mp3",
+        ];
 
-//     match test_rename(name, args, &reference, &tempdir) {
-//         Ok(()) => Ok(teardown_environment(tempdir)?),
-//         Err(err) => bail!("Error in {}:\n{}", name, err),
-//     }
-// }
+        let result = test_rename(script_name, args, &reference, env);
+
+        if result.is_err() {
+            print_filetree(env.path(), DEFAULT_RECURSION_DEPTH)
+        }
+
+        result
+    })
+}
 
 // #[test]
 // fn tfmttools_undo_test() -> Result<()> {

@@ -71,6 +71,7 @@ fn action_from_file(
 
     // We already know this is a file with either an "mp3" or "ogg"
     // extension, so we unwrap safely.
+    debug_assert!(source.extension().is_some());
     let extension = source.extension().unwrap();
 
     let target = std::env::current_dir()?
@@ -102,7 +103,10 @@ fn apply_actions(
         for action in actions {
             if !preview {
                 let (_, target) = action.get_src_tgt_unchecked();
-                create_dir(preview, history, target)?;
+                // Actions target are all files, and always have a parent.
+
+                debug_assert!(target.parent().is_some());
+                create_dir(preview, history, target.parent().unwrap())?;
                 history.apply(action)?;
             }
         }

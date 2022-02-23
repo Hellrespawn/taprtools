@@ -113,18 +113,23 @@ impl Config {
 
     pub(crate) fn get_script(&self, name: &str) -> Result<Script> {
         let scripts = self.get_scripts()?;
-        let found: Vec<Script> =
+        let found_scripts: Vec<Script> =
             scripts.into_iter().filter(|s| s.name() == name).collect();
 
-        let length = found.len();
+        let length = found_scripts.len();
 
         if length == 0 {
             bail!("Unable to find script \"{name}\"");
         } else if length > 1 {
             bail!("Found {length} scripts with name \"{name}\"");
         }
+
+        let script = found_scripts.into_iter().next();
+
         // This unwrap is always safe, as we check the length manually.
-        Ok(found.into_iter().next().unwrap())
+        debug_assert!(script.is_some());
+
+        Ok(script.unwrap())
     }
 
     pub(crate) fn get_audiofiles(
