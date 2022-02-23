@@ -547,6 +547,7 @@ dependencies = [
  "id3",
  "lewton",
  "tempfile",
+ "test-harness",
  "tfmt",
 ]
 

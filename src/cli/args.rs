@@ -1,6 +1,5 @@
-// use std::path::PathBuf;
-
 use clap::{Parser, Subcommand};
+use std::path::PathBuf;
 
 #[derive(Parser, Debug, PartialEq)]
 #[clap(author, version, about, long_about = None)]
@@ -8,8 +7,8 @@ use clap::{Parser, Subcommand};
 /// Holds application-wide command line arguments.
 pub struct Args {
     /// Sets a custom config file
-    // #[clap(short, long, parse(from_os_str), value_name = "FILE")]
-    // config: Option<PathBuf>,
+    #[clap(short, long, parse(from_os_str))]
+    pub(crate) config: Option<PathBuf>,
 
     #[clap(short, long)]
     /// Only preview current action.

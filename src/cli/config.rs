@@ -4,12 +4,41 @@ use tfmt::Script;
 
 use crate::file::AudioFile;
 
-pub(crate) struct Filesystem;
+pub(crate) struct Config {
+    path: PathBuf,
+}
 
-impl Filesystem {
+impl Config {
     pub(crate) const HISTORY_FILENAME: &'static str = "tfmttools.hist";
     pub(crate) const PREVIEW_PREFIX: &'static str = "[P] ";
     pub(crate) const SCRIPT_EXTENSION: &'static str = "tfmt";
+
+    pub(crate) fn new<P>(path: P) -> Result<Self>
+    where
+        P: AsRef<Path>,
+    {
+        let config = Self {
+            path: path.as_ref().to_path_buf(),
+        };
+
+        Config::create_dir(&config.path)?;
+
+        Ok(config)
+    }
+
+    pub(crate) fn default() -> Result<Self> {
+        if let Some(home) = dirs::home_dir() {
+            let path = home.join(format!(".{}", env!("CARGO_PKG_NAME")));
+
+            let config = Self { path };
+
+            Config::create_dir(&config.path)?;
+
+            Ok(config)
+        } else {
+            bail!("Unable to read home directory!")
+        }
+    }
 
     /// Search a path for files matching `predicate`, recursing for `depth`.
     fn search_path<P, Q>(path: &P, depth: usize, predicate: &Q) -> Vec<PathBuf>
@@ -28,7 +57,7 @@ impl Filesystem {
                 if entry_path.is_file() && matches_predicate {
                     found_paths.push(entry_path);
                 } else if entry_path.is_dir() && depth > 0 {
-                    found_paths.extend(Filesystem::search_path(
+                    found_paths.extend(Config::search_path(
                         &entry_path,
                         depth - 1,
                         predicate,
@@ -40,41 +69,37 @@ impl Filesystem {
         found_paths
     }
 
-    fn get_project_dir() -> Result<PathBuf> {
-        if let Some(home) = dirs::home_dir() {
-            let project_dir = home.join(format!(".{}", env!("CARGO_PKG_NAME")));
-            if !project_dir.exists() {
-                std::fs::create_dir(&project_dir)?;
-            } else if !project_dir.is_dir() {
-                bail!("Unable to create project directory!")
-            }
-
-            Ok(project_dir)
-        } else {
-            bail!("Unable to read home directory!")
+    fn create_dir(path: &Path) -> Result<()> {
+        if !path.exists() {
+            std::fs::create_dir(&path)?;
+        } else if !path.is_dir() {
+            bail!("Unable to create project directory!")
         }
+
+        Ok(())
     }
 
-    pub(crate) fn get_history_path() -> Result<PathBuf> {
-        let path =
-            Filesystem::get_project_dir()?.join(Filesystem::HISTORY_FILENAME);
-        Ok(path)
+    fn path(&self) -> &Path {
+        &self.path
     }
 
-    fn get_script_paths() -> Result<Vec<PathBuf>> {
+    pub(crate) fn get_history_path(&self) -> PathBuf {
+        let path = self.path().join(Config::HISTORY_FILENAME);
+        path
+    }
+
+    fn get_script_paths(&self) -> Vec<PathBuf> {
         // FIXME also get scripts in cwd?
-        let path = Filesystem::get_project_dir()?;
-
-        let paths = Filesystem::search_path(&path, 0, &|p| {
+        let paths = Config::search_path(&self.path(), 0, &|p| {
             p.extension()
-                .map_or(false, |s| s == Filesystem::SCRIPT_EXTENSION)
+                .map_or(false, |s| s == Config::SCRIPT_EXTENSION)
         });
 
-        Ok(paths)
+        paths
     }
 
-    pub(crate) fn get_scripts() -> Result<Vec<Script>> {
-        let paths = Filesystem::get_script_paths()?;
+    pub(crate) fn get_scripts(&self) -> Result<Vec<Script>> {
+        let paths = self.get_script_paths();
 
         let mut scripts = Vec::new();
 
@@ -86,8 +111,8 @@ impl Filesystem {
         Ok(scripts)
     }
 
-    pub(crate) fn get_script(name: &str) -> Result<Script> {
-        let scripts = Filesystem::get_scripts()?;
+    pub(crate) fn get_script(&self, name: &str) -> Result<Script> {
+        let scripts = self.get_scripts()?;
         let found: Vec<Script> =
             scripts.into_iter().filter(|s| s.name() == name).collect();
 
@@ -107,7 +132,7 @@ impl Filesystem {
     ) -> Result<Vec<AudioFile>> {
         let path = std::env::current_dir()?;
 
-        let paths = Filesystem::search_path(&path, recursion_depth, &|p| {
+        let paths = Config::search_path(&path, recursion_depth, &|p| {
             p.extension().map_or(false, |extension| {
                 for supported_extension in AudioFile::SUPPORTED_EXTENSIONS {
                     if extension == supported_extension {

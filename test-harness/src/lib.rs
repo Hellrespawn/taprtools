@@ -26,19 +26,20 @@ pub fn none() -> Result<()> {
 /// This code uses `std::panic::catch_unwind` to catch any panic during testing
 /// so the teardown function can be called. An assert statement later panics
 /// again so the original trace is preserved and displayed to the user.
-pub fn test_runner<F, S, T>(
+pub fn test_runner<F, S, T, U>(
     test_function: F,
     setup_function: S,
     teardown_function: T,
 ) -> Result<()>
 where
-    F: FnOnce() -> Result<()> + std::panic::UnwindSafe,
-    S: FnOnce() -> Result<()>,
+    F: FnOnce(U) -> Result<()> + std::panic::UnwindSafe,
+    S: FnOnce() -> Result<U>,
     T: FnOnce() -> Result<()>,
+    U: std::panic::UnwindSafe,
 {
-    setup_function()?;
+    let setup_out = setup_function()?;
 
-    let result = std::panic::catch_unwind(test_function);
+    let result = std::panic::catch_unwind(|| test_function(setup_out));
 
     teardown_function()?;
 
@@ -52,7 +53,7 @@ where
 mod tests {
     use super::*;
 
-    fn test_function() -> Result<()> {
+    fn test_function(_: ()) -> Result<()> {
         Err(anyhow::anyhow!("Woohoo!").into())
     }
 
@@ -60,7 +61,7 @@ mod tests {
     fn test_harness_with_result() -> Result<()> {
         let func = test_function;
         let harness = test_runner(func, none, none);
-        let bare = func();
+        let bare = func(());
 
         match bare {
             Ok(()) => assert!(harness.is_ok()),
