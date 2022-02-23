@@ -8,7 +8,7 @@ use std::path::PathBuf;
 pub struct Args {
     /// Sets a custom config file
     #[clap(short, long, parse(from_os_str))]
-    pub(crate) config: Option<PathBuf>,
+    pub(crate) config_folder: Option<PathBuf>,
 
     #[clap(short, long)]
     /// Only preview current action.
@@ -74,10 +74,11 @@ pub enum Command {
 }
 
 impl Args {
-    pub const DEFAULT_PREVIEW_AMOUNT: usize = 8;
-    pub const DEFAULT_RECURSION_DEPTH: usize = 4;
+    pub(crate) const DEFAULT_PREVIEW_AMOUNT: usize = 8;
+    pub(crate) const DEFAULT_RECURSION_DEPTH: usize = 4;
 
-    fn aggregate_preview(mut self, preview_override: bool) -> Self {
+    /// If one preview is true, also sets the other preview.
+    pub fn aggregate_preview(mut self, preview_override: bool) -> Self {
         let preview_aggregate = preview_override
             || self.preview
             || match self.command {

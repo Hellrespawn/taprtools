@@ -3,6 +3,7 @@ use crate::cli::Config;
 use crate::file::AudioFile;
 use anyhow::Result;
 use file_history::{Action, History};
+use std::path::Path;
 use tfmt::{Interpreter, Script};
 
 pub(crate) fn rename(
@@ -30,15 +31,7 @@ pub(crate) fn rename(
     let pp = if preview { Config::PREVIEW_PREFIX } else { "" };
     println!("{pp}Moving {} audio files.", actions.len());
 
-    let result: Result<()> = {
-        for action in actions {
-            if !preview {
-                history.apply(action)?;
-            }
-        }
-
-        Ok(())
-    };
+    let result = apply_actions(preview, &mut history, actions);
 
     // FIXME Handle nested error somehow.
     if result.is_err() {
@@ -49,7 +42,6 @@ pub(crate) fn rename(
 
     result
 }
-
 fn gather_files(recursion_depth: usize) -> Result<Vec<AudioFile>> {
     Config::get_audiofiles(recursion_depth)
 }
@@ -81,10 +73,7 @@ fn action_from_file(
     // extension, so we unwrap safely.
     let extension = source.extension().unwrap();
 
-    // We already know this is a file, so it should have a parent directory.
-    let target = source
-        .parent()
-        .unwrap()
+    let target = std::env::current_dir()?
         .join(string)
         .with_extension(extension);
 
@@ -102,4 +91,40 @@ fn partition_actions(actions: Vec<Action>) -> (Vec<Action>, Vec<Action>) {
         let (source, target) = action.get_src_tgt_unchecked();
         source != target
     })
+}
+
+fn apply_actions(
+    preview: bool,
+    history: &mut History,
+    actions: Vec<Action>,
+) -> Result<()> {
+    let result: Result<()> = {
+        for action in actions {
+            if !preview {
+                let (_, target) = action.get_src_tgt_unchecked();
+                create_dir(preview, history, target)?;
+                history.apply(action)?;
+            }
+        }
+
+        Ok(())
+    };
+
+    result
+}
+
+fn create_dir(preview: bool, history: &mut History, path: &Path) -> Result<()> {
+    if path.is_dir() {
+        return Ok(());
+    }
+
+    if let Some(parent) = path.parent() {
+        create_dir(preview, history, parent)?;
+    }
+
+    let action = Action::MakeDir(path.to_path_buf());
+
+    history.apply(action)?;
+
+    Ok(())
 }

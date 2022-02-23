@@ -112,8 +112,6 @@ mod tests {
         assert_eq!(applied_actions_in, applied_actions_out);
         assert_eq!(undone_actions_in, undone_actions_out);
 
-        dbg!(&applied_actions_out);
-
         Ok(())
     }
 

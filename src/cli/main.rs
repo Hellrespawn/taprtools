@@ -1,14 +1,18 @@
 use crate::cli::args::Command;
 use crate::cli::commands::*;
+use crate::cli::{Args, Config};
 use anyhow::Result;
-
-use super::Config;
 
 /// Main entrypoint for tfmttools
 pub fn main(preview_override: bool) -> Result<()> {
     let args = crate::cli::args::parse_args(preview_override);
 
-    let config = if let Some(path) = args.config {
+    with_custom_args(args)
+}
+
+/// Runs tfmttools with custom arguments.
+pub fn with_custom_args(args: Args) -> Result<()> {
+    let config = if let Some(path) = args.config_folder {
         Config::new(&path)?
     } else {
         Config::default()?

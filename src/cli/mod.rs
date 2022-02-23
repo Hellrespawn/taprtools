@@ -10,4 +10,5 @@ pub(crate) mod validate;
 pub(crate) use config::Config;
 
 mod main;
-pub use main::main;
+pub use args::Args;
+pub use main::{main, with_custom_args};
