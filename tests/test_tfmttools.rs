@@ -177,34 +177,36 @@ where
 
     Ok(())
 }
-// fn test_undo<P: AsRef<Path>>(
-//     name: &str,
-//     args: &str,
-//     reference: &[P],
-//     tempdir: &TempDir,
-// ) -> Result<()> {
-//     test_rename(name, args, reference, tempdir)?;
 
-//     let args = format!(
-//         "tfmttools_test --config-folder {} undo",
-//         tempdir.path().join(CONFIG_FOLDER).display(),
-//     );
+fn test_undo<P: AsRef<Path>>(
+    script_name: &str,
+    args: &str,
+    reference: &[P],
+    env: &TestEnv,
+) -> Result<()> {
+    test_rename(script_name, args, reference, env)?;
 
-//     // FIXME Rename here
-//     // tfmt::main(&args.split_whitespace().collect::<Vec<&str>>(), false)?;
+    let args = format!(
+        "tfmttools_test --config-folder {} undo",
+        env.get_config_dir().display(),
+    );
 
-//     let reference = [
-//         "source/Dune - MASTER BOOT RECORD.mp3",
-//         "source/SET MIDI=SYNTH1 MAPG MODE1 - MASTER BOOT RECORD.mp3",
-//         "source/Under Siege - Amon Amarth.mp3",
-//         "source/Welcome To Heaven - Damjan Mravunac.ogg",
-//         "source/While Your Lips Are Still Red - Nightwish.mp3",
-//     ];
+    let parsed_args = parse_custom_args(&args);
 
-//     check_paths(&tempdir, &reference)?;
+    tfmttools::cli::with_custom_args(parsed_args)?;
 
-//     Ok(())
-// }
+    let reference = [
+        "source/Dune - MASTER BOOT RECORD.mp3",
+        "source/SET MIDI=SYNTH1 MAPG MODE1 - MASTER BOOT RECORD.mp3",
+        "source/Under Siege - Amon Amarth.mp3",
+        "source/Welcome To Heaven - Damjan Mravunac.ogg",
+        "source/While Your Lips Are Still Red - Nightwish.mp3",
+    ];
+
+    check_paths(env.path(), &reference)?;
+
+    Ok(())
+}
 
 // fn test_redo<P: AsRef<Path>>(
 //     name: &str,
@@ -228,7 +230,7 @@ where
 // }
 
 #[test]
-fn test_simple_input() -> Result<()> {
+fn test_rename_simple_input() -> Result<()> {
     test_runner(setup_environment, teardown_environment, |env| {
         let script_name = "simple_input";
 
@@ -253,7 +255,7 @@ fn test_simple_input() -> Result<()> {
 }
 
 #[test]
-fn test_typical_input() -> Result<()> {
+fn test_rename_typical_input() -> Result<()> {
     test_runner(setup_environment, teardown_environment, |env| {
         let script_name = "typical_input";
 
@@ -277,26 +279,55 @@ fn test_typical_input() -> Result<()> {
     })
 }
 
-// #[test]
-// fn tfmttools_undo_test() -> Result<()> {
-//     let name = "typical_input";
-//     let tempdir = setup_environment(name)?;
+#[test]
+fn test_undo_typical_input() -> Result<()> {
+    test_runner(setup_environment, teardown_environment, |env| {
+        let script_name = "typical_input";
 
-//     let args = "-- myname";
+        let args = "myname";
 
-//     let reference = [
-//         "myname/MASTER BOOT RECORD/WAREZ/Dune.mp3",
-//         "myname/MASTER BOOT RECORD/2016.03 - CEDIT AUTOEXEC.BAT/05 - SET MIDI=SYNTH1 MAPG MODE1.mp3",
-//         "myname/Amon Amarth/2013 - Deceiver of the Gods/105 - Under Siege.mp3",
-//         "myname/The Talos Principle/2015 - The Talos Principle OST/01 - Damjan Mravunac - Welcome To Heaven.ogg",
-//         "myname/Nightwish/While Your Lips Are Still Red.mp3",
-//     ];
+        let reference = [
+            "myname/MASTER BOOT RECORD/WAREZ/Dune.mp3",
+            "myname/MASTER BOOT RECORD/2016.03 - CEDIT AUTOEXEC.BAT/05 - SET MIDI=SYNTH1 MAPG MODE1.mp3",
+            "myname/Amon Amarth/2013 - Deceiver of the Gods/105 - Under Siege.mp3",
+            "myname/The Talos Principle/2015 - The Talos Principle OST/01 - Damjan Mravunac - Welcome To Heaven.ogg",
+            "myname/Nightwish/While Your Lips Are Still Red.mp3",
+        ];
 
-//     match test_undo(name, args, &reference, &tempdir) {
-//         Ok(()) => Ok(teardown_environment(tempdir)?),
-//         Err(err) => bail!("Error in {}:\n{}", name, err),
-//     }
-// }
+        let result = test_undo(script_name, args, &reference, env);
+
+        if result.is_err() {
+            print_filetree(env.path(), DEFAULT_RECURSION_DEPTH)
+        }
+
+        result
+    })
+}
+
+#[test]
+fn tfmttools_undo_test() -> Result<()> {
+    test_runner(setup_environment, teardown_environment, |env| {
+        let script_name = "typical_input";
+
+        let args = "-- myname";
+
+        let reference = [
+        "myname/MASTER BOOT RECORD/WAREZ/Dune.mp3",
+        "myname/MASTER BOOT RECORD/2016.03 - CEDIT AUTOEXEC.BAT/05 - SET MIDI=SYNTH1 MAPG MODE1.mp3",
+        "myname/Amon Amarth/2013 - Deceiver of the Gods/105 - Under Siege.mp3",
+        "myname/The Talos Principle/2015 - The Talos Principle OST/01 - Damjan Mravunac - Welcome To Heaven.ogg",
+        "myname/Nightwish/While Your Lips Are Still Red.mp3",
+    ];
+
+        let result = test_undo(script_name, args, &reference, env);
+
+        if result.is_err() {
+            print_filetree(env.path(), DEFAULT_RECURSION_DEPTH)
+        }
+
+        result
+    })
+}
 
 // #[test]
 // fn tfmttools_redo_test() -> Result<()> {
