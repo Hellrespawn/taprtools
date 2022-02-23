@@ -17,7 +17,7 @@ pub(crate) fn undo(
     let history_path = config.get_history_path();
     let mut history = History::load(&history_path)?;
 
-    let amount = if preview {
+    let amount = if !preview {
         match mode {
             UndoMode::Undo => history.undo(times)?,
             UndoMode::Redo => history.redo(times)?,
@@ -31,11 +31,12 @@ pub(crate) fn undo(
         UndoMode::Redo => "Redid",
     };
 
-    // FIXME some sort of rollback logic for undo/redo?
+    // TODO? some sort of rollback logic for undo/redo?
     history.save()?;
 
+    // TODO Better print for undoing/redoing something.
     let pp = if preview { Config::PREVIEW_PREFIX } else { "" };
-    println!("{pp}{action} {amount} actions.");
+    println!("{pp}{action} {amount} action group.");
 
     Ok(())
 }

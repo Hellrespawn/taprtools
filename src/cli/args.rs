@@ -55,6 +55,7 @@ pub enum Command {
         /// Only preview current action.
         preview: bool,
         /// Times to redo
+        #[clap(default_value_t = 1)]
         times: usize,
     },
     /// Rename files according to their tags.
