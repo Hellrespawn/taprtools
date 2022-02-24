@@ -4,7 +4,7 @@ use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 #[derive(Serialize, Deserialize)]
-struct DiskFormat {
+struct HistoryOnDisk {
     applied_groups: Vec<ActionGroup>,
     undone_groups: Vec<ActionGroup>,
 }
@@ -43,8 +43,7 @@ impl DiskHandler {
     pub(crate) fn read(&self) -> Result<(Vec<ActionGroup>, Vec<ActionGroup>)> {
         match std::fs::read(&self.path) {
             Ok(file_contents) => {
-                let format: DiskFormat =
-                    bincode::deserialize(&file_contents)?;
+                let format: HistoryOnDisk = bincode::deserialize(&file_contents)?;
                 // let format: DiskFormat =
                 //     serde_json::from_slice(&file_contents)?;
 
@@ -65,13 +64,12 @@ impl DiskHandler {
         applied_groups: &[ActionGroup],
         undone_groups: &[ActionGroup],
     ) -> Result<()> {
-        let format = DiskFormat {
+        let format = HistoryOnDisk {
             applied_groups: applied_groups.to_vec(),
             undone_groups: undone_groups.to_vec(),
         };
 
-        let serialized =
-            bincode::serialize(&format)?;
+        let serialized = bincode::serialize(&format)?;
         std::fs::write(&self.path, serialized)?;
         // let serialized = serde_json::to_string_pretty(&format)?;
         // std::fs::write(&self.path, serialized)?;

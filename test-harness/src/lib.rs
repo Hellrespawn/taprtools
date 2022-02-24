@@ -2,6 +2,12 @@
 #![warn(clippy::pedantic)]
 //! Provides a test runner with a setup and teardown that runs even in the case
 //! of panic.
+//!
+//! Adapted from the following:
+//!
+//! Opines, E. (2018, April 9). Test setup and teardown in Rust without a
+//! framework. Medium. Retrieved February 23, 2022, from
+//! <https://medium.com/@ericdreichert/test-setup-and-teardown-in-rust-without-a-framework-ba32d97aa5ab>
 
 use anyhow::Result;
 
@@ -16,12 +22,6 @@ use anyhow::Result;
 /// This code uses `std::panic::catch_unwind` to catch any panic during testing
 /// so the teardown function can be called. An assert statement later panics
 /// again so the original trace is preserved and displayed to the user.
-///
-/// Adapted from the following:
-///
-/// Opines, E. (2018, April 9). Test setup and teardown in Rust without a
-/// framework. Medium. Retrieved February 23, 2022, from
-/// https://medium.com/@ericdreichert/test-setup-and-teardown-in-rust-without-a-framework-ba32d97aa5ab
 pub fn test_runner<S, T, F, X>(
     setup_function: S,
     teardown_function: T,
@@ -33,11 +33,11 @@ where
     T: FnOnce(X) -> Result<()>,
     X: std::panic::UnwindSafe + std::panic::RefUnwindSafe,
 {
-    let setup_out = setup_function()?;
+    let environment = setup_function()?;
 
-    let result = std::panic::catch_unwind(|| test_function(&setup_out));
+    let result = std::panic::catch_unwind(|| test_function(&environment));
 
-    teardown_function(setup_out)?;
+    teardown_function(environment)?;
 
     assert!(result.is_ok());
     result.unwrap()

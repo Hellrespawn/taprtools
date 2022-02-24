@@ -2,13 +2,20 @@ use anyhow::{bail, Result};
 use clap::Parser;
 use once_cell::sync::Lazy;
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, MutexGuard};
 use tempfile::{Builder, TempDir};
 use test_harness::test_runner;
 use tfmttools::cli::Args;
 
+type CdFunction = fn(&Path) -> ();
+type Mutex = std::sync::Mutex<CdFunction>;
+type MutexGuard<'a> = std::sync::MutexGuard<'a, CdFunction>;
+
 // Controls access to set_current_dir
-static CD_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+static CD_MUTEX: Lazy<Mutex> = Lazy::new(|| {
+    Mutex::new(|p: &Path| {
+        std::env::set_current_dir(p).expect("Unable to set current directory!")
+    })
+});
 
 const DEFAULT_RECURSION_DEPTH: usize = 4;
 const INITIAL_REFERENCE: [&str; 5] = [
@@ -37,105 +44,109 @@ const TYPICAL_INPUT_ARGS: &str = "myname";
 
 struct TestEnv<'a> {
     tempdir: TempDir,
-    cwd: PathBuf,
-    guard: Option<MutexGuard<'a, ()>>,
+    previous_cwd: PathBuf,
+    set_cwd: MutexGuard<'a>,
 }
 
 impl<'a> TestEnv<'a> {
     const CONFIG_FOLDER: &'static str = "config";
     const FILES_FOLDER: &'static str = "files";
 
-    fn new() -> Result<Self> {
-        let tempdir = Builder::new().prefix("tfmttools-").tempdir()?;
-        let cwd = std::env::current_dir()?;
-
+    fn init() -> Result<Self> {
         let env = TestEnv {
-            tempdir,
-            cwd,
-            guard: None,
+            tempdir: Builder::new().prefix("tfmttools-").tempdir()?,
+            previous_cwd: std::env::current_dir()?,
+            set_cwd: CD_MUTEX.lock().expect("Unable to acquire lock on mutex!"),
         };
 
-        std::fs::create_dir(env.get_config_dir())?;
-        std::fs::create_dir(env.get_files_dir())?;
+        env.populate_scripts()?;
+        env.populate_files()?;
+
+        env.set_cwd();
 
         Ok(env)
+    }
+
+    fn populate_scripts(&self) -> Result<()> {
+        let paths: Vec<PathBuf> = std::fs::read_dir("testdata/script")?
+            .flat_map(|r| r.map(|d| d.path()))
+            .collect();
+
+        std::fs::create_dir(self.get_config_dir())?;
+
+        for script_path in &paths {
+            // Scripts are selected by is_file, should always have a filename so
+            // path.file_name().unwrap() should be safe.
+
+            assert!(script_path.file_name().is_some());
+            let file_name = script_path.file_name().unwrap();
+
+            std::fs::copy(script_path, self.get_config_dir().join(file_name))?;
+        }
+
+        Ok(())
+    }
+
+    fn populate_files(&self) -> Result<()> {
+        let paths: Vec<PathBuf> = std::fs::read_dir("testdata/music")?
+            .flat_map(|r| r.map(|d| d.path()))
+            .collect();
+
+        std::fs::create_dir(self.get_files_dir())?;
+
+        for audiofile_path in &paths {
+            // Audio files are selected by is_file, should always have a
+            // filename so path.file_name().unwrap() should be safe.
+
+            assert!(audiofile_path.file_name().is_some());
+
+            std::fs::copy(
+                audiofile_path,
+                self.get_files_dir()
+                    .join(audiofile_path.file_name().unwrap()),
+            )?;
+        }
+
+        assert!(check_paths(self.path(), &INITIAL_REFERENCE).is_ok());
+
+        Ok(())
     }
 
     fn path(&self) -> &Path {
         self.tempdir.path()
     }
 
+    fn set_cwd(&self) {
+        (*self.set_cwd)(self.path())
+    }
+
+    fn restore_cwd(&self) {
+        (*self.set_cwd)(&self.previous_cwd)
+    }
+
     fn get_config_dir(&self) -> PathBuf {
-        self.tempdir.path().join(TestEnv::CONFIG_FOLDER)
+        self.path().join(TestEnv::CONFIG_FOLDER)
     }
 
     fn get_files_dir(&self) -> PathBuf {
-        self.tempdir.path().join(TestEnv::FILES_FOLDER)
-    }
-
-    fn get_script_paths(&self) -> Result<Vec<PathBuf>> {
-        // This only retrieves the contents of testdata/script, it does not check the files.
-        let paths = std::fs::read_dir("testdata/script")?
-            .flat_map(|r| r.map(|d| d.path()))
-            .collect();
-
-        Ok(paths)
-    }
-
-    fn get_audiofile_paths(&self) -> Result<Vec<PathBuf>> {
-        // This only retrieves the contents of testdata/music, it does not check the files.
-        let paths = std::fs::read_dir("testdata/music")?
-            .flat_map(|r| r.map(|d| d.path()))
-            .collect();
-
-        Ok(paths)
+        self.path().join(TestEnv::FILES_FOLDER)
     }
 }
 
 fn setup_environment<'a>() -> Result<TestEnv<'a>> {
-    let mut env = TestEnv::new()?;
-
-    for script_path in &env.get_script_paths()? {
-        // Scripts are selected by is_file, should always have a filename so
-        // path.file_name().unwrap() should be safe.
-
-        assert!(script_path.file_name().is_some());
-        let file_name = script_path.file_name().unwrap();
-
-        std::fs::copy(script_path, env.get_config_dir().join(file_name))?;
-    }
-
-    for audiofile_path in &env.get_audiofile_paths()? {
-        // Audio files are selected by is_file, should always have a filename so
-        // path.file_name().unwrap() should be safe.
-
-        assert!(audiofile_path.file_name().is_some());
-
-        std::fs::copy(
-            audiofile_path,
-            env.get_files_dir()
-                .join(audiofile_path.file_name().unwrap()),
-        )?;
-    }
-
-    assert!(check_paths(env.path(), &INITIAL_REFERENCE).is_ok());
-
-    env.guard = Some(CD_MUTEX.lock().unwrap());
-    std::env::set_current_dir(env.path())?;
-
-    Ok(env)
+    TestEnv::init()
 }
 
 fn teardown_environment(env: TestEnv) -> Result<()> {
     // Must do this, otherwise we can't close the tempdir.
-    std::env::set_current_dir(&env.cwd)?;
+    env.restore_cwd();
     std::fs::copy(
         &env.get_config_dir().join("tfmttools.hist"),
         "d:\\histfile",
     )?;
 
     // Want to be explicit about dropping the guard.
-    std::mem::drop(env.guard);
+    std::mem::drop(env.set_cwd);
     env.tempdir.close()?;
     Ok(())
 }
