@@ -88,18 +88,24 @@ impl Config {
         path
     }
 
-    fn get_script_paths(&self) -> Vec<PathBuf> {
-        // FIXME also get scripts in cwd?
-        let paths = Config::search_path(&self.path(), 0, &|p| {
+    fn get_script_paths(&self) -> Result<Vec<PathBuf>> {
+        let closure: fn(&Path) -> bool = |p| {
             p.extension()
                 .map_or(false, |s| s == Config::SCRIPT_EXTENSION)
-        });
+        };
 
-        paths
+        let mut paths = Config::search_path(&self.path(), 0, &closure);
+        paths.extend(Config::search_path(
+            &std::env::current_dir()?,
+            0,
+            &closure,
+        ));
+
+        Ok(paths)
     }
 
     pub(crate) fn get_scripts(&self) -> Result<Vec<Script>> {
-        let paths = self.get_script_paths();
+        let paths = self.get_script_paths()?;
 
         let mut scripts = Vec::new();
 

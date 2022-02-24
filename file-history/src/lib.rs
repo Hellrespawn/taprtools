@@ -43,9 +43,3 @@ pub enum HistoryError {
     #[error("{0}")]
     Generic(String),
 }
-
-impl HistoryError {
-    pub(crate) fn new(message: &str) -> HistoryError {
-        HistoryError::Generic(message.to_string())
-    }
-}

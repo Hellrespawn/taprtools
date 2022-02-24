@@ -12,7 +12,7 @@ use thiserror::Error;
 // -> LexerError
 // ...
 //
-// TODO? Or just shove everything under TFMTError?
+// Or just shove everything under TFMTError?
 
 #[derive(Debug, PartialEq)]
 pub struct ErrorContext {

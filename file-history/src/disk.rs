@@ -43,7 +43,8 @@ impl DiskHandler {
     pub(crate) fn read(&self) -> Result<(Vec<ActionGroup>, Vec<ActionGroup>)> {
         match std::fs::read(&self.path) {
             Ok(file_contents) => {
-                let format: HistoryOnDisk = bincode::deserialize(&file_contents)?;
+                let format: HistoryOnDisk =
+                    bincode::deserialize(&file_contents)?;
                 // let format: DiskFormat =
                 //     serde_json::from_slice(&file_contents)?;
 

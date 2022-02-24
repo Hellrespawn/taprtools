@@ -295,7 +295,6 @@ impl<'a> Lexer<'a> {
     }
 
     fn handle_reserved(&mut self) -> Option<Token> {
-        // TODO? Better descending range?
         for i in (0..TokenType::LOOKAHEAD_DEPTH).rev() {
             // self.next() already checks for None, so this unwrap should be safe.
             let string = self.buffer.peekn(i + 1).join("");

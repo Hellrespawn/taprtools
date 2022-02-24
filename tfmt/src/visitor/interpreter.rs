@@ -260,9 +260,10 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
 
     fn visit_symbol(&mut self, symbol: &Token) -> Result<String> {
         let name = symbol.get_string_unchecked();
-        debug_assert!(self.symbol_table.get(name).is_some());
 
-        // FIXME Check unwrap
+        // SemanticAnalyzer checks for undeclared symbols, so this should
+        // always be safe.
+        debug_assert!(self.symbol_table.get(name).is_some());
         Ok(self.symbol_table.get(name).unwrap().clone())
     }
 
@@ -272,7 +273,6 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
         let audio_file = self.audio_file;
 
         let mut tag = match tag_name {
-            // TODO? Parse less common tags.
             "album" => audio_file.album(),
             "albumartist" | "album_artist" => audio_file.album_artist(),
             "albumsort" | "album_sort" => audio_file.albumsort(),
@@ -292,8 +292,6 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
         .unwrap_or("")
         .to_string();
 
-        // TODO? Add strict mode, which allows/denies/errors on forbidden
-        // characters/directory separators.
         crate::FORBIDDEN_GRAPHEMES
             .iter()
             .for_each(|g| tag = tag.replace(g, ""));

@@ -8,7 +8,7 @@ use std::path::PathBuf;
 pub struct Args {
     /// Sets a custom config file
     #[clap(short, long, parse(from_os_str))]
-    pub(crate) config_folder: Option<PathBuf>,
+    pub(crate) config: Option<PathBuf>,
 
     #[clap(short, long)]
     /// Only preview current action.
@@ -18,20 +18,21 @@ pub struct Args {
     pub(crate) command: Command,
 }
 
-// TODO Make subcommands shorter, e.g. clear-history -> clear, list-scripts -> list
-
 #[derive(Subcommand, Debug, PartialEq)]
 /// Holds per-subcommand command line arguments.
 pub enum Command {
     /// Clears the history
+    #[clap(name = "clear")]
     ClearHistory {
         #[clap(short, long)]
         /// Only preview current action.
         preview: bool,
     },
     /// Lists all scripts.
+    #[clap(name = "list")]
     ListScripts,
     /// Inspects script {name}.
+    #[clap(name = "inspect")]
     InspectScript {
         /// Name of script.
         name: String,
@@ -66,7 +67,7 @@ pub enum Command {
 
         #[clap(short, long, default_value_t=Args::DEFAULT_RECURSION_DEPTH)]
         /// Maximum recursion depth when gathering files.
-        recursion_depth: usize,
+        recurse: usize,
 
         /// Name of script.
         name: String,

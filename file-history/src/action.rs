@@ -1,4 +1,4 @@
-use crate::{HistoryError, Result};
+use crate::Result;
 use log::trace;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -60,26 +60,13 @@ impl Action {
                 );
             }
 
-            // TODO? Fail silently if dir already exists?
             Action::MakeDir(path) => {
-                std::fs::create_dir(path).map_err(|err| {
-                    HistoryError::new(&format!(
-                        "Error while creating {}:\n{}",
-                        path.display(),
-                        err
-                    ))
-                })?;
+                std::fs::create_dir(path)?;
                 trace!("Created directory {}", path.display());
             }
 
             Action::RemoveDir(path) => {
-                std::fs::remove_dir(path).map_err(|err| {
-                    HistoryError::new(&format!(
-                        "Error while removing {}:\n{}",
-                        path.display(),
-                        err
-                    ))
-                })?;
+                std::fs::remove_dir(path)?;
                 trace!("Removed directory {}", path.display());
             }
         }
@@ -100,26 +87,13 @@ impl Action {
             }
 
             Action::MakeDir(path) => {
-                std::fs::remove_dir(path).map_err(|err| {
-                    HistoryError::new(&format!(
-                        "Error while undoing creation of {}:\n{}",
-                        path.display(),
-                        err
-                    ))
-                })?;
+                std::fs::remove_dir(path)?;
 
                 trace!("Undid directory {}", path.display());
             }
 
-            // TODO? Fail silently if dir already exists?
             Action::RemoveDir(path) => {
-                std::fs::create_dir(path).map_err(|err| {
-                    HistoryError::new(&format!(
-                        "Error while undoing removal of {}:\n{}",
-                        path.display(),
-                        err
-                    ))
-                })?;
+                std::fs::create_dir(path)?;
 
                 trace!("Recreated directory {}", path.display());
             }
@@ -137,7 +111,7 @@ impl Action {
             // the appropriate error and copies/deletes instead.
             // Error codes are correct on Windows 10 20H2 and Arch
             // Linux.
-            // FIXME Use ErrorKind::CrossesDevices when it enters stable
+            // UPSTREAM Use ErrorKind::CrossesDevices when it enters stable
 
             if let Some(error_code) = err.raw_os_error() {
                 #[cfg(windows)]
@@ -153,12 +127,7 @@ impl Action {
                 };
             }
 
-            Err(HistoryError::new(&format!(
-                "Error while renaming:\nsource: {}\ntarget: {}\n{}",
-                source.as_ref().display(),
-                target.as_ref().display(),
-                err,
-            )))
+            Err(err.into())
         } else {
             Ok(())
         }

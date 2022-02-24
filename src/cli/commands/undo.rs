@@ -34,7 +34,6 @@ pub(crate) fn undo(
     // TODO? some sort of rollback logic for undo/redo?
     history.save()?;
 
-    // TODO Better print for undoing/redoing something.
     let pp = if preview { Config::PREVIEW_PREFIX } else { "" };
     println!("{pp}{action} {amount} action group.");
 

@@ -12,7 +12,7 @@ pub fn main(preview_override: bool) -> Result<()> {
 
 /// Runs tfmttools with custom arguments.
 pub fn with_custom_args(args: Args) -> Result<()> {
-    let config = if let Some(path) = args.config_folder {
+    let config = if let Some(path) = args.config {
         Config::new(&path)?
     } else {
         Config::default()?
@@ -34,15 +34,9 @@ pub fn with_custom_args(args: Args) -> Result<()> {
         }
         Command::Rename {
             preview,
-            recursion_depth,
+            recurse,
             name,
             arguments,
-        } => commands::rename(
-            preview,
-            &config,
-            recursion_depth,
-            &name,
-            &arguments,
-        ),
+        } => commands::rename(preview, &config, recurse, &name, &arguments),
     }
 }

@@ -176,7 +176,6 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
-    // TODO? Error check for negative numbers in parsing depth?
     fn dec_depth(&mut self) {
         self.depth -= 1;
     }

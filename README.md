@@ -50,3 +50,7 @@ Operators in order of precedence, from lowest to highest:
 | `+ a`<br>`- a`<br>`(expressions...)` |                                               |
 
 ## To-do
+
+- TODO Better UX
+- TODO? Add more obscure tags?
+- TODO? Add strict mode, which allows/denies/errors on forbidden characters/directory separators.

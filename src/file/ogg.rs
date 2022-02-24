@@ -22,14 +22,13 @@ impl OGGTags {
             .into_iter()
             .filter(|(k, _)| !k.contains("PICTURE"))
             .map(|(k, v)| (k.to_lowercase(), v))
-            // FIXME Multiple tags with same value are allowed by Ogg/Vorbis
             .collect();
 
         Ok(OGGTags(tags))
     }
 
     /// Helper function for getting tags.
-    pub fn get(&self, key: &str) -> Option<&str> {
+    pub(crate) fn get(&self, key: &str) -> Option<&str> {
         self.0.get(key).map(String::as_str)
     }
 }
