@@ -1,8 +1,8 @@
+use crate::file::AudioFile;
 use anyhow::{bail, Result};
+use indicatif::ProgressBar;
 use std::path::{Path, PathBuf};
 use tfmt::Script;
-
-use crate::file::AudioFile;
 
 pub(crate) struct Config {
     path: PathBuf,
@@ -41,7 +41,12 @@ impl Config {
     }
 
     /// Search a path for files matching `predicate`, recursing for `depth`.
-    fn search_path<P, Q>(path: &P, depth: usize, predicate: &Q) -> Vec<PathBuf>
+    fn search_path<P, Q>(
+        path: &P,
+        depth: usize,
+        predicate: &Q,
+        progress_bar: Option<&ProgressBar>,
+    ) -> Vec<PathBuf>
     where
         P: AsRef<Path>,
         Q: Fn(&Path) -> bool,
@@ -54,13 +59,23 @@ impl Config {
 
                 let matches_predicate = predicate(&entry_path);
 
-                if entry_path.is_file() && matches_predicate {
-                    found_paths.push(entry_path);
+                if entry_path.is_file() {
+                    if let Some(progress_bar) = progress_bar {
+                        progress_bar.inc_length(1);
+                    }
+
+                    if matches_predicate {
+                        if let Some(progress_bar) = progress_bar {
+                            progress_bar.inc(1);
+                        }
+                        found_paths.push(entry_path);
+                    }
                 } else if entry_path.is_dir() && depth > 0 {
                     found_paths.extend(Config::search_path(
                         &entry_path,
                         depth - 1,
                         predicate,
+                        progress_bar,
                     ));
                 }
             }
@@ -94,11 +109,12 @@ impl Config {
                 .map_or(false, |s| s == Config::SCRIPT_EXTENSION)
         };
 
-        let mut paths = Config::search_path(&self.path(), 0, &closure);
+        let mut paths = Config::search_path(&self.path(), 0, &closure, None);
         paths.extend(Config::search_path(
             &std::env::current_dir()?,
             0,
             &closure,
+            None,
         ));
 
         Ok(paths)
@@ -143,17 +159,26 @@ impl Config {
     ) -> Result<Vec<AudioFile>> {
         let path = std::env::current_dir()?;
 
-        let paths = Config::search_path(&path, recursion_depth, &|p| {
-            p.extension().map_or(false, |extension| {
-                for supported_extension in AudioFile::SUPPORTED_EXTENSIONS {
-                    if extension == supported_extension {
-                        return true;
-                    }
-                }
+        let spinner = ProgressBar::new(0);
 
-                false
-            })
-        });
+        let paths = Config::search_path(
+            &path,
+            recursion_depth,
+            &|p| {
+                p.extension().map_or(false, |extension| {
+                    for supported_extension in AudioFile::SUPPORTED_EXTENSIONS {
+                        if extension == supported_extension {
+                            return true;
+                        }
+                    }
+
+                    false
+                })
+            },
+            Some(&spinner),
+        );
+
+        spinner.finish_at_current_pos();
 
         paths.iter().map(AudioFile::new).collect()
     }
