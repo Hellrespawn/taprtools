@@ -1,6 +1,6 @@
+use crate::cli::ui;
 use crate::file::AudioFile;
 use anyhow::{bail, Result};
-use indicatif::ProgressBar;
 use std::path::{Path, PathBuf};
 use tfmt::Script;
 
@@ -45,7 +45,7 @@ impl Config {
         path: &P,
         depth: usize,
         predicate: &Q,
-        progress_bar: Option<&ProgressBar>,
+        spinner: Option<&ui::AudioFileSpinner>,
     ) -> Vec<PathBuf>
     where
         P: AsRef<Path>,
@@ -60,13 +60,13 @@ impl Config {
                 let matches_predicate = predicate(&entry_path);
 
                 if entry_path.is_file() {
-                    if let Some(progress_bar) = progress_bar {
-                        progress_bar.inc_length(1);
+                    if let Some(spinner) = spinner {
+                        spinner.inc_total();
                     }
 
                     if matches_predicate {
-                        if let Some(progress_bar) = progress_bar {
-                            progress_bar.inc(1);
+                        if let Some(spinner) = spinner {
+                            spinner.inc_found();
                         }
                         found_paths.push(entry_path);
                     }
@@ -75,7 +75,7 @@ impl Config {
                         &entry_path,
                         depth - 1,
                         predicate,
-                        progress_bar,
+                        spinner,
                     ));
                 }
             }
@@ -159,7 +159,7 @@ impl Config {
     ) -> Result<Vec<AudioFile>> {
         let path = std::env::current_dir()?;
 
-        let spinner = ProgressBar::new(0);
+        let spinner = ui::AudioFileSpinner::new();
 
         let paths = Config::search_path(
             &path,
@@ -178,7 +178,7 @@ impl Config {
             Some(&spinner),
         );
 
-        spinner.finish_at_current_pos();
+        spinner.finish();
 
         paths.iter().map(AudioFile::new).collect()
     }

@@ -1,8 +1,9 @@
 use crate::cli::validate::validate;
-use crate::cli::Config;
+use crate::cli::{ui, Config};
 use crate::file::AudioFile;
 use anyhow::Result;
 use file_history::{Action, History};
+use indicatif::ProgressIterator;
 use std::path::Path;
 use tfmt::{Interpreter, Script};
 
@@ -20,16 +21,11 @@ pub(crate) fn rename(
 
     let files = gather_files(recursion_depth)?;
 
-    println!("Gathered {} audio files.", files.len());
-
     let actions = interpret_files(script, arguments, &files)?;
 
     validate_actions(&actions)?;
 
     let (actions, _filtered_actions) = partition_actions(actions);
-
-    let pp = if preview { Config::PREVIEW_PREFIX } else { "" };
-    println!("{pp}Moving {} audio files.", actions.len());
 
     let result = apply_actions(preview, &mut history, actions);
 
@@ -53,8 +49,16 @@ fn interpret_files(
 ) -> Result<Vec<Action>> {
     let mut interpreter = Interpreter::new(script, arguments.to_vec())?;
 
+    let bar = ui::create_progressbar(
+        files.len() as u64,
+        "Interpreting files...",
+        "Interpreted files.",
+        false,
+    );
+
     let actions: Result<Vec<Action>> = files
         .iter()
+        .progress_with(bar)
         .map(|audiofile| action_from_file(&mut interpreter, audiofile))
         .collect();
 
@@ -100,7 +104,14 @@ fn apply_actions(
     actions: Vec<Action>,
 ) -> Result<()> {
     let result: Result<()> = {
-        for action in actions {
+        let bar = ui::create_progressbar(
+            actions.len() as u64,
+            "Moving files...",
+            "Moved files.",
+            true,
+        );
+
+        for action in actions.into_iter().progress_with(bar) {
             if !preview {
                 let (_, target) = action.get_src_tgt_unchecked();
                 // Actions target are all files, and always have a parent.
