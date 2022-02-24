@@ -1,14 +1,34 @@
 use crate::{Action, ActionGroup, DiskHandler, Result};
-use std::collections::VecDeque;
+use log::{debug, info};
+use std::fmt;
 use std::path::Path;
 
 /// History is responsible for saving and loading `ActionGroup`s
 pub struct History {
     disk_handler: DiskHandler,
     current_group: ActionGroup,
-    applied_groups: VecDeque<ActionGroup>,
-    undone_groups: VecDeque<ActionGroup>,
-    changed: bool,
+    applied_groups: Vec<ActionGroup>,
+    undone_groups: Vec<ActionGroup>,
+}
+
+impl fmt::Display for History {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "History file at {}", self.disk_handler.path().display())?;
+
+        writeln!(f, "Applied actions ({}):", self.applied_groups.len())?;
+
+        for group in &self.applied_groups {
+            writeln!(f, "{group}")?;
+        }
+
+        writeln!(f, "Undone actions ({}):", self.undone_groups.len())?;
+
+        for group in &self.undone_groups {
+            writeln!(f, "{group}")?;
+        }
+
+        Ok(())
+    }
 }
 
 impl History {
@@ -17,13 +37,20 @@ impl History {
         let disk_handler = DiskHandler::init(path);
         let (applied_groups, undone_groups) = disk_handler.read()?;
 
+        info!("Loading history from {}", path.display());
+
         Ok(History {
             disk_handler,
             current_group: ActionGroup::new(),
             applied_groups,
             undone_groups,
-            changed: false,
         })
+    }
+
+    fn changed(&self) -> bool {
+        self.current_group.changed()
+            || self.applied_groups.iter().any(ActionGroup::changed)
+            || self.undone_groups.iter().any(ActionGroup::changed)
     }
 
     fn save_to_disk(&self) -> Result<()> {
@@ -39,26 +66,32 @@ impl History {
     /// Clears history
     pub fn clear(&mut self) -> Result<()> {
         self.current_group = ActionGroup::new();
-        self.applied_groups = VecDeque::new();
-        self.undone_groups = VecDeque::new();
-        self.changed = false;
+        self.applied_groups = Vec::new();
+        self.undone_groups = Vec::new();
 
         self.clear_on_disk()?;
+
+        info!("History cleared.");
 
         Ok(())
     }
 
     /// Save history, if necessary
     pub fn save(&mut self) -> Result<()> {
-        if !self.changed {
-            // Do nothing
+        if !self.changed() {
+            info!("Nothing was changed.");
             return Ok(());
         }
 
-        let saved_group = std::mem::take(&mut self.current_group);
+        if self.current_group.changed() {
+            debug!("Current group was changed");
+            let saved_group = std::mem::take(&mut self.current_group);
 
-        self.applied_groups.push_front(saved_group);
+            self.applied_groups.push(saved_group);
+        }
+
         self.save_to_disk()?;
+        info!("Saved history to disk");
 
         Ok(())
     }
@@ -66,49 +99,62 @@ impl History {
     /// Apply an action to the current `ActionGroup`.
     pub fn apply(&mut self, action: Action) -> Result<()> {
         self.current_group.apply(action)?;
-        self.changed = true;
         Ok(())
     }
 
     /// Rollback all changes in the current `ActionGroup`.
     pub fn rollback(&mut self) -> Result<()> {
+        info!("Rolling back current group");
         let mut current_group = std::mem::take(&mut self.current_group);
         current_group.undo()?;
-        self.changed = false;
         Ok(())
     }
 
     /// Undo `n` amount of `ActionGroup`s. Returns amount actually undone
     pub fn undo(&mut self, amount: usize) -> Result<usize> {
-        for i in 0..amount {
-            if let Some(mut group) = self.applied_groups.pop_front() {
-                group.undo()?;
-                self.undone_groups.push_front(group);
-                self.changed = true;
-            } else {
-                self.save_to_disk()?;
-                return Ok(i);
+        if amount == 0 {
+            return Ok(0);
+        }
+
+        let mut i = 0;
+
+        while let Some(mut group) = self.applied_groups.pop() {
+            group.undo()?;
+            self.undone_groups.push(group);
+
+            i += 1;
+
+            if i == amount {
+                break;
             }
         }
 
-        self.save_to_disk()?;
-        Ok(amount)
+        self.save()?;
+
+        Ok(i)
     }
 
     /// Redo `n` amount of `ActionGroup`s. Returns amount actually redone
     pub fn redo(&mut self, amount: usize) -> Result<usize> {
-        for i in 0..amount {
-            if let Some(mut group) = self.undone_groups.pop_front() {
-                group.redo()?;
-                self.applied_groups.push_front(group);
-                self.changed = true;
-            } else {
-                self.save_to_disk()?;
-                return Ok(i);
+        if amount == 0 {
+            return Ok(0);
+        }
+
+        let mut i = 0;
+
+        while let Some(mut group) = self.undone_groups.pop() {
+            group.redo()?;
+            self.applied_groups.push(group);
+
+            i += 1;
+
+            if i == amount {
+                break;
             }
         }
 
-        self.save_to_disk()?;
-        Ok(amount)
+        self.save()?;
+
+        Ok(i)
     }
 }

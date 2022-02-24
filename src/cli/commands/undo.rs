@@ -17,13 +17,13 @@ pub(crate) fn undo(
     let history_path = config.get_history_path();
     let mut history = History::load(&history_path)?;
 
-    let amount = if !preview {
+    let amount = if preview {
+        times
+    } else {
         match mode {
             UndoMode::Undo => history.undo(times)?,
             UndoMode::Redo => history.redo(times)?,
         }
-    } else {
-        times
     };
 
     let action = match mode {

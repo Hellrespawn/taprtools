@@ -1,9 +1,14 @@
 use anyhow::{bail, Result};
 use clap::Parser;
+use once_cell::sync::Lazy;
 use std::path::{Path, PathBuf};
+use std::sync::{Mutex, MutexGuard};
 use tempfile::{Builder, TempDir};
 use test_harness::test_runner;
 use tfmttools::cli::Args;
+
+// Controls access to set_current_dir
+static CD_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 const DEFAULT_RECURSION_DEPTH: usize = 4;
 const INITIAL_REFERENCE: [&str; 5] = [
@@ -30,12 +35,13 @@ const TYPICAL_INPUT_REFERENCE: [&str; 5] = [
 
 const TYPICAL_INPUT_ARGS: &str = "myname";
 
-struct TestEnv {
+struct TestEnv<'a> {
     tempdir: TempDir,
     cwd: PathBuf,
+    guard: Option<MutexGuard<'a, ()>>,
 }
 
-impl TestEnv {
+impl<'a> TestEnv<'a> {
     const CONFIG_FOLDER: &'static str = "config";
     const FILES_FOLDER: &'static str = "files";
 
@@ -43,7 +49,11 @@ impl TestEnv {
         let tempdir = Builder::new().prefix("tfmttools-").tempdir()?;
         let cwd = std::env::current_dir()?;
 
-        let env = TestEnv { tempdir, cwd };
+        let env = TestEnv {
+            tempdir,
+            cwd,
+            guard: None,
+        };
 
         std::fs::create_dir(env.get_config_dir())?;
         std::fs::create_dir(env.get_files_dir())?;
@@ -82,8 +92,8 @@ impl TestEnv {
     }
 }
 
-fn setup_environment() -> Result<TestEnv> {
-    let env = TestEnv::new()?;
+fn setup_environment<'a>() -> Result<TestEnv<'a>> {
+    let mut env = TestEnv::new()?;
 
     for script_path in &env.get_script_paths()? {
         // Scripts are selected by is_file, should always have a filename so
@@ -110,6 +120,7 @@ fn setup_environment() -> Result<TestEnv> {
 
     assert!(check_paths(env.path(), &INITIAL_REFERENCE).is_ok());
 
+    env.guard = Some(CD_MUTEX.lock().unwrap());
     std::env::set_current_dir(env.path())?;
 
     Ok(env)
@@ -117,18 +128,25 @@ fn setup_environment() -> Result<TestEnv> {
 
 fn teardown_environment(env: TestEnv) -> Result<()> {
     // Must do this, otherwise we can't close the tempdir.
-    std::env::set_current_dir(env.cwd)?;
+    std::env::set_current_dir(&env.cwd)?;
+    std::fs::copy(
+        &env.get_config_dir().join("tfmttools.hist"),
+        "d:\\histfile",
+    )?;
+
+    // Want to be explicit about dropping the guard.
+    std::mem::drop(env.guard);
     env.tempdir.close()?;
     Ok(())
 }
 
 fn print_filetree(path: &Path, depth: usize) {
-    println!(
-        "{}{}{}",
-        " ".repeat(4 * depth + 4),
-        path.file_name().unwrap().to_string_lossy(),
-        std::path::MAIN_SEPARATOR
-    );
+    let components: Vec<_> = path.iter().flat_map(|o| o.to_str()).collect();
+    let start = components.len() - depth - 1;
+    let display_path =
+        components[start..].join(&std::path::MAIN_SEPARATOR.to_string());
+
+    println!("{}{}", display_path, std::path::MAIN_SEPARATOR);
 
     if depth == DEFAULT_RECURSION_DEPTH {
         return;
@@ -145,8 +163,9 @@ fn print_filetree(path: &Path, depth: usize) {
                         print_filetree(&p, depth + 1);
                     } else if p.is_file() {
                         println!(
-                            "{}{}",
-                            " ".repeat(4 * depth + 4),
+                            "{}{}{}",
+                            display_path,
+                            std::path::MAIN_SEPARATOR,
                             p.file_name().unwrap().to_string_lossy()
                         );
                     }
@@ -164,7 +183,7 @@ where
         let path = root.join(r);
 
         if !path.is_file() {
-            print_filetree(&root, 0);
+            print_filetree(root, 0);
             bail!("File {} not in expected place!", path.display())
         }
     }

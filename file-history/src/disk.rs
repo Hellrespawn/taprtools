@@ -1,7 +1,13 @@
 use crate::{ActionGroup, Result};
-use std::collections::VecDeque;
+use serde::{Deserialize, Serialize};
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
+
+#[derive(Serialize, Deserialize)]
+struct DiskFormat {
+    applied_groups: Vec<ActionGroup>,
+    undone_groups: Vec<ActionGroup>,
+}
 
 pub(crate) struct DiskHandler {
     path: PathBuf,
@@ -17,6 +23,10 @@ impl DiskHandler {
         }
     }
 
+    pub(crate) fn path(&self) -> &Path {
+        &self.path
+    }
+
     pub(crate) fn clear(&self) -> Result<bool> {
         match std::fs::remove_file(&self.path) {
             Ok(_) => Ok(true),
@@ -30,21 +40,19 @@ impl DiskHandler {
         }
     }
 
-    pub(crate) fn read(
-        &self,
-    ) -> Result<(VecDeque<ActionGroup>, VecDeque<ActionGroup>)> {
+    pub(crate) fn read(&self) -> Result<(Vec<ActionGroup>, Vec<ActionGroup>)> {
         match std::fs::read(&self.path) {
             Ok(file_contents) => {
-                let (applied_actions, undone_actions): (
-                    VecDeque<ActionGroup>,
-                    VecDeque<ActionGroup>,
-                ) = bincode::deserialize(&file_contents)?;
+                let format: DiskFormat =
+                    bincode::deserialize(&file_contents)?;
+                // let format: DiskFormat =
+                //     serde_json::from_slice(&file_contents)?;
 
-                Ok((applied_actions, undone_actions))
+                Ok((format.applied_groups, format.undone_groups))
             }
             Err(err) => {
                 if let ErrorKind::NotFound = err.kind() {
-                    Ok((VecDeque::new(), VecDeque::new()))
+                    Ok((Vec::new(), Vec::new()))
                 } else {
                     Err(err.into())
                 }
@@ -54,12 +62,19 @@ impl DiskHandler {
 
     pub(crate) fn write(
         &self,
-        applied_actions: &VecDeque<ActionGroup>,
-        undone_actions: &VecDeque<ActionGroup>,
+        applied_groups: &[ActionGroup],
+        undone_groups: &[ActionGroup],
     ) -> Result<()> {
+        let format = DiskFormat {
+            applied_groups: applied_groups.to_vec(),
+            undone_groups: undone_groups.to_vec(),
+        };
+
         let serialized =
-            bincode::serialize(&(applied_actions, undone_actions))?;
+            bincode::serialize(&format)?;
         std::fs::write(&self.path, serialized)?;
+        // let serialized = serde_json::to_string_pretty(&format)?;
+        // std::fs::write(&self.path, serialized)?;
         Ok(())
     }
 }
@@ -80,11 +95,10 @@ mod tests {
     fn get_test_group() -> ActionGroup {
         let mut action_group = ActionGroup::new();
 
+        action_group.push(Action::MakeDir(PathBuf::from("/file/test/create")));
         action_group
-            .insert(Action::MakeDir(PathBuf::from("/file/test/create")));
-        action_group
-            .insert(Action::RemoveDir(PathBuf::from("/file/test/remove")));
-        action_group.insert(Action::Move {
+            .push(Action::RemoveDir(PathBuf::from("/file/test/remove")));
+        action_group.push(Action::Move {
             source: PathBuf::from("/file/test/source"),
             target: PathBuf::from("/file/test/target"),
         });
@@ -92,12 +106,12 @@ mod tests {
         action_group
     }
 
-    fn get_test_queue() -> VecDeque<ActionGroup> {
-        let mut queue = VecDeque::new();
-        queue.push_front(get_test_group());
-        queue.push_front(get_test_group());
-        queue.push_front(get_test_group());
-        queue.push_front(get_test_group());
+    fn get_test_queue() -> Vec<ActionGroup> {
+        let mut queue = Vec::new();
+        queue.push(get_test_group());
+        queue.push(get_test_group());
+        queue.push(get_test_group());
+        queue.push(get_test_group());
         queue
     }
 

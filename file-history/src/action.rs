@@ -1,10 +1,11 @@
-use crate::Result;
+use crate::{HistoryError, Result};
 use log::trace;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use std::path::{Path, PathBuf};
 
 /// Action is responsible for doing and undoing filesystem operations
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum Action {
     /// Represents the moving of a file.
     Move {
@@ -17,6 +18,32 @@ pub enum Action {
     MakeDir(PathBuf),
     /// Represents the deletion of a directory
     RemoveDir(PathBuf),
+}
+
+impl fmt::Display for Action {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let indent = "  ";
+        match self {
+            Action::Move { source, target } => write!(
+                f,
+                "Action::Move {{\n{indent}source: \"{}\",\n{indent}target: \"{}\"\n}}",
+                source.display(),
+                target.display()
+            )?,
+            Action::MakeDir(path) => {
+                write!(
+                    f, "Action::MakeDir(\n{indent}\"{}\"\n)", path.display()
+                )?;
+            }
+            Action::RemoveDir(path) => {
+                write!(
+                    f, "Action::RemoveDir(\n{indent}\"{}\"\n)", path.display()
+                )?;
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl Action {
@@ -35,12 +62,24 @@ impl Action {
 
             // TODO? Fail silently if dir already exists?
             Action::MakeDir(path) => {
-                std::fs::create_dir(path)?;
+                std::fs::create_dir(path).map_err(|err| {
+                    HistoryError::new(&format!(
+                        "Error while creating {}:\n{}",
+                        path.display(),
+                        err
+                    ))
+                })?;
                 trace!("Created directory {}", path.display());
             }
 
             Action::RemoveDir(path) => {
-                std::fs::remove_dir(path)?;
+                std::fs::remove_dir(path).map_err(|err| {
+                    HistoryError::new(&format!(
+                        "Error while removing {}:\n{}",
+                        path.display(),
+                        err
+                    ))
+                })?;
                 trace!("Removed directory {}", path.display());
             }
         }
@@ -61,14 +100,26 @@ impl Action {
             }
 
             Action::MakeDir(path) => {
-                std::fs::remove_dir(path)?;
+                std::fs::remove_dir(path).map_err(|err| {
+                    HistoryError::new(&format!(
+                        "Error while undoing creation of {}:\n{}",
+                        path.display(),
+                        err
+                    ))
+                })?;
 
                 trace!("Undid directory {}", path.display());
             }
 
             // TODO? Fail silently if dir already exists?
             Action::RemoveDir(path) => {
-                std::fs::create_dir(path)?;
+                std::fs::create_dir(path).map_err(|err| {
+                    HistoryError::new(&format!(
+                        "Error while undoing removal of {}:\n{}",
+                        path.display(),
+                        err
+                    ))
+                })?;
 
                 trace!("Recreated directory {}", path.display());
             }
@@ -95,19 +146,22 @@ impl Action {
                 #[cfg(unix)]
                 let expected_error_code = 18;
 
-                return if expected_error_code == error_code {
+                if expected_error_code == error_code {
                     std::fs::copy(&source, &target)?;
                     std::fs::remove_file(&source)?;
-                    Ok(())
-                } else {
-                    Err(err.into())
+                    return Ok(());
                 };
             }
 
-            return Err(err.into());
+            Err(HistoryError::new(&format!(
+                "Error while renaming:\nsource: {}\ntarget: {}\n{}",
+                source.as_ref().display(),
+                target.as_ref().display(),
+                err,
+            )))
+        } else {
+            Ok(())
         }
-
-        Ok(())
     }
 
     /// Gets source and target from this action.

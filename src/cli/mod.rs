@@ -9,6 +9,8 @@ pub(crate) mod validate;
 
 pub(crate) use config::Config;
 
+mod histviewer;
 mod main;
 pub use args::Args;
+pub use histviewer::histviewer;
 pub use main::{main, with_custom_args};

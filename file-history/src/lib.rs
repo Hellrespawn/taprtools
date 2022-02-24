@@ -35,7 +35,17 @@ pub enum HistoryError {
     #[error("Bincode error: {0}")]
     Bincode(#[from] bincode::Error),
 
+    /// Represents bincode::Error
+    #[error("JSON error: {0}")]
+    Json(#[from] serde_json::Error),
+
     /// Represents a generic error
     #[error("{0}")]
     Generic(String),
+}
+
+impl HistoryError {
+    pub(crate) fn new(message: &str) -> HistoryError {
+        HistoryError::Generic(message.to_string())
+    }
 }
