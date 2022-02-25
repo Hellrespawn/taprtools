@@ -1,3 +1,4 @@
+use crate::actiongroup::ActionCount;
 use crate::{Action, ActionGroup, DiskHandler, Result};
 use log::{debug, info};
 use std::fmt;
@@ -111,50 +112,52 @@ impl History {
     }
 
     /// Undo `n` amount of `ActionGroup`s. Returns amount actually undone
-    pub fn undo(&mut self, amount: usize) -> Result<usize> {
+    pub fn undo(&mut self, amount: usize) -> Result<Vec<ActionCount>> {
         if amount == 0 {
-            return Ok(0);
+            return Ok(Vec::new());
         }
 
-        let mut i = 0;
+        let mut action_counts = Vec::new();
 
         while let Some(mut group) = self.applied_groups.pop() {
+            let action_count = group.to_action_count();
+
             group.undo()?;
             self.undone_groups.push(group);
 
-            i += 1;
-
-            if i == amount {
+            action_counts.push(action_count);
+            if action_counts.len() == amount {
                 break;
             }
         }
 
         self.save()?;
 
-        Ok(i)
+        Ok(action_counts)
     }
 
     /// Redo `n` amount of `ActionGroup`s. Returns amount actually redone
-    pub fn redo(&mut self, amount: usize) -> Result<usize> {
+    pub fn redo(&mut self, amount: usize) -> Result<Vec<ActionCount>> {
         if amount == 0 {
-            return Ok(0);
+            return Ok(Vec::new());
         }
 
-        let mut i = 0;
+        let mut action_counts = Vec::new();
 
         while let Some(mut group) = self.undone_groups.pop() {
+            let action_count = group.to_action_count();
+
             group.redo()?;
             self.applied_groups.push(group);
 
-            i += 1;
-
-            if i == amount {
+            action_counts.push(action_count);
+            if action_counts.len() == amount {
                 break;
             }
         }
 
         self.save()?;
 
-        Ok(i)
+        Ok(action_counts)
     }
 }

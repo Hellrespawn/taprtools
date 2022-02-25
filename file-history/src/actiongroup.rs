@@ -2,6 +2,12 @@ use crate::{Action, Result};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+pub struct ActionCount {
+    pub mv: u64,
+    pub mkdir: u64,
+    pub rmdir: u64,
+}
+
 #[derive(Clone, Default, Serialize, Deserialize, Debug, PartialEq)]
 pub(crate) struct ActionGroup {
     actions: Vec<Action>,
@@ -42,6 +48,24 @@ impl ActionGroup {
             actions: Vec::new(),
             changed: false,
         }
+    }
+
+    pub(crate) fn to_action_count(&self) -> ActionCount {
+        let mut action_count = ActionCount {
+            mv: 0,
+            mkdir: 0,
+            rmdir: 0,
+        };
+
+        for action in &self.actions {
+            match action {
+                Action::Move { .. } => action_count.mv += 1,
+                Action::MakeDir(_) => action_count.mkdir += 1,
+                Action::RemoveDir(_) => action_count.rmdir += 1,
+            }
+        }
+
+        action_count
     }
 
     // pub(crate) fn to_string_short(&self) -> String {

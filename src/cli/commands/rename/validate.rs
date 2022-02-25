@@ -4,7 +4,7 @@ use file_history::Action;
 use std::collections::HashMap;
 use std::path::Path;
 
-pub(crate) fn validate(actions: &[Action]) -> Result<()> {
+pub(crate) fn validate_actions(actions: &[Action]) -> Result<()> {
     validate_collisions(actions)?;
     validate_existing_files(actions)?;
 

@@ -17,25 +17,34 @@ pub(crate) fn undo(
     let history_path = config.get_history_path();
     let mut history = History::load(&history_path)?;
 
-    let amount = if preview {
-        times
-    } else {
-        match mode {
-            UndoMode::Undo => history.undo(times)?,
-            UndoMode::Redo => history.redo(times)?,
-        }
-    };
-
-    let action = match mode {
+    let mode_string = match mode {
         UndoMode::Undo => "Undid",
         UndoMode::Redo => "Redid",
     };
 
-    // TODO? some sort of rollback logic for undo/redo?
-    history.save()?;
+    if preview {
+        let pp = Config::PREVIEW_PREFIX;
+        println!("{pp}{mode_string} {times} renames.");
+    } else {
+        let action_counts = match mode {
+            UndoMode::Undo => history.undo(times)?,
+            UndoMode::Redo => history.redo(times)?,
+        };
 
-    let pp = if preview { Config::PREVIEW_PREFIX } else { "" };
-    println!("{pp}{action} {amount} action group.");
+        // TODO? some sort of rollback logic for undo/redo?
+        history.save()?;
+
+        println!("{} {} renames:", mode_string, action_counts.len());
+        for (i, action_count) in action_counts.into_iter().enumerate() {
+            println!(
+                "{}: {} moves, {} dirs created, {} dirs removed",
+                i + 1,
+                action_count.mv,
+                action_count.mkdir,
+                action_count.rmdir
+            );
+        }
+    }
 
     Ok(())
 }

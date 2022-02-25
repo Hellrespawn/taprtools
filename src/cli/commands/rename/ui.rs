@@ -10,18 +10,24 @@ pub(crate) struct AudioFileSpinner {
 }
 
 impl AudioFileSpinner {
-    pub(crate) fn new() -> AudioFileSpinner {
+    pub(crate) fn new(
+        found: &str,
+        total: &str,
+        message: &'static str,
+    ) -> AudioFileSpinner {
         let spinner = IProgressBar::new(0);
 
+        let template = format!(
+            "[{{pos}}/{{len}} {found}/{total}] {{wide_msg}} {{spinner}}"
+        );
+
         let style = ProgressStyle::default_spinner()
-            .template(
-                "[{pos}/{len} audio files/total files] {wide_msg} {spinner}",
-            )
+            .template(&template)
             .on_finish(ProgressFinish::AtCurrentPos);
 
         spinner.set_style(style);
         spinner.set_draw_target(ProgressDrawTarget::stdout());
-        spinner.set_message("Gathering files...");
+        spinner.set_message(message);
 
         AudioFileSpinner { spinner }
     }
@@ -36,9 +42,9 @@ impl AudioFileSpinner {
         self.spinner.tick();
     }
 
-    pub(crate) fn finish(&self) {
+    pub(crate) fn finish(&self, message: &'static str) {
         self.spinner.finish_at_current_pos();
-        self.spinner.set_message("Gathered files.");
+        self.spinner.set_message(message);
     }
 }
 
@@ -65,29 +71,26 @@ pub(crate) fn create_progressbar(
 
 pub(crate) fn print_actions_preview(actions: &[Action], preview_amount: usize) {
     let length = actions.len();
-    if length == 0 {
-        println!("There are no actions to perform.");
-    } else {
-        println!(
-            "\nPreviewing {} files:",
-            if length > preview_amount {
-                format!(
-                    "{}/{}",
-                    std::cmp::min(preview_amount, actions.len()),
-                    length
-                )
-            } else {
-                length.to_string()
-            }
-        );
 
-        let step = std::cmp::max(length / preview_amount, 1);
-
-        for action in actions.iter().step_by(step) {
-            let (_, target) = action.get_src_tgt_unchecked();
-            println!("{}", target.display());
+    println!(
+        "\nPreviewing {} files:",
+        if length > preview_amount {
+            format!(
+                "{}/{}",
+                std::cmp::min(preview_amount, actions.len()),
+                length
+            )
+        } else {
+            length.to_string()
         }
+    );
 
-        println!();
+    let step = std::cmp::max(length / preview_amount, 1);
+
+    for action in actions.iter().step_by(step) {
+        let (_, target) = action.get_src_tgt_unchecked();
+        println!("{}", target.display());
     }
+
+    println!();
 }
