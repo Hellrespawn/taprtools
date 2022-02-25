@@ -31,16 +31,6 @@ pub enum Command {
     /// Lists all scripts.
     #[clap(name = "list")]
     ListScripts,
-    /// Inspects script {name}.
-    #[clap(name = "inspect")]
-    InspectScript {
-        /// Name of script.
-        name: String,
-
-        /// Render Abstract Syntax Tree
-        #[clap(short, long)]
-        render_ast: bool,
-    },
     /// Undo {times} times.
     Undo {
         #[clap(short, long)]
@@ -76,6 +66,13 @@ pub enum Command {
 
         /// Arguments of script.
         arguments: Vec<String>,
+    },
+    /// Renders script {name} abstract syntax tree.
+    #[cfg(feature = "graphviz")]
+    #[clap(name = "render")]
+    RenderScript {
+        /// Name of script.
+        name: String,
     },
 }
 
@@ -118,17 +115,22 @@ pub(crate) fn parse_args(preview_override: bool) -> Args {
 #[cfg(test)]
 mod test {
     use super::*;
+    use anyhow::Result;
 
-    fn parse_custom_args(args: &[&str], preview_override: bool) -> Args {
-        Args::parse_from(args).aggregate_preview(preview_override)
+    fn parse_custom_args(
+        args: &[&str],
+        preview_override: bool,
+    ) -> Result<Args> {
+        let args =
+            Args::try_parse_from(args)?.aggregate_preview(preview_override);
+        Ok(args)
     }
 
     #[test]
-    fn test_preview_aggregate() {
-        let args_in =
-            ["tfmttest clear-history -p", "tfmttest -p clear-history"];
+    fn test_preview_aggregate() -> Result<()> {
+        let args_in = ["tfmttest clear -p", "tfmttest -p clear"];
 
-        let args_out: Vec<Args> = args_in
+        let args_out: Result<Vec<Args>> = args_in
             .into_iter()
             .map(|a| {
                 parse_custom_args(
@@ -138,8 +140,10 @@ mod test {
             })
             .collect();
 
-        let equal = args_out.windows(2).all(|w| w[0] == w[1]);
+        let equal = args_out?.windows(2).all(|w| w[0] == w[1]);
 
         assert!(equal);
+
+        Ok(())
     }
 }

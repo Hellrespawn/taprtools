@@ -1,52 +1,17 @@
+#![cfg(feature = "graphviz")]
 use crate::cli::Config;
 use anyhow::{anyhow, Result};
 use std::io::Write;
 use std::process::{Command, Stdio};
-use tfmt::Script;
 
-pub(crate) fn inspect_script(
-    config: &Config,
-    name: &str,
-    do_render_ast: bool,
-) -> Result<()> {
+pub(crate) fn render_script(config: &Config, name: &str) -> Result<()> {
     let script = config.get_script(name)?;
 
-    print_script_info(&script);
-
-    if do_render_ast {
-        let dot = script.create_ast_dot();
-        render_ast(&dot, script.name())?;
-    }
+    let dot = script.create_ast_dot();
+    render_ast(&dot, script.name())?;
 
     Ok(())
 }
-
-fn print_script_info(script: &Script) {
-    print!("{}(", script.name());
-
-    let parameters = script.parameters();
-
-    for (i, param) in parameters.iter().enumerate() {
-        print!("{}", param.name());
-
-        if let Some(default) = param.default() {
-            print!("={}", default);
-        }
-
-        if i < parameters.len() - 1 {
-            print!(", ");
-        }
-    }
-
-    println!("):");
-
-    if let Some(description) = script.description() {
-        println!("{}", description);
-    }
-
-    println!();
-}
-
 fn render_ast(dot: &str, name: &str) -> Result<()> {
     let cwd = std::env::current_dir()?;
     let name = format!("{}-ast.png", name);

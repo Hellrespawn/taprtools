@@ -217,7 +217,7 @@ where
     P: AsRef<Path>,
 {
     let args = format!(
-        "tfmttools_test --config-folder {} rename {} {}",
+        "tfmttools_test --config {} rename {} {}",
         env.get_config_dir().display(),
         script_name,
         args
@@ -236,7 +236,7 @@ fn test_undo(script_name: &str, args: &str, env: &TestEnv) -> Result<()> {
     test_rename(script_name, args, &TYPICAL_INPUT_REFERENCE, env)?;
 
     let args = format!(
-        "tfmttools_test --config-folder {} undo",
+        "tfmttools_test --config {} undo",
         env.get_config_dir().display(),
     );
 
@@ -253,7 +253,7 @@ fn test_redo(script_name: &str, args: &str, env: &TestEnv) -> Result<()> {
     test_undo(script_name, args, env)?;
 
     let args = format!(
-        "tfmttools_test --config-folder {} redo",
+        "tfmttools_test --config {} redo",
         env.get_config_dir().display(),
     );
 
@@ -301,18 +301,15 @@ fn test_redo_typical_input() -> Result<()> {
 
 // #[test]
 // fn tfmttools_collision_test() -> Result<()> {
-//     let name = "collisions";
-//     let tempdir = setup_environment(name)?;
-
-//     let args = "";
-
-//     let reference = [""];
-
-//     match test_rename(name, args, &reference, &tempdir) {
-//         Err(err) if err.to_string().contains("collision was detected") => {
-//             Ok(teardown_environment(tempdir)?)
-//         }
-//         Err(err) => bail!("Unexpected error in collision_test: {}", err),
-//         Ok(()) => bail!("collision_test did not produce an error!"),
-//     }
+//     test_runner(
+//         setup_environment,
+//         teardown_environment,
+//         |env| match test_rename("collisions", "", &[""], env) {
+//             Err(err) if err.to_string().contains("collision was detected") => {
+//                 Ok(())
+//             }
+//             Err(err) => bail!("Unexpected error in collision_test: {}", err),
+//             Ok(()) => bail!("collision_test did not produce an error!"),
+//         },
+//     )
 // }

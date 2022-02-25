@@ -23,9 +23,6 @@ pub fn with_custom_args(args: Args) -> Result<()> {
             commands::clear_history(preview, &config)
         }
         Command::ListScripts => commands::list_scripts(&config),
-        Command::InspectScript { name, render_ast } => {
-            commands::inspect_script(&config, &name, render_ast)
-        }
         Command::Undo { preview, times } => {
             commands::undo(preview, &config, UndoMode::Undo, times)
         }
@@ -38,5 +35,10 @@ pub fn with_custom_args(args: Args) -> Result<()> {
             name,
             arguments,
         } => commands::rename(preview, &config, recurse, &name, &arguments),
+
+        #[cfg(feature = "graphviz")]
+        Command::RenderScript { name } => {
+            commands::render_script(&config, &name)
+        }
     }
 }

@@ -19,11 +19,25 @@ pub(crate) fn list_scripts(config: &Config) -> Result<()> {
 }
 
 fn print_script_info(script: &Script) {
-    print!("{}", script.name());
+    print!("{}(", script.name());
 
-    if let Some(description) = script.description() {
-        print!(": {}", description);
+    let parameters = script.parameters();
+
+    for (i, param) in parameters.iter().enumerate() {
+        print!("{}", param.name());
+
+        if let Some(default) = param.default() {
+            print!("={}", default);
+        }
+
+        if i < parameters.len() - 1 {
+            print!(", ");
+        }
     }
 
-    println!();
+    print!("): ");
+
+    if let Some(description) = script.description() {
+        println!("{}", description);
+    }
 }
