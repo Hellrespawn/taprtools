@@ -1,5 +1,4 @@
-use crate::cli::ui;
-use crate::file::AudioFile;
+use crate::cli::commands::rename::ui;
 use anyhow::{bail, Result};
 use std::path::{Path, PathBuf};
 use tfmt::Script;
@@ -41,7 +40,7 @@ impl Config {
     }
 
     /// Search a path for files matching `predicate`, recursing for `depth`.
-    fn search_path<P, Q>(
+    pub(crate) fn search_path<P, Q>(
         path: &P,
         depth: usize,
         predicate: &Q,
@@ -152,34 +151,5 @@ impl Config {
         debug_assert!(script.is_some());
 
         Ok(script.unwrap())
-    }
-
-    pub(crate) fn get_audiofiles(
-        recursion_depth: usize,
-    ) -> Result<Vec<AudioFile>> {
-        let path = std::env::current_dir()?;
-
-        let spinner = ui::AudioFileSpinner::new();
-
-        let paths = Config::search_path(
-            &path,
-            recursion_depth,
-            &|p| {
-                p.extension().map_or(false, |extension| {
-                    for supported_extension in AudioFile::SUPPORTED_EXTENSIONS {
-                        if extension == supported_extension {
-                            return true;
-                        }
-                    }
-
-                    false
-                })
-            },
-            Some(&spinner),
-        );
-
-        spinner.finish();
-
-        paths.iter().map(AudioFile::new).collect()
     }
 }

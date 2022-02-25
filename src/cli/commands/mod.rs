@@ -1,8 +1,9 @@
 mod clear_history;
 mod inspect_script;
 mod list_scripts;
-mod rename;
 mod undo;
+
+pub(crate) mod rename;
 
 pub(crate) use clear_history::clear_history;
 pub(crate) use inspect_script::inspect_script;

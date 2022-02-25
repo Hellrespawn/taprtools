@@ -1,5 +1,5 @@
-use crate::cli::validate::validate;
-use crate::cli::{ui, Config};
+use crate::cli::commands::rename::{ui, validate};
+use crate::cli::Config;
 use crate::file::AudioFile;
 use anyhow::Result;
 use file_history::{Action, History};
@@ -27,6 +27,11 @@ pub(crate) fn rename(
 
     let (actions, _filtered_actions) = partition_actions(actions);
 
+    ui::print_actions_preview(
+        &actions,
+        crate::cli::Args::DEFAULT_PREVIEW_AMOUNT,
+    );
+
     let result = apply_actions(preview, &mut history, actions);
 
     // FIXME Handle nested error somehow.
@@ -39,7 +44,30 @@ pub(crate) fn rename(
     result
 }
 fn gather_files(recursion_depth: usize) -> Result<Vec<AudioFile>> {
-    Config::get_audiofiles(recursion_depth)
+    let path = std::env::current_dir()?;
+
+    let spinner = ui::AudioFileSpinner::new();
+
+    let paths = Config::search_path(
+        &path,
+        recursion_depth,
+        &|p| {
+            p.extension().map_or(false, |extension| {
+                for supported_extension in AudioFile::SUPPORTED_EXTENSIONS {
+                    if extension == supported_extension {
+                        return true;
+                    }
+                }
+
+                false
+            })
+        },
+        Some(&spinner),
+    );
+
+    spinner.finish();
+
+    paths.iter().map(AudioFile::new).collect()
 }
 
 fn interpret_files(

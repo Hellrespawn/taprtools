@@ -1,4 +1,5 @@
 use crate::cli::Config;
+use file_history::Action;
 use indicatif::{
     ProgressBar as IProgressBar, ProgressDrawTarget, ProgressFinish,
     ProgressStyle,
@@ -60,4 +61,33 @@ pub(crate) fn create_progressbar(
     bar.set_message(msg);
 
     bar
+}
+
+pub(crate) fn print_actions_preview(actions: &[Action], preview_amount: usize) {
+    let length = actions.len();
+    if length == 0 {
+        println!("There are no actions to perform.");
+    } else {
+        println!(
+            "\nPreviewing {} files:",
+            if length > preview_amount {
+                format!(
+                    "{}/{}",
+                    std::cmp::min(preview_amount, actions.len()),
+                    length
+                )
+            } else {
+                length.to_string()
+            }
+        );
+
+        let step = std::cmp::max(length / preview_amount, 1);
+
+        for action in actions.iter().step_by(step) {
+            let (_, target) = action.get_src_tgt_unchecked();
+            println!("{}", target.display());
+        }
+
+        println!();
+    }
 }

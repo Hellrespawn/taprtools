@@ -46,6 +46,7 @@ pub enum Command {
         #[clap(short, long)]
         /// Only preview current action.
         preview: bool,
+
         /// Times to undo.
         #[clap(default_value_t = 1)]
         times: usize,
@@ -55,6 +56,7 @@ pub enum Command {
         #[clap(short, long)]
         /// Only preview current action.
         preview: bool,
+
         /// Times to redo
         #[clap(default_value_t = 1)]
         times: usize,

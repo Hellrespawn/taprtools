@@ -4,10 +4,6 @@ pub(crate) mod args;
 pub(crate) mod commands;
 /// Contains filesystem code
 pub(crate) mod config;
-/// Bars, spinners, etc.
-pub(crate) mod ui;
-/// Validate interpreted paths
-pub(crate) mod validate;
 
 pub(crate) use config::Config;
 
