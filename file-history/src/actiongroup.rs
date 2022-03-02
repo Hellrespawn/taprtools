@@ -8,7 +8,7 @@ pub struct ActionCount {
     pub rmdir: u64,
 }
 
-#[derive(Clone, Default, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Default, Serialize, Deserialize, Debug)]
 pub(crate) struct ActionGroup {
     actions: Vec<Action>,
     #[serde(skip)] // Default for bool is false, so this just works.
@@ -39,6 +39,12 @@ impl fmt::Display for ActionGroup {
         }
 
         Ok(())
+    }
+}
+
+impl PartialEq for ActionGroup {
+    fn eq(&self, other: &Self) -> bool {
+        self.actions == other.actions
     }
 }
 
