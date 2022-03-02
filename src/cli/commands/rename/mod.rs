@@ -30,8 +30,6 @@ pub(crate) fn rename(
 
     let common_path = get_common_path(&actions);
 
-    dbg!(&common_path);
-
     let (actions, _filtered_actions) = partition_actions(actions);
 
     if actions.is_empty() {
@@ -49,14 +47,13 @@ pub(crate) fn rename(
         if result.is_err() {
             history.rollback()?;
         } else {
-            remove_dir_recursive(
+            clean_up_source_dirs(
                 preview,
                 &mut history,
                 &common_path,
                 recursion_depth,
             )?;
 
-            println!("Removed leftover folders.");
             history.save()?;
         }
 
@@ -115,6 +112,32 @@ fn interpret_files(
         .collect();
 
     actions
+}
+
+fn get_common_path(actions: &[Action]) -> PathBuf {
+    debug_assert!(!actions.is_empty());
+
+    // We have already returned if no files were found, so this index
+    // should be safe.
+    let (common_path, _) = actions[0].get_src_tgt_unchecked();
+    let mut common_path = common_path.to_path_buf();
+
+    for action in actions {
+        let (path, _) = action.get_src_tgt_unchecked();
+
+        let mut new_common_path = PathBuf::new();
+
+        for (left, right) in path.components().zip(common_path.components()) {
+            if left == right {
+                new_common_path.push(left);
+            } else {
+                break;
+            }
+        }
+        common_path = new_common_path;
+    }
+
+    common_path
 }
 
 fn action_from_file(
@@ -188,30 +211,19 @@ fn create_dir(preview: bool, history: &mut History, path: &Path) -> Result<()> {
     Ok(())
 }
 
-fn get_common_path(actions: &[Action]) -> PathBuf {
-    debug_assert!(!actions.is_empty());
+fn clean_up_source_dirs(
+    preview: bool,
+    history: &mut History,
+    common_path: &Path,
+    recursion_depth: usize,
+) -> Result<()> {
+    let pp = if preview { Config::PREVIEW_PREFIX } else { "" };
 
-    // We have already returned if no files were found, so this index
-    // should be safe.
-    let (common_path, _) = actions[0].get_src_tgt_unchecked();
-    let mut common_path = common_path.to_path_buf();
+    remove_dir_recursive(preview, history, common_path, recursion_depth)?;
 
-    for action in actions {
-        let (path, _) = action.get_src_tgt_unchecked();
+    println!("{pp}Removed leftover folders.");
 
-        let mut new_common_path = PathBuf::new();
-
-        for (left, right) in path.components().zip(common_path.components()) {
-            if left == right {
-                new_common_path.push(left);
-            } else {
-                break;
-            }
-        }
-        common_path = new_common_path;
-    }
-
-    common_path
+    Ok(())
 }
 
 fn remove_dir_recursive(
