@@ -7,16 +7,15 @@ use anyhow::Result;
 pub fn main(preview_override: bool) -> Result<()> {
     let args = crate::cli::args::parse_args(preview_override);
 
-    with_custom_args(args)
+    select_command(args)
 }
 
-/// Runs tfmttools with custom arguments.
-pub fn with_custom_args(args: Args) -> Result<()> {
+fn select_command(args: Args) -> Result<()> {
     let config = if let Some(path) = args.config {
-        Config::new(&path)?
+        Config::new(&path)
     } else {
-        Config::default()?
-    };
+        Config::default()
+    }?;
 
     match args.command {
         Command::ClearHistory { preview } => {

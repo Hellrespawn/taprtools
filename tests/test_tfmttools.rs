@@ -1,37 +1,23 @@
-use anyhow::{bail, Result};
-use clap::Parser;
-use once_cell::sync::Lazy;
+use anyhow::Result;
+use assert_cmd::Command;
+use assert_fs::prelude::*;
+use assert_fs::TempDir;
+use predicates::prelude::*;
 use std::path::{Path, PathBuf};
-use tempfile::{Builder, TempDir};
 use test_harness::test_runner;
-use tfmttools::cli::Args;
 
-type CdFunction = fn(&Path) -> ();
-type Mutex = std::sync::Mutex<CdFunction>;
-type MutexGuard<'a> = std::sync::MutexGuard<'a, CdFunction>;
+const TEST_DATA_DIRECTORY: &str = "tests/testdata/";
 
-// Controls access to set_current_dir
-static CD_MUTEX: Lazy<Mutex> = Lazy::new(|| {
-    Mutex::new(|p: &Path| {
-        std::env::set_current_dir(p).expect("Unable to set current directory!")
-    })
-});
-
-const DEFAULT_RECURSION_DEPTH: usize = 4;
-const INITIAL_REFERENCE: [&str; 5] = [
+const INITIAL_REFERENCE: [&str; 7] = [
     "files/Dune - MASTER BOOT RECORD.mp3",
     "files/SET MIDI=SYNTH1 MAPG MODE1 - MASTER BOOT RECORD.mp3",
     "files/Under Siege - Amon Amarth.mp3",
     "files/Welcome To Heaven - Damjan Mravunac.ogg",
     "files/While Your Lips Are Still Red - Nightwish.mp3",
+    "config/simple_input.tfmt",
+    "config/typical_input.tfmt",
 ];
-const SIMPLE_INPUT_REFERENCE: [&str; 5] = [
-    "MASTER BOOT RECORD/Dune.mp3",
-    "MASTER BOOT RECORD/SET MIDI=SYNTH1 MAPG MODE1.mp3",
-    "Amon Amarth/Under Siege.mp3",
-    "Damjan Mravunac/Welcome To Heaven.ogg",
-    "Nightwish/While Your Lips Are Still Red.mp3",
-];
+
 const TYPICAL_INPUT_REFERENCE: [&str; 5] = [
     "myname/MASTER BOOT RECORD/WAREZ/Dune.mp3",
     "myname/MASTER BOOT RECORD/2016.03 - CEDIT AUTOEXEC.BAT/05 - SET MIDI=SYNTH1 MAPG MODE1.mp3",
@@ -40,37 +26,29 @@ const TYPICAL_INPUT_REFERENCE: [&str; 5] = [
     "myname/Nightwish/While Your Lips Are Still Red.mp3",
 ];
 
-const TYPICAL_INPUT_ARGS: &str = "myname";
-
-struct TestEnv<'a> {
+struct TestEnv {
     tempdir: TempDir,
-    previous_cwd: PathBuf,
-    set_cwd: MutexGuard<'a>,
 }
 
-impl<'a> TestEnv<'a> {
-    const CONFIG_FOLDER: &'static str = "config";
-    const FILES_FOLDER: &'static str = "files";
-
-    fn init() -> Result<Self> {
+impl TestEnv {
+    fn new() -> Result<Self> {
         let env = TestEnv {
-            tempdir: Builder::new().prefix("tfmttools-").tempdir()?,
-            previous_cwd: std::env::current_dir()?,
-            set_cwd: CD_MUTEX.lock().expect("Unable to acquire lock on mutex!"),
+            tempdir: TempDir::new()?,
         };
+
+        dbg!(env.path());
 
         env.populate_scripts()?;
         env.populate_files()?;
-
-        env.set_cwd();
 
         Ok(env)
     }
 
     fn populate_scripts(&self) -> Result<()> {
-        let paths: Vec<PathBuf> = std::fs::read_dir("testdata/script")?
-            .flat_map(|r| r.map(|d| d.path()))
-            .collect();
+        let paths: Vec<PathBuf> =
+            std::fs::read_dir(TestEnv::get_test_data_dir().join("script"))?
+                .flat_map(|r| r.map(|d| d.path()))
+                .collect();
 
         std::fs::create_dir(self.get_config_dir())?;
 
@@ -88,9 +66,10 @@ impl<'a> TestEnv<'a> {
     }
 
     fn populate_files(&self) -> Result<()> {
-        let paths: Vec<PathBuf> = std::fs::read_dir("testdata/music")?
-            .flat_map(|r| r.map(|d| d.path()))
-            .collect();
+        let paths: Vec<PathBuf> =
+            std::fs::read_dir(TestEnv::get_test_data_dir().join("music"))?
+                .flat_map(|r| r.map(|d| d.path()))
+                .collect();
 
         std::fs::create_dir(self.get_files_dir())?;
 
@@ -107,209 +86,171 @@ impl<'a> TestEnv<'a> {
             )?;
         }
 
-        assert!(check_paths(self.path(), &INITIAL_REFERENCE).is_ok());
+        self.assert_files(&INITIAL_REFERENCE);
+
+        // assert!(check_paths(self.path(), &INITIAL_REFERENCE).is_ok());
 
         Ok(())
+    }
+
+    fn get_test_data_dir() -> PathBuf {
+        PathBuf::from(TEST_DATA_DIRECTORY)
     }
 
     fn path(&self) -> &Path {
         self.tempdir.path()
     }
 
-    fn set_cwd(&self) {
-        (*self.set_cwd)(self.path())
-    }
-
-    fn restore_cwd(&self) {
-        (*self.set_cwd)(&self.previous_cwd)
-    }
-
     fn get_config_dir(&self) -> PathBuf {
-        self.path().join(TestEnv::CONFIG_FOLDER)
+        self.path().join("config")
     }
 
     fn get_files_dir(&self) -> PathBuf {
-        self.path().join(TestEnv::FILES_FOLDER)
-    }
-}
-
-fn setup_environment<'a>() -> Result<TestEnv<'a>> {
-    TestEnv::init()
-}
-
-fn teardown_environment(env: TestEnv) -> Result<()> {
-    // Must do this, otherwise we can't close the tempdir.
-    env.restore_cwd();
-    std::fs::copy(
-        &env.get_config_dir().join("tfmttools.hist"),
-        "d:\\histfile",
-    )?;
-
-    // Want to be explicit about dropping the guard.
-    std::mem::drop(env.set_cwd);
-    env.tempdir.close()?;
-    Ok(())
-}
-
-fn print_filetree(path: &Path, depth: usize) {
-    let components: Vec<_> = path.iter().flat_map(|o| o.to_str()).collect();
-    let start = components.len() - depth - 1;
-    let display_path =
-        components[start..].join(&std::path::MAIN_SEPARATOR.to_string());
-
-    println!("{}{}", display_path, std::path::MAIN_SEPARATOR);
-
-    if depth == DEFAULT_RECURSION_DEPTH {
-        return;
+        self.path().join("files")
     }
 
-    if let Ok(rd) = std::fs::read_dir(path) {
-        for d in rd {
-            match d {
-                Err(_) => continue,
-                Ok(d) => {
-                    let p = d.path();
+    fn assert_files<P>(&self, reference: &[P])
+    where
+        P: AsRef<Path>,
+    {
+        for path in reference {
+            let child = self.tempdir.child(path);
 
-                    if p.is_dir() {
-                        print_filetree(&p, depth + 1);
-                    } else if p.is_file() {
-                        println!(
-                            "{}{}{}",
-                            display_path,
-                            std::path::MAIN_SEPARATOR,
-                            p.file_name().unwrap().to_string_lossy()
-                        );
-                    }
-                }
-            }
+            child.assert(predicate::path::exists());
         }
     }
 }
 
-fn check_paths<P>(root: &Path, reference: &[P]) -> Result<()>
-where
-    P: AsRef<Path>,
-{
-    for r in reference {
-        let path = root.join(r);
+fn rename_typical_input(env: &TestEnv) {
+    let config_dir = env.get_config_dir();
 
-        if !path.is_file() {
-            print_filetree(root, 0);
-            bail!("File {} not in expected place!", path.display())
-        }
-    }
+    let mut cmd = Command::cargo_bin("tfmt").unwrap();
 
-    Ok(())
+    let assert = cmd
+        .arg("--config")
+        .arg(config_dir)
+        .arg("rename")
+        .arg("typical_input")
+        .arg("myname")
+        .current_dir(env.tempdir.path())
+        .assert();
+
+    assert.success();
 }
 
-fn parse_custom_args(args: &str) -> Args {
-    Args::parse_from(args.split_whitespace().collect::<Vec<&str>>())
-        .aggregate_preview(false)
+fn undo(env: &TestEnv) {
+    let config_dir = env.get_config_dir();
+
+    let mut cmd = Command::cargo_bin("tfmt").unwrap();
+
+    let assert = cmd
+        .arg("--config")
+        .arg(config_dir)
+        .arg("undo")
+        .current_dir(env.tempdir.path())
+        .assert();
+
+    assert.success();
 }
 
-fn test_rename<P>(
-    script_name: &str,
-    args: &str,
-    reference: &[P],
-    env: &TestEnv,
-) -> Result<()>
-where
-    P: AsRef<Path>,
-{
-    let args = format!(
-        "tfmttools_test --config {} rename {} {}",
-        env.get_config_dir().display(),
-        script_name,
-        args
-    );
+fn redo(env: &TestEnv) {
+    let config_dir = env.get_config_dir();
 
-    let parsed_args = parse_custom_args(&args);
+    let mut cmd = Command::cargo_bin("tfmt").unwrap();
 
-    tfmttools::cli::with_custom_args(parsed_args)?;
+    let assert = cmd
+        .arg("--config")
+        .arg(config_dir)
+        .arg("redo")
+        .current_dir(env.tempdir.path())
+        .assert();
 
-    check_paths(env.path(), reference)?;
-
-    Ok(())
-}
-
-fn test_undo(script_name: &str, args: &str, env: &TestEnv) -> Result<()> {
-    test_rename(script_name, args, &TYPICAL_INPUT_REFERENCE, env)?;
-
-    let args = format!(
-        "tfmttools_test --config {} undo",
-        env.get_config_dir().display(),
-    );
-
-    let parsed_args = parse_custom_args(&args);
-
-    tfmttools::cli::with_custom_args(parsed_args)?;
-
-    check_paths(env.path(), &INITIAL_REFERENCE)?;
-
-    Ok(())
-}
-
-fn test_redo(script_name: &str, args: &str, env: &TestEnv) -> Result<()> {
-    test_undo(script_name, args, env)?;
-
-    let args = format!(
-        "tfmttools_test --config {} redo",
-        env.get_config_dir().display(),
-    );
-
-    let parsed_args = parse_custom_args(&args);
-
-    tfmttools::cli::with_custom_args(parsed_args)?;
-
-    check_paths(env.path(), &TYPICAL_INPUT_REFERENCE)?;
-
-    Ok(())
+    assert.success();
 }
 
 #[test]
 fn test_rename_simple_input() -> Result<()> {
-    test_runner(setup_environment, teardown_environment, |env| {
-        test_rename("simple_input", "", &SIMPLE_INPUT_REFERENCE, env)
-    })
+    let reference: [&str; 5] = [
+        "MASTER BOOT RECORD/Dune.mp3",
+        "MASTER BOOT RECORD/SET MIDI=SYNTH1 MAPG MODE1.mp3",
+        "Amon Amarth/Under Siege.mp3",
+        "Damjan Mravunac/Welcome To Heaven.ogg",
+        "Nightwish/While Your Lips Are Still Red.mp3",
+    ];
+
+    test_runner(
+        TestEnv::new,
+        |_| Ok(()),
+        |env| {
+            let config_dir = env.get_config_dir();
+
+            let mut cmd = Command::cargo_bin("tfmt").unwrap();
+
+            let assert = cmd
+                .arg("--config")
+                .arg(config_dir)
+                .arg("rename")
+                .arg("simple_input")
+                .current_dir(env.tempdir.path())
+                .assert();
+
+            assert.success();
+
+            env.assert_files(&reference);
+
+            Ok(())
+        },
+    )
 }
 
 #[test]
 fn test_rename_typical_input() -> Result<()> {
-    test_runner(setup_environment, teardown_environment, |env| {
-        test_rename(
-            "typical_input",
-            TYPICAL_INPUT_ARGS,
-            &TYPICAL_INPUT_REFERENCE,
-            env,
-        )
-    })
+    test_runner(
+        TestEnv::new,
+        |_| Ok(()),
+        |env| {
+            rename_typical_input(env);
+
+            env.assert_files(&TYPICAL_INPUT_REFERENCE);
+
+            Ok(())
+        },
+    )
 }
 
 #[test]
 fn test_undo_typical_input() -> Result<()> {
-    test_runner(setup_environment, teardown_environment, |env| {
-        test_undo("typical_input", TYPICAL_INPUT_ARGS, env)
-    })
+    test_runner(
+        TestEnv::new,
+        |_| Ok(()),
+        |env| {
+            rename_typical_input(env);
+            env.assert_files(&TYPICAL_INPUT_REFERENCE);
+
+            undo(env);
+            env.assert_files(&INITIAL_REFERENCE);
+
+            Ok(())
+        },
+    )
 }
 
 #[test]
 fn test_redo_typical_input() -> Result<()> {
-    test_runner(setup_environment, teardown_environment, |env| {
-        test_redo("typical_input", TYPICAL_INPUT_ARGS, env)
-    })
-}
+    test_runner(
+        TestEnv::new,
+        |_| Ok(()),
+        |env| {
+            rename_typical_input(env);
+            env.assert_files(&TYPICAL_INPUT_REFERENCE);
 
-// #[test]
-// fn tfmttools_collision_test() -> Result<()> {
-//     test_runner(
-//         setup_environment,
-//         teardown_environment,
-//         |env| match test_rename("collisions", "", &[""], env) {
-//             Err(err) if err.to_string().contains("collision was detected") => {
-//                 Ok(())
-//             }
-//             Err(err) => bail!("Unexpected error in collision_test: {}", err),
-//             Ok(()) => bail!("collision_test did not produce an error!"),
-//         },
-//     )
-// }
+            undo(env);
+            env.assert_files(&INITIAL_REFERENCE);
+
+            redo(env);
+            env.assert_files(&TYPICAL_INPUT_REFERENCE);
+
+            Ok(())
+        },
+    )
+}

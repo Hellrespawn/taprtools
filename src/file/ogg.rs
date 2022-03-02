@@ -80,6 +80,7 @@ mod tests {
             .ancestors()
             .nth(3)
             .unwrap()
+            .join("tests")
             .join("testdata")
             .join("music")
             .join(name);
