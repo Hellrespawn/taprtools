@@ -43,10 +43,13 @@ impl DiskHandler {
     pub(crate) fn read(&self) -> Result<(Vec<ActionGroup>, Vec<ActionGroup>)> {
         match std::fs::read(&self.path) {
             Ok(file_contents) => {
+                #[cfg(feature = "bincode")]
                 let format: HistoryOnDisk =
                     bincode::deserialize(&file_contents)?;
-                // let format: DiskFormat =
-                //     serde_json::from_slice(&file_contents)?;
+
+                #[cfg(feature = "serde_json")]
+                let format: HistoryOnDisk =
+                    serde_json::from_slice(&file_contents)?;
 
                 Ok((format.applied_groups, format.undone_groups))
             }
@@ -70,10 +73,18 @@ impl DiskHandler {
             undone_groups: undone_groups.to_vec(),
         };
 
-        let serialized = bincode::serialize(&format)?;
-        std::fs::write(&self.path, serialized)?;
-        // let serialized = serde_json::to_string_pretty(&format)?;
-        // std::fs::write(&self.path, serialized)?;
+        #[cfg(feature = "bincode")]
+        {
+            let serialized = bincode::serialize(&format)?;
+            std::fs::write(&self.path, serialized)?;
+        }
+
+        #[cfg(feature = "serde_json")]
+        {
+            let serialized = serde_json::to_string_pretty(&format)?;
+            std::fs::write(&self.path, serialized)?;
+        }
+
         Ok(())
     }
 }
