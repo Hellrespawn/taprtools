@@ -153,75 +153,69 @@ mod tests {
     // TODO Write test for undoing before applying
     // TODO Write test for undoing file that's been moved
     use super::*;
-    use tempfile::{Builder, NamedTempFile, TempDir};
-
-    static PREFIX: &str = "rust-file-history-action-";
-
-    fn get_temporary_dir() -> Result<TempDir> {
-        let dir = Builder::new().prefix(PREFIX).tempdir()?;
-        Ok(dir)
-    }
-
-    fn get_temporary_file(path: &Path) -> Result<NamedTempFile> {
-        let tempfile = NamedTempFile::new_in(path)?;
-        Ok(tempfile)
-    }
+    use anyhow::Result;
+    use assert_fs::prelude::*;
+    use assert_fs::TempDir;
+    use predicates::prelude::*;
 
     #[test]
     fn test_make_dir() -> Result<()> {
-        let dir = get_temporary_dir()?;
-        let path = dir.path().join("test");
-        let mkdir = Action::MakeDir(path.to_path_buf());
+        let dir = TempDir::new()?;
+        let path = dir.child("test");
+
+        let action = Action::MakeDir(path.to_path_buf());
 
         // Before: doesn't exist
-        assert!(!path.is_dir());
+        path.assert(predicate::path::missing());
 
-        mkdir.apply()?;
+        action.apply()?;
 
         // Applied: exists
-        assert!(path.is_dir());
+        path.assert(predicate::path::exists());
 
-        mkdir.undo()?;
+        action.undo()?;
 
         // Undone: doesn't exist
-        assert!(!path.is_dir());
+        path.assert(predicate::path::missing());
 
         Ok(())
     }
 
     #[test]
     fn test_remove_dir() -> Result<()> {
-        let dir = get_temporary_dir()?;
+        let dir = TempDir::new()?;
+        let path = dir.child("test");
+        Action::MakeDir(path.to_path_buf()).apply()?;
 
         // Before: exists
-        assert!(dir.path().is_dir());
+        path.assert(predicate::path::exists());
 
-        let rmdir = Action::RemoveDir(dir.path().to_path_buf());
+        let rmdir_action = Action::RemoveDir(path.to_path_buf());
 
-        rmdir.apply()?;
+        rmdir_action.apply()?;
 
         // Applied: doesn't exist
-        assert!(!dir.path().is_dir());
+        path.assert(predicate::path::missing());
 
-        rmdir.undo()?;
+        rmdir_action.undo()?;
 
         // Undone: exists
-        assert!(dir.path().is_dir());
+        path.assert(predicate::path::exists());
 
         Ok(())
     }
 
     #[test]
     fn test_move() -> Result<()> {
-        let dir = get_temporary_dir()?;
-        let file = get_temporary_file(dir.path())?;
+        let dir = TempDir::new()?;
+        let source = dir.child("source");
+        let target = dir.child("target");
 
-        let source = file.path().to_path_buf();
-        let target = file.path().with_file_name("test").to_path_buf();
+        source.touch().unwrap();
 
         // Before: source exists, target doesn't
-        assert!(source.is_file());
-        assert!(!target.is_file());
+        source.assert(predicate::path::exists());
+        target.assert(predicate::path::missing());
 
         let mv = Action::Move {
             source: source.to_path_buf(),
@@ -231,14 +225,14 @@ mod tests {
         mv.apply()?;
 
         // Applied: source doesn't, target exists
-        assert!(!source.is_file());
-        assert!(target.is_file());
+        source.assert(predicate::path::missing());
+        target.assert(predicate::path::exists());
 
         mv.undo()?;
 
         // Undone: source exists, target doesn't
-        assert!(source.is_file());
-        assert!(!target.is_file());
+        source.assert(predicate::path::exists());
+        target.assert(predicate::path::missing());
 
         Ok(())
     }

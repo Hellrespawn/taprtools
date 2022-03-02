@@ -47,16 +47,20 @@ where
 mod tests {
     use super::*;
 
+    #[allow(clippy::unnecessary_wraps)]
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     fn test_function_err(_: &()) -> Result<()> {
-        Err(anyhow::anyhow!("Woohoo!").into())
+        anyhow::bail!("Woohoo!")
     }
 
+    #[allow(clippy::unnecessary_wraps)]
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     fn test_function_ok(_: &()) -> Result<()> {
         Ok(())
     }
 
     #[test]
-    fn test_harness_with_err() -> Result<()> {
+    fn test_harness_with_err() {
         let func = test_function_err;
         let harness = test_runner(|| Ok(()), |_| Ok(()), func);
         let bare = func(&());
@@ -67,13 +71,11 @@ mod tests {
                 // FIXME Find a way to compare the two errors, to see if they are the same.
                 assert!(harness.is_err());
             }
-        };
-
-        Ok(())
+        }
     }
 
     #[test]
-    fn test_harness_with_ok() -> Result<()> {
+    fn test_harness_with_ok() {
         let func = test_function_ok;
         let harness = test_runner(|| Ok(()), |_| Ok(()), func);
         let bare = func(&());
@@ -84,8 +86,6 @@ mod tests {
                 // FIXME Find a way to compare the two errors, to see if they are the same.
                 assert!(harness.is_err());
             }
-        };
-
-        Ok(())
+        }
     }
 }

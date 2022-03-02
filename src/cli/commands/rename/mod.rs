@@ -255,6 +255,7 @@ fn remove_dir_recursive(
             if let HistoryError::IO(io_error) = &err {
                 if let Some(error_code) = io_error.raw_os_error() {
                     // FIXME Confirm that this error code is the same on unix
+                    // Directory not empty
                     if error_code == 145 {
                         return Ok(());
                     }

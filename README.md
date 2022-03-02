@@ -51,11 +51,5 @@ Operators in order of precedence, from lowest to highest:
 
 ## To-do
 
-- TODO Better UX
-  - TODO Spinners and progress bars
-  - TODO Preview songs
-
-- TODO Clean up leftover directories.
-
 - TODO? Add more obscure tags?
 - TODO? Add strict mode, which allows/denies/errors on forbidden characters/directory separators.

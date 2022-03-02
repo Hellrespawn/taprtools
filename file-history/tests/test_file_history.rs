@@ -1,83 +1,78 @@
-use file_history::{Action, History, Result};
-use std::path::Path;
-use tempfile::{Builder, NamedTempFile, TempDir};
+use anyhow::Result;
+use assert_fs::prelude::*;
+use assert_fs::TempDir;
+use file_history::{Action, History};
+use predicates::prelude::*;
 
 // TODO Write undo/redo tests
 
-static PREFIX: &str = "rust-file-history-history-";
-
-fn get_temporary_dir() -> Result<TempDir> {
-    let dir = Builder::new().prefix(PREFIX).tempdir()?;
-    Ok(dir)
-}
-
-fn get_temporary_file(path: &Path) -> Result<NamedTempFile> {
-    let tempfile = NamedTempFile::new_in(path)?;
-    Ok(tempfile)
-}
-
 #[test]
 fn test_new_history() -> Result<()> {
-    let dir = get_temporary_dir()?;
-    let path = dir.path().join("test.histfile");
+    let dir = TempDir::new()?;
+    let path = dir.child("test.histfile");
 
     History::load(&path)?;
 
-    assert!(!path.is_file());
+    path.assert(predicate::path::missing());
 
     Ok(())
 }
 
 #[test]
 fn test_save_unchanged_history() -> Result<()> {
-    let dir = get_temporary_dir()?;
-    let path = dir.path().join("test.histfile");
+    let dir = TempDir::new()?;
+    let path = dir.child("test.histfile");
 
     let mut history = History::load(&path)?;
 
-    assert!(!path.is_file());
+    path.assert(predicate::path::missing());
 
     history.save()?;
 
-    assert!(!path.is_file());
+    path.assert(predicate::path::missing());
 
     Ok(())
 }
 
+// FIXME Fix this test.
 #[test]
 fn test_save_after_rollback() -> Result<()> {
-    let dir = get_temporary_dir()?;
+    let dir = TempDir::new()?;
 
-    let file = get_temporary_file(dir.path())?;
-    assert!(file.path().is_file());
-
-    let history_path = dir.path().join("test.histfile");
+    let history_path = dir.child("test.histfile");
     let mut history = History::load(&history_path)?;
-    assert!(!history_path.is_file());
 
     history.save()?;
 
-    assert!(!history_path.is_file());
+    history_path.assert(predicate::path::missing());
 
-    let target = file.path().with_file_name("move_test");
+    let source = dir.child("source");
+    source.assert(predicate::path::missing());
+
+    source.touch().unwrap();
+
+    source.assert(predicate::path::is_file());
+
+    let target = source.child("target");
+    target.assert(predicate::path::missing());
 
     let action = Action::Move {
-        source: file.path().to_path_buf(),
+        source: source.to_path_buf(),
         target: target.to_path_buf(),
     };
 
     history.apply(action)?;
 
-    assert!(!file.path().is_file());
-    assert!(target.is_file());
+    source.assert(predicate::path::missing());
+    target.assert(predicate::path::is_file());
 
     history.rollback()?;
 
-    assert!(file.path().is_file());
-    assert!(!target.is_file());
+    source.assert(predicate::path::is_file());
+    target.assert(predicate::path::missing());
 
     history.save()?;
 
-    assert!(!history_path.is_file());
+    history_path.assert(predicate::path::missing());
     Ok(())
 }

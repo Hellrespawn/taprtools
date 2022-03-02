@@ -82,12 +82,16 @@ impl DiskHandler {
 mod tests {
     use super::*;
     use crate::Action;
-    use tempfile::{Builder, NamedTempFile};
+    use anyhow::Result;
+    use assert_fs::prelude::*;
+    use assert_fs::NamedTempFile;
+    use predicates::prelude::*;
 
     static PREFIX: &str = "rust-file-history-disk-";
 
-    fn get_temporary_file() -> Result<NamedTempFile> {
-        let file = Builder::new().prefix(PREFIX).tempfile()?;
+    fn get_temporary_file(name: &str) -> Result<NamedTempFile> {
+        let name = format!("{PREFIX}{name}");
+        let file = NamedTempFile::new(name)?;
         Ok(file)
     }
 
@@ -106,12 +110,12 @@ mod tests {
     }
 
     fn get_test_queue() -> Vec<ActionGroup> {
-        let mut queue = Vec::new();
-        queue.push(get_test_group());
-        queue.push(get_test_group());
-        queue.push(get_test_group());
-        queue.push(get_test_group());
-        queue
+        vec![
+            get_test_group(),
+            get_test_group(),
+            get_test_group(),
+            get_test_group(),
+        ]
     }
 
     fn write_read_compare_test_data(disk_handler: &DiskHandler) -> Result<()> {
@@ -130,7 +134,7 @@ mod tests {
 
     #[test]
     fn test_write_and_read() -> Result<()> {
-        let file = get_temporary_file()?;
+        let file = get_temporary_file("test_write_and_read")?;
         let disk_handler = DiskHandler::init(&file.path());
 
         write_read_compare_test_data(&disk_handler)?;
@@ -140,32 +144,31 @@ mod tests {
 
     #[test]
     fn test_clear() -> Result<()> {
-        let file = get_temporary_file()?;
+        let file = get_temporary_file("test_clear")?;
         let disk_handler = DiskHandler::init(&file.path());
 
-        assert!(file.path().is_file());
+        file.assert(predicate::path::missing());
 
-        assert_eq!(disk_handler.clear()?, true);
+        assert!(!disk_handler.clear()?);
 
         // These two indicate the same thing.
-        assert_eq!(disk_handler.clear()?, false);
-        assert!(!file.path().exists());
+        assert!(!disk_handler.clear()?);
+        file.assert(predicate::path::missing());
 
         Ok(())
     }
 
     #[test]
     fn test_write_and_read_from_clear() -> Result<()> {
-        let file = get_temporary_file()?;
+        let file = get_temporary_file("test_write_and_read_from_clear()")?;
         let disk_handler = DiskHandler::init(&file.path());
 
-        assert_eq!(disk_handler.clear()?, true);
-        assert_eq!(disk_handler.clear()?, false);
+        assert!(!disk_handler.clear()?);
 
         write_read_compare_test_data(&disk_handler)?;
 
-        assert_eq!(disk_handler.clear()?, true);
-        assert_eq!(disk_handler.clear()?, false);
+        assert!(disk_handler.clear()?);
+        assert!(!disk_handler.clear()?);
 
         Ok(())
     }
