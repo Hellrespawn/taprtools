@@ -110,6 +110,7 @@ impl TestEnv {
     }
 
     fn assert_files<P>(&self, reference: &[P])
+    // TODO Write a function to assert that files are removed.
     where
         P: AsRef<Path>,
     {
