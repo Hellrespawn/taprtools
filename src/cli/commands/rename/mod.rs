@@ -41,7 +41,7 @@ pub(crate) fn rename(
             crate::cli::Args::DEFAULT_PREVIEW_AMOUNT,
         );
 
-        let result = apply_actions(preview, &mut history, actions);
+        let result = move_files(preview, &mut history, actions);
 
         // FIXME Handle nested error somehow.
         if result.is_err() {
@@ -169,7 +169,7 @@ fn partition_actions(actions: Vec<Action>) -> (Vec<Action>, Vec<Action>) {
     })
 }
 
-fn apply_actions(
+fn move_files(
     preview: bool,
     history: &mut History,
     actions: Vec<Action>,
@@ -217,53 +217,62 @@ fn clean_up_source_dirs(
     common_path: &Path,
     recursion_depth: usize,
 ) -> Result<()> {
-    let pp = if preview { Config::PREVIEW_PREFIX } else { "" };
+    let dirs = gather_dirs(common_path, recursion_depth);
 
-    remove_dir_recursive(preview, history, common_path, recursion_depth)?;
+    let actions: Vec<Action> =
+        dirs.into_iter().map(Action::RemoveDir).collect();
+
+    if !preview {
+        for action in actions {
+            remove_dir(history, action)?;
+        }
+    }
+
+    let pp = if preview { Config::PREVIEW_PREFIX } else { "" };
 
     println!("{pp}Removed leftover folders.");
 
     Ok(())
 }
 
-fn remove_dir_recursive(
-    preview: bool,
-    history: &mut History,
-    path: &Path,
-    depth: usize,
-) -> Result<()> {
+fn gather_dirs(path: &Path, depth: usize) -> Vec<PathBuf> {
+    let mut dirs = Vec::new();
+
     if depth == 0 {
-        return Ok(());
+        return dirs;
     }
 
-    for result in std::fs::read_dir(path)? {
-        let entry = result?.path();
-
-        if entry.is_dir() {
-            remove_dir_recursive(preview, history, &entry, depth - 1)?;
+    for entry in std::fs::read_dir(path).into_iter().flatten().flatten() {
+        let dir = entry.path();
+        if dir.is_dir() {
+            dirs.extend(gather_dirs(&dir, depth - 1));
+            dirs.push(path.to_owned());
         }
     }
 
-    let action = Action::RemoveDir(path.to_path_buf());
+    dirs
+}
 
-    if preview {
-        Ok(())
-    } else {
-        let result = history.apply(action);
+fn remove_dir(history: &mut History, action: Action) -> Result<()> {
+    let result = history.apply(action);
 
-        if let Err(err) = result {
-            if let HistoryError::IO(io_error) = &err {
-                if let Some(error_code) = io_error.raw_os_error() {
-                    // FIXME Confirm that this error code is the same on unix
-                    // Directory not empty
-                    if error_code == 145 {
-                        return Ok(());
-                    }
+    if let Err(err) = result {
+        let mut is_expected_error = false;
+
+        if let HistoryError::IO(io_error) = &err {
+            if let Some(error_code) = io_error.raw_os_error() {
+                // FIXME Confirm that this error code is the same on unix
+                // Directory not empty
+                if error_code == 145 {
+                    is_expected_error = true;
                 }
             }
-            Err(err.into())
-        } else {
-            Ok(())
+        }
+
+        if !is_expected_error {
+            return Err(err.into());
         }
     }
+
+    Ok(())
 }
