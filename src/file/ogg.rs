@@ -9,10 +9,7 @@ use tfmt::Tags;
 pub(crate) struct OGGTags(HashMap<String, String>);
 
 impl OGGTags {
-    pub(crate) fn new<P>(path: P) -> Result<Self>
-    where
-        P: AsRef<Path>,
-    {
+    pub(crate) fn new(path: &Path) -> Result<Self> {
         let path = dunce::canonicalize(path)?;
         let stream_reader = OggStreamReader::new(std::fs::File::open(&path)?)?;
 

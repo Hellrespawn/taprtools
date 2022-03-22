@@ -14,12 +14,9 @@ pub(crate) struct DiskHandler {
 }
 
 impl DiskHandler {
-    pub(crate) fn init<P>(path: P) -> DiskHandler
-    where
-        P: AsRef<Path>,
-    {
+    pub(crate) fn init(path: &Path) -> DiskHandler {
         DiskHandler {
-            path: path.as_ref().to_path_buf(),
+            path: path.to_owned(),
         }
     }
 

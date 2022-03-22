@@ -12,12 +12,9 @@ impl Config {
     pub(crate) const PREVIEW_PREFIX: &'static str = "[P] ";
     pub(crate) const SCRIPT_EXTENSION: &'static str = "tfmt";
 
-    pub(crate) fn new<P>(path: P) -> Result<Self>
-    where
-        P: AsRef<Path>,
-    {
+    pub(crate) fn new(path: &Path) -> Result<Self> {
         let config = Self {
-            path: path.as_ref().to_path_buf(),
+            path: path.to_owned(),
         };
 
         Config::create_dir(&config.path)?;
@@ -40,15 +37,14 @@ impl Config {
     }
 
     /// Search a path for files matching `predicate`, recursing for `depth`.
-    pub(crate) fn search_path<P, Q>(
-        path: &P,
+    pub(crate) fn search_path<P>(
+        path: &Path,
         depth: usize,
-        predicate: &Q,
+        predicate: &P,
         spinner: Option<&ui::AudioFileSpinner>,
     ) -> Vec<PathBuf>
     where
-        P: AsRef<Path>,
-        Q: Fn(&Path) -> bool,
+        P: Fn(&Path) -> bool,
     {
         let mut found_paths = Vec::new();
 
@@ -108,7 +104,7 @@ impl Config {
                 .map_or(false, |s| s == Config::SCRIPT_EXTENSION)
         };
 
-        let mut paths = Config::search_path(&self.path(), 0, &closure, None);
+        let mut paths = Config::search_path(self.path(), 0, &closure, None);
         paths.extend(Config::search_path(
             &std::env::current_dir()?,
             0,

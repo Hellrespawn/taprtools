@@ -101,11 +101,7 @@ impl Action {
         Ok(())
     }
 
-    fn copy_or_move_file<P, Q>(source: P, target: Q) -> Result<()>
-    where
-        P: AsRef<Path>,
-        Q: AsRef<Path>,
-    {
+    fn copy_or_move_file(source: &Path, target: &Path) -> Result<()> {
         if let Err(err) = std::fs::rename(&source, &target) {
             // Can't rename across filesystem boundaries. Checks for
             // the appropriate error and copies/deletes instead.

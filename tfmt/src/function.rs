@@ -6,20 +6,17 @@ use regex::Regex;
 type Result<T> = std::result::Result<T, FunctionError>;
 
 /// Wrapper function that delegates to TFMT functions.
-pub(crate) fn handle_function<S, T>(
-    input_text: &S,
+pub(crate) fn handle_function<A: AsRef<str>>(
+    input_text: &str,
     start_token: &Token,
-    arguments: &[T],
-) -> Result<String>
-where
-    S: AsRef<str>,
-    T: AsRef<str>,
-{
-    validate(input_text, start_token, arguments)?;
-
-    let name = start_token.get_string_unchecked();
+    arguments: &[A],
+) -> Result<String> {
     let arguments: Vec<&str> =
         arguments.iter().map(std::convert::AsRef::as_ref).collect();
+
+    validate(input_text, start_token, &arguments)?;
+
+    let name = start_token.get_string_unchecked();
 
     let function_output = match name {
         "prepend" => function_prepend(
@@ -46,15 +43,11 @@ where
     Ok(function_output)
 }
 
-fn validate<S, T>(
-    input_text: &S,
+fn validate(
+    input_text: &str,
     start_token: &Token,
-    arguments: &[T],
-) -> Result<()>
-where
-    S: AsRef<str>,
-    T: AsRef<str>,
-{
+    arguments: &[&str],
+) -> Result<()> {
     let name = start_token.get_string_unchecked();
 
     let required = match name {

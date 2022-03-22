@@ -244,7 +244,7 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
             .collect::<Result<Vec<String>>>()?;
 
         Ok(crate::function::handle_function(
-            &self.input_text,
+            self.input_text,
             start_token,
             &arguments,
         )?)
@@ -384,7 +384,7 @@ mod tests {
     fn test_too_few_arguments() -> Result<()> {
         // Remove default argument
         let script =
-            Script::new(TYPICAL_INPUT.replace("=\"destination\"", ""))?;
+            Script::new(&TYPICAL_INPUT.replace("=\"destination\"", ""))?;
 
         match Interpreter::new(script, vec![]) {
             Ok(out) => {

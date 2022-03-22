@@ -7,10 +7,7 @@ use tfmt::Tags;
 pub(crate) struct MP3Tags(Tag);
 
 impl MP3Tags {
-    pub(crate) fn new<P>(path: P) -> Result<Self>
-    where
-        P: AsRef<Path>,
-    {
+    pub(crate) fn new(path: &Path) -> Result<Self> {
         let path = dunce::canonicalize(path)?;
         let tags = Tag::read_from_path(&path)?;
         Ok(Self(tags))

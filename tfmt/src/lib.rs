@@ -31,13 +31,13 @@ pub(crate) const FORBIDDEN_GRAPHEMES: [&str; 8] =
 pub(crate) static DIRECTORY_SEPARATORS: [&str; 2] = ["/", "\\"];
 
 /// Normalizes newlines in `string`.
-pub(crate) fn normalize_newlines<S: AsRef<str>>(string: &S) -> String {
-    string.as_ref().replace("\r\n", "\n").replace('\r', "\n")
+pub(crate) fn normalize_newlines(string: &str) -> String {
+    string.replace("\r\n", "\n").replace('\r', "\n")
 }
 
 /// Normalizes separators for the platform in `string`.
-pub(crate) fn normalize_separators<S: AsRef<str>>(string: &S) -> String {
-    string.as_ref().replace(
+pub(crate) fn normalize_separators(string: &str) -> String {
+    string.replace(
         if MAIN_SEPARATOR == '/' { '\\' } else { '/' },
         &MAIN_SEPARATOR.to_string(),
     )

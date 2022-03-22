@@ -19,7 +19,7 @@ pub(crate) struct Parser<'a> {
 
 impl<'a> Parser<'a> {
     /// Create a [Parser<'a>] from a string.
-    pub(crate) fn new<S: AsRef<str>>(input_text: &'a S) -> Result<Self> {
+    pub(crate) fn new(input_text: &'a str) -> Result<Self> {
         Ok(Parser {
             lexer: Lexer::new(input_text)?,
             depth: 0,

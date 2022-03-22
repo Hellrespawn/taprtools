@@ -32,21 +32,17 @@ impl ErrorContext {
 }
 
 impl ErrorContext {
-    pub(crate) fn new<S: AsRef<str>>(
-        input_text: S,
-        line_no: usize,
-        col_no: usize,
-    ) -> Self {
+    pub(crate) fn new(input_text: &str, line_no: usize, col_no: usize) -> Self {
         Self {
-            script: String::from(input_text.as_ref()),
+            script: String::from(input_text),
             line_no,
             col_no,
         }
     }
 
-    pub(crate) fn from_token<S: AsRef<str>>(script: S, token: &Token) -> Self {
+    pub(crate) fn from_token(script: &str, token: &Token) -> Self {
         Self {
-            script: String::from(script.as_ref()),
+            script: String::from(script),
             line_no: token.line_no(),
             col_no: token.col_no(),
         }

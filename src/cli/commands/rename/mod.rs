@@ -88,7 +88,7 @@ fn gather_files(recursion_depth: usize) -> Result<Vec<AudioFile>> {
 
     spinner.finish("Gathered files.");
 
-    paths.iter().map(AudioFile::new).collect()
+    paths.iter().map(|p| AudioFile::new(p)).collect()
 }
 
 fn interpret_files(

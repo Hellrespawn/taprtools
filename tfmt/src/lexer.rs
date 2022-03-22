@@ -43,9 +43,7 @@ impl<'a> Iterator for Lexer<'a> {
 impl<'a> Lexer<'a> {
     /// Attempt to create a [Lexer] from a string. Requires that the input
     /// does not contain carriage return characters (\r).
-    pub(crate) fn new<S: AsRef<str>>(input_text: &'a S) -> Result<Self> {
-        let input_text = input_text.as_ref();
-
+    pub(crate) fn new(input_text: &'a str) -> Result<Self> {
         if let Some(cr_index) = input_text.find('\r') {
             #[allow(clippy::unnecessary_to_owned)]
             // Required to keep the reference in input_text
@@ -545,7 +543,7 @@ mod tests {
                 ),
                 &LexerError::ExhaustedText(
                     ErrorContext::new(
-                        UNTERMINATED_MULTILINE_STRING.to_string() + "abcd",
+                        &(UNTERMINATED_MULTILINE_STRING.to_string() + "abcd"),
                         1,
                         1,
                     ),

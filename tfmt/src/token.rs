@@ -121,13 +121,13 @@ impl Token {
     }
 
     /// Attempt to create a new [`Token`], parsing a string as [`TokenType`].
-    pub(crate) fn from_str<S: AsRef<str>>(
-        token_type: &S,
+    pub(crate) fn from_str(
+        token_type: &str,
         line_no: usize,
         col_no: usize,
     ) -> Result<Self> {
         Ok(Self {
-            token_type: TokenType::from_str(token_type.as_ref())?,
+            token_type: TokenType::from_str(token_type)?,
             line_no,
             col_no,
         })

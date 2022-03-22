@@ -11,11 +11,8 @@ pub(crate) struct AudioFile {
 impl AudioFile {
     pub(crate) const SUPPORTED_EXTENSIONS: [&'static str; 2] = ["mp3", "ogg"];
 
-    pub(crate) fn new<P>(path: P) -> Result<AudioFile>
-    where
-        P: AsRef<Path>,
-    {
-        let path = path.as_ref().to_path_buf();
+    pub(crate) fn new(path: &Path) -> Result<AudioFile> {
+        let path = path.to_owned();
         let tags = AudioFile::read_tags(&path)?;
 
         Ok(AudioFile { path, tags })

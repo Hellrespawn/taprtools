@@ -109,10 +109,8 @@ impl TestEnv {
         self.path().join("files")
     }
 
-    fn assert_files<P>(&self, reference: &[P])
+    fn assert_files(&self, reference: &[&str])
     // TODO Write a function to assert that files are removed.
-    where
-        P: AsRef<Path>,
     {
         for path in reference {
             let child = self.tempdir.child(path);

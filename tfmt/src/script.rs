@@ -49,11 +49,8 @@ pub struct Script {
 
 impl Script {
     /// Create a new Script instance.
-    pub fn new<S>(input: S) -> Result<Self>
-    where
-        S: AsRef<str>,
-    {
-        let input_text = crate::normalize_newlines(&input);
+    pub fn new(input: &str) -> Result<Self> {
+        let input_text = crate::normalize_newlines(input);
         let mut parser = Parser::new(&input_text)?;
         let program = parser.parse()?;
 
