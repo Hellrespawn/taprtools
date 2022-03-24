@@ -6,7 +6,10 @@ pub(crate) fn list_scripts(config: &Config) -> Result<()> {
     let scripts = config.get_scripts()?;
 
     if scripts.is_empty() {
-        println!("Couldn't find any scripts.");
+        println!(
+            "Couldn't find any scripts at {} or in the current directory.",
+            config.path().display()
+        );
     } else {
         println!("Scripts:");
     }

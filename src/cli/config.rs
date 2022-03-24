@@ -79,40 +79,13 @@ impl Config {
         found_paths
     }
 
-    fn create_dir(path: &Path) -> Result<()> {
-        if !path.exists() {
-            std::fs::create_dir(&path)?;
-        } else if !path.is_dir() {
-            bail!("Unable to create project directory!")
-        }
-
-        Ok(())
-    }
-
-    fn path(&self) -> &Path {
+    pub(crate) fn path(&self) -> &Path {
         &self.path
     }
 
     pub(crate) fn get_history_path(&self) -> PathBuf {
         let path = self.path().join(Config::HISTORY_FILENAME);
         path
-    }
-
-    fn get_script_paths(&self) -> Result<Vec<PathBuf>> {
-        let closure: fn(&Path) -> bool = |p| {
-            p.extension()
-                .map_or(false, |s| s == Config::SCRIPT_EXTENSION)
-        };
-
-        let mut paths = Config::search_path(self.path(), 0, &closure, None);
-        paths.extend(Config::search_path(
-            &std::env::current_dir()?,
-            0,
-            &closure,
-            None,
-        ));
-
-        Ok(paths)
     }
 
     pub(crate) fn get_scripts(&self) -> Result<Vec<Script>> {
@@ -147,5 +120,32 @@ impl Config {
         debug_assert!(script.is_some());
 
         Ok(script.unwrap())
+    }
+
+    fn create_dir(path: &Path) -> Result<()> {
+        if !path.exists() {
+            std::fs::create_dir(&path)?;
+        } else if !path.is_dir() {
+            bail!("Unable to create project directory!")
+        }
+
+        Ok(())
+    }
+
+    fn get_script_paths(&self) -> Result<Vec<PathBuf>> {
+        let closure: fn(&Path) -> bool = |p| {
+            p.extension()
+                .map_or(false, |s| s == Config::SCRIPT_EXTENSION)
+        };
+
+        let mut paths = Config::search_path(self.path(), 0, &closure, None);
+        paths.extend(Config::search_path(
+            &std::env::current_dir()?,
+            0,
+            &closure,
+            None,
+        ));
+
+        Ok(paths)
     }
 }
