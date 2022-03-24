@@ -40,9 +40,10 @@ impl SymbolTable {
                         );
                     } else {
                         // default not present
-                        return Err(InterpreterError::ArgumentRequired(
-                            param.name().to_string(),
-                        ));
+                        return Err(InterpreterError::ArgumentRequired {
+                            script: script.name().to_string(),
+                            argument: param.name().to_string(),
+                        });
                     }
                 }
                 Right(_) => {
@@ -399,7 +400,9 @@ mod tests {
                 bail!("Expected InterpreterError::ArgumentRequired(\"folder\"), got Ok({out:?})")
             }
             Err(err) => match err {
-                InterpreterError::ArgumentRequired(param) => {
+                InterpreterError::ArgumentRequired {
+                    argument: param, ..
+                } => {
                     assert_eq!(param, "folder".to_string());
                     Ok(())
                 }

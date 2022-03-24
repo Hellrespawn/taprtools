@@ -162,12 +162,14 @@ pub enum FunctionError {
 /// Error from the [genastdot] module.
 pub enum SemanticError {
     /// "Symbol never occurs in program."
-    #[error(r#"Symbol "{0}" never occurs in program!"#)]
-    SymbolNotUsed(String),
+    #[error(
+        r#"Declared symbol "{symbol}" never occurs in script "{script}"!"#
+    )]
+    SymbolNotUsed { symbol: String, script: String },
 
-    /// "Symbol never occurs in program."
-    #[error(r#"Symbol "{0}" is not declared in script!"#)]
-    SymbolNotDeclared(String),
+    /// "Symbol is not declared in script."
+    #[error(r#"Symbol "{symbol}" is not declared in script "{script}"!"#)]
+    SymbolNotDeclared { symbol: String, script: String },
 }
 
 #[derive(Error, Debug)]
@@ -186,8 +188,8 @@ pub enum InterpreterError {
     TooManyArguments { found: usize, expected: usize },
 
     /// Argument is required in program.
-    #[error(r#"Argument "{0}" is required!"#)]
-    ArgumentRequired(String),
+    #[error(r#"Argument "{argument}" is required in script "{script}"!"#)]
+    ArgumentRequired { script: String, argument: String },
 
     #[error(transparent)]
     Lexer(#[from] LexerError),

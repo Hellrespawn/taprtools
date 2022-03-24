@@ -1,6 +1,6 @@
 mod validate;
 
-use crate::cli::Config;
+use crate::cli::{ui, Config};
 use crate::file::AudioFile;
 use anyhow::Result;
 use file_history::{Action, History, HistoryError};
@@ -173,9 +173,16 @@ fn perform_actions(
     if result.is_err() {
         history.rollback()?;
     } else {
-        clean_up_source_dirs(preview, history, common_path, recursion_depth)?;
+        let nested_result = clean_up_source_dirs(
+            preview,
+            history,
+            common_path,
+            recursion_depth,
+        );
 
         history.save()?;
+
+        nested_result?
     }
 
     result

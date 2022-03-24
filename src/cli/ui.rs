@@ -5,6 +5,10 @@ use indicatif::{
     ProgressStyle,
 };
 
+pub(crate) fn print_error(error: &anyhow::Error) {
+    println!("An error occurred:\n{error}");
+}
+
 pub(crate) struct AudioFileSpinner {
     spinner: IProgressBar,
 }
@@ -74,14 +78,14 @@ pub(crate) fn print_actions_preview(actions: &[Action], preview_amount: usize) {
 
     println!(
         "\nPreviewing {} files:",
-        if length > preview_amount {
+        if length <= preview_amount {
+            length.to_string()
+        } else {
             format!(
                 "{}/{}",
                 std::cmp::min(preview_amount, actions.len()),
                 length
             )
-        } else {
-            length.to_string()
         }
     );
 

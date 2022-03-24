@@ -1,13 +1,17 @@
 use crate::cli::args::Command;
 use crate::cli::commands::{self, UndoMode};
-use crate::cli::{Args, Config};
+use crate::cli::{ui, Args, Config};
 use anyhow::Result;
 
 /// Main entrypoint for tfmttools
 pub fn main(preview_override: bool) -> Result<()> {
     let args = crate::cli::args::parse_args(preview_override);
 
-    select_command(args)
+    if let Err(err) = select_command(args) {
+        ui::print_error(&err);
+    }
+
+    Ok(())
 }
 
 fn select_command(args: Args) -> Result<()> {

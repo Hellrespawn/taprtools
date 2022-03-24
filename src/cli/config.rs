@@ -1,4 +1,4 @@
-use crate::cli::commands::rename::ui;
+use crate::cli::ui;
 use anyhow::{bail, Result};
 use std::path::{Path, PathBuf};
 use tfmt::Script;

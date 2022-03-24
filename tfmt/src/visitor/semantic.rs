@@ -32,9 +32,10 @@ impl SemanticAnalyzer {
         // Check that all parameter occur in the program.
         for param in analyzer.parameters.values_mut() {
             if (*param.count()) == 0 {
-                return Err(SemanticError::SymbolNotUsed(
-                    param.name().to_string(),
-                ));
+                return Err(SemanticError::SymbolNotUsed {
+                    symbol: param.name().to_string(),
+                    script: analyzer.name,
+                });
             }
         }
 
@@ -149,7 +150,10 @@ impl Visitor<Result<()>> for SemanticAnalyzer {
         let name = symbol.get_string_unchecked().to_string();
 
         if !self.parameters.contains_key(&name) {
-            return Err(SemanticError::SymbolNotDeclared(name));
+            return Err(SemanticError::SymbolNotDeclared {
+                symbol: name,
+                script: self.name.clone(),
+            });
         }
 
         self.parameters
@@ -227,7 +231,7 @@ mod tests {
         match analysis {
             Ok(_) => bail!("Expected SymbolNotUsed, got Ok(_)"),
             Err(err) => match err {
-                SemanticError::SymbolNotUsed(symbol) => {
+                SemanticError::SymbolNotUsed { symbol, .. } => {
                     assert_eq!(symbol, "folder".to_string());
                     Ok(())
                 }
@@ -248,7 +252,7 @@ mod tests {
         match analysis {
             Ok(_) => bail!("Expected SymbolNotDeclared, got Ok(_)"),
             Err(err) => match err {
-                SemanticError::SymbolNotDeclared(symbol) => {
+                SemanticError::SymbolNotDeclared { symbol, .. } => {
                     assert_eq!(symbol, "folder".to_string());
                     Ok(())
                 }

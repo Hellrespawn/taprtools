@@ -4,6 +4,8 @@ pub(crate) mod args;
 pub(crate) mod commands;
 /// Contains filesystem code
 pub(crate) mod config;
+/// Contains UI code
+pub(crate) mod ui;
 
 pub(crate) use config::Config;
 
