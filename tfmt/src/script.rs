@@ -50,7 +50,7 @@ pub struct Script {
 impl Script {
     /// Create a new Script instance.
     pub fn new(input: &str) -> Result<Self> {
-        let input_text = crate::normalize_newlines(input);
+        let input_text = crate::normalize_eol(input);
         let mut parser = Parser::new(&input_text)?;
         let program = parser.parse()?;
 

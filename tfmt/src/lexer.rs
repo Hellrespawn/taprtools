@@ -1,6 +1,6 @@
 use super::error::{ErrorContext, LexerError};
 use super::token::{Token, TokenType};
-use crate::normalize_newlines;
+use crate::normalize_eol;
 use buffered_iterator::{buffered, BufferedIterator};
 use log::{debug, trace};
 use unicode_segmentation::{Graphemes, UnicodeSegmentation};
@@ -48,7 +48,7 @@ impl<'a> Lexer<'a> {
             #[allow(clippy::unnecessary_to_owned)]
             // Required to keep the reference in input_text
             let text_before_cr =
-                normalize_newlines(&input_text[..cr_index].to_string());
+                normalize_eol(&input_text[..cr_index].to_string());
 
             let newline_matches: Vec<usize> = text_before_cr
                 .rmatch_indices('\n')

@@ -31,7 +31,7 @@ pub(crate) const FORBIDDEN_GRAPHEMES: [&str; 8] =
 pub(crate) static DIRECTORY_SEPARATORS: [&str; 2] = ["/", "\\"];
 
 /// Normalizes newlines in `string`.
-pub(crate) fn normalize_newlines(string: &str) -> String {
+pub(crate) fn normalize_eol(string: &str) -> String {
     string.replace("\r\n", "\n").replace('\r', "\n")
 }
 

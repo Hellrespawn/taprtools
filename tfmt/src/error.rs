@@ -171,7 +171,7 @@ pub enum SemanticError {
 }
 
 #[derive(Error, Debug)]
-/// Error from the [parser] module.
+/// Error from the [interpreter] module.
 pub enum InterpreterError {
     /// Invalid [TokenType].
     #[error("{context}Invalid TokenType in {name}: {invalid_type:?}!")]

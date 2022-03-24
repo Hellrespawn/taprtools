@@ -608,7 +608,8 @@ mod test {
         include_str!("..\\..\\testdata\\typical_input.tfmt");
 
     fn file_test(input: &str, reference: Option<node::Program>) -> Result<()> {
-        let mut parser = Parser::new(&input)?;
+        let normalized_input = crate::normalize_eol(input);
+        let mut parser = Parser::new(&normalized_input)?;
 
         let program = parser.parse()?;
 
