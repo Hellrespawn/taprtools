@@ -15,11 +15,11 @@ pub fn main(preview_override: bool) -> Result<()> {
 }
 
 fn select_command(args: Args) -> Result<()> {
-    let config = if let Some(path) = args.config {
-        Config::new(&path)
+    let config = if let Some(path) = &args.config {
+        Config::new(path)?
     } else {
-        Config::default()
-    }?;
+        Config::new(&Config::default_path()?)?
+    };
 
     match args.command {
         Command::ClearHistory { preview } => {

@@ -22,15 +22,11 @@ impl Config {
         Ok(config)
     }
 
-    pub(crate) fn default() -> Result<Self> {
+    pub(crate) fn default_path() -> Result<PathBuf> {
         if let Some(home) = dirs::home_dir() {
             let path = home.join(format!(".{}", env!("CARGO_PKG_NAME")));
 
-            let config = Self { path };
-
-            Config::create_dir(&config.path)?;
-
-            Ok(config)
+            Ok(path)
         } else {
             bail!("Unable to read home directory!")
         }
@@ -126,23 +122,23 @@ impl Config {
         if !path.exists() {
             std::fs::create_dir(&path)?;
         } else if !path.is_dir() {
-            bail!("Unable to create project directory!")
+            bail!("Unable to create configuration directory!")
         }
 
         Ok(())
     }
 
     fn get_script_paths(&self) -> Result<Vec<PathBuf>> {
-        let closure: fn(&Path) -> bool = |p| {
+        let predicate: fn(&Path) -> bool = |p| {
             p.extension()
                 .map_or(false, |s| s == Config::SCRIPT_EXTENSION)
         };
 
-        let mut paths = Config::search_path(self.path(), 0, &closure, None);
+        let mut paths = Config::search_path(self.path(), 0, &predicate, None);
         paths.extend(Config::search_path(
             &std::env::current_dir()?,
             0,
-            &closure,
+            &predicate,
             None,
         ));
 

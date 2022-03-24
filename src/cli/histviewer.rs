@@ -19,7 +19,7 @@ pub fn histviewer() -> Result<()> {
     let history_path = if let Some(path) = args.histfile {
         path
     } else {
-        Config::default()?.get_history_path()
+        Config::new(&Config::default_path()?)?.get_history_path()
     };
 
     let history = History::load(&history_path)?;
