@@ -11,46 +11,15 @@ use log::trace;
 use std::collections::HashMap;
 
 type Result<T> = std::result::Result<T, InterpreterError>;
-type SymbolTable = HashMap<String, String>;
 
-/// Interprets an `[AST](ast::Program)` based on tags from an [`AudioFile`].
+/// SymbolTable keeps track of the mapping of parameters appearing in the
+/// script and arguments passed to it.
 #[derive(Debug)]
-pub struct Interpreter {
-    script: Script,
-    symbol_table: SymbolTable,
-}
+pub struct SymbolTable(HashMap<String, String>);
 
-impl Interpreter {
-    /// Create new interpreter
-    pub fn new(script: Script, arguments: Vec<String>) -> Result<Self> {
-        let symbol_table =
-            Interpreter::construct_symbol_table(&script, arguments)?;
-
-        Ok(Self {
-            script,
-            symbol_table,
-        })
-    }
-
-    /// Public function for interpreter.
-    pub fn interpret(&mut self, audio_file: &dyn Tags) -> Result<String> {
-        let string = crate::normalize_separators(&self.script.accept_visitor(
-            &mut IntpVisitor {
-                input_text: self.script.input_text(),
-                symbol_table: &self.symbol_table,
-                audio_file,
-            },
-        )?);
-
-        trace!(r#"Out: "{}""#, string);
-
-        Ok(string)
-    }
-
-    fn construct_symbol_table(
-        script: &Script,
-        arguments: Vec<String>,
-    ) -> Result<SymbolTable> {
+impl SymbolTable {
+    /// Construct symbol table from arguments
+    pub fn new(script: &Script, arguments: &[String]) -> Result<SymbolTable> {
         let amount_of_arguments = arguments.len();
         let mut symbol_table = HashMap::new();
 
@@ -58,7 +27,8 @@ impl Interpreter {
             match pair {
                 Both(param, arg) => {
                     // parameter and arg present
-                    symbol_table.insert(param.name().to_string(), arg);
+                    symbol_table
+                        .insert(param.name().to_string(), arg.to_string());
                 }
                 Left(param) => {
                     // parameter and no arg present
@@ -85,7 +55,44 @@ impl Interpreter {
             }
         }
 
-        Ok(symbol_table)
+        Ok(Self(symbol_table))
+    }
+
+    /// Returns a reference to the value corresponding to the key.
+    pub fn get(&self, key: &str) -> Option<&String> {
+        self.0.get(key)
+    }
+}
+
+/// Interprets an `[AST](ast::Program)` based on tags from an [`AudioFile`].
+#[derive(Debug)]
+pub struct Interpreter {
+    script: Script,
+    symbol_table: SymbolTable,
+}
+
+impl Interpreter {
+    /// Create new interpreter
+    pub fn new(script: Script, symbol_table: SymbolTable) -> Result<Self> {
+        Ok(Self {
+            script,
+            symbol_table,
+        })
+    }
+
+    /// Public function for interpreter.
+    pub fn interpret(&mut self, audio_file: &dyn Tags) -> Result<String> {
+        let string = crate::normalize_separators(&self.script.accept_visitor(
+            &mut IntpVisitor {
+                input_text: self.script.input_text(),
+                symbol_table: &self.symbol_table,
+                audio_file,
+            },
+        )?);
+
+        trace!(r#"Out: "{}""#, string);
+
+        Ok(string)
     }
 
     fn strip_leading_zeroes(number: &str) -> &str {
@@ -368,8 +375,9 @@ mod tests {
     #[test]
     fn test_full() -> Result<()> {
         let script = Script::new(TYPICAL_INPUT)?;
-        let mut interpreter =
-            Interpreter::new(script, vec!["argument".to_string()])?;
+        let symbol_table =
+            SymbolTable::new(&script, &vec!["argument".to_string()])?;
+        let mut interpreter = Interpreter::new(script, symbol_table)?;
 
         let file = MockTags;
 
@@ -381,12 +389,12 @@ mod tests {
     }
 
     #[test]
-    fn test_too_few_arguments() -> Result<()> {
+    fn test_symbol_table_too_few_arguments() -> Result<()> {
         // Remove default argument
         let script =
             Script::new(&TYPICAL_INPUT.replace("=\"destination\"", ""))?;
 
-        match Interpreter::new(script, vec![]) {
+        match SymbolTable::new(&script, &vec![]) {
             Ok(out) => {
                 bail!("Expected InterpreterError::ArgumentRequired(\"folder\"), got Ok({out:?})")
             }
@@ -403,12 +411,12 @@ mod tests {
     }
 
     #[test]
-    fn test_too_much_arguments() -> Result<()> {
+    fn test_symbol_table_too_much_arguments() -> Result<()> {
         let script = Script::new(TYPICAL_INPUT)?;
 
-        let result = Interpreter::new(
-            script,
-            vec!["a".to_string(), "b".to_string(), "c".to_string()],
+        let result = SymbolTable::new(
+            &script,
+            &vec!["a".to_string(), "b".to_string(), "c".to_string()],
         );
 
         match result {

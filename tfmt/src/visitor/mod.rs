@@ -6,4 +6,4 @@ mod visitor_trait;
 
 pub(crate) use visitor_trait::Visitor;
 
-pub use interpreter::Interpreter;
+pub use interpreter::{Interpreter, SymbolTable};

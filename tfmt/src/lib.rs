@@ -19,7 +19,7 @@ mod visitor;
 
 pub use script::Script;
 pub use tags::Tags;
-pub use visitor::Interpreter;
+pub use visitor::{Interpreter, SymbolTable};
 
 use std::path::MAIN_SEPARATOR;
 

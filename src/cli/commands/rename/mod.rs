@@ -1,4 +1,3 @@
-pub(crate) mod ui;
 mod validate;
 
 use crate::cli::Config;
@@ -7,7 +6,7 @@ use anyhow::Result;
 use file_history::{Action, History, HistoryError};
 use indicatif::ProgressIterator;
 use std::path::{Path, PathBuf};
-use tfmt::{Interpreter, Script};
+use tfmt::{Interpreter, Script, SymbolTable};
 use validate::validate_actions;
 
 pub(crate) fn rename(
@@ -22,9 +21,11 @@ pub(crate) fn rename(
 
     let script = config.get_script(name)?;
 
+    let symbol_table = SymbolTable::new(&script, arguments)?;
+
     let files = gather_files(recursion_depth)?;
 
-    let actions = interpret_files(script, arguments, &files)?;
+    let actions = interpret_files(script, symbol_table, &files)?;
 
     validate_actions(&actions)?;
 
@@ -36,28 +37,13 @@ pub(crate) fn rename(
         println!("There are no actions to perform.");
         Ok(())
     } else {
-        ui::print_actions_preview(
-            &actions,
-            crate::cli::Args::DEFAULT_PREVIEW_AMOUNT,
-        );
-
-        let result = move_files(preview, &mut history, actions);
-
-        // FIXME Handle nested error somehow.
-        if result.is_err() {
-            history.rollback()?;
-        } else {
-            clean_up_source_dirs(
-                preview,
-                &mut history,
-                &common_path,
-                recursion_depth,
-            )?;
-
-            history.save()?;
-        }
-
-        result
+        perform_actions(
+            preview,
+            recursion_depth,
+            &common_path,
+            &mut history,
+            actions,
+        )
     }
 }
 fn gather_files(recursion_depth: usize) -> Result<Vec<AudioFile>> {
@@ -93,10 +79,10 @@ fn gather_files(recursion_depth: usize) -> Result<Vec<AudioFile>> {
 
 fn interpret_files(
     script: Script,
-    arguments: &[String],
+    symbol_table: SymbolTable,
     files: &[AudioFile],
 ) -> Result<Vec<Action>> {
-    let mut interpreter = Interpreter::new(script, arguments.to_vec())?;
+    let mut interpreter = Interpreter::new(script, symbol_table)?;
 
     let bar = ui::create_progressbar(
         files.len() as u64,
@@ -167,6 +153,32 @@ fn partition_actions(actions: Vec<Action>) -> (Vec<Action>, Vec<Action>) {
         let (source, target) = action.get_src_tgt_unchecked();
         source != target
     })
+}
+
+fn perform_actions(
+    preview: bool,
+    recursion_depth: usize,
+    common_path: &Path,
+    history: &mut History,
+    actions: Vec<Action>,
+) -> Result<()> {
+    ui::print_actions_preview(
+        &actions,
+        crate::cli::Args::DEFAULT_PREVIEW_AMOUNT,
+    );
+
+    let result = move_files(preview, history, actions);
+
+    // FIXME Handle nested error somehow.
+    if result.is_err() {
+        history.rollback()?;
+    } else {
+        clean_up_source_dirs(preview, history, common_path, recursion_depth)?;
+
+        history.save()?;
+    }
+
+    result
 }
 
 fn move_files(
