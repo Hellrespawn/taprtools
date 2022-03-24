@@ -182,7 +182,7 @@ fn perform_actions(
 
         history.save()?;
 
-        nested_result?
+        nested_result?;
     }
 
     result
@@ -265,7 +265,7 @@ fn gather_dirs(path: &Path, depth: usize) -> Vec<PathBuf> {
         let dir = entry.path();
         if dir.is_dir() {
             dirs.extend(gather_dirs(&dir, depth - 1));
-            dirs.push(dir.to_owned());
+            dirs.push(dir);
         }
     }
 

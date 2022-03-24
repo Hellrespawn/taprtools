@@ -39,6 +39,8 @@ fn select_command(args: Args) -> Result<()> {
             arguments,
         } => commands::rename(preview, &config, recurse, &name, &arguments),
 
+        Command::Seed => commands::seed(&config),
+
         #[cfg(feature = "graphviz")]
         Command::RenderScript { name } => {
             commands::render_script(&config, &name)

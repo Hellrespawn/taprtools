@@ -67,6 +67,9 @@ pub enum Command {
         /// Arguments of script.
         arguments: Vec<String>,
     },
+    #[clap(hide = true)]
+    /// Adds my personal sync.tfmt to the filesystem.
+    Seed,
     /// Renders script {name} abstract syntax tree.
     #[cfg(feature = "graphviz")]
     #[clap(name = "render")]
