@@ -33,7 +33,7 @@ impl DiskHandler {
                 } else {
                     if let Some(error_code) = err.raw_os_error() {
                         if error_code == 32 {
-                            return Err(HistoryError::FileInUseError(
+                            return Err(HistoryError::FileInUse(
                                 self.path().to_owned(),
                             ));
                         }
@@ -89,7 +89,7 @@ impl DiskHandler {
         if let Err(err) = &result {
             if let Some(error_code) = err.raw_os_error() {
                 if error_code == 32 {
-                    return Err(HistoryError::FileInUseError(
+                    return Err(HistoryError::FileInUse(
                         self.path().to_owned(),
                     ));
                 }
@@ -103,7 +103,7 @@ impl DiskHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Action;
+    use crate::action::Action;
     use anyhow::Result;
     use assert_fs::prelude::*;
     use assert_fs::NamedTempFile;
@@ -120,13 +120,9 @@ mod tests {
     fn get_test_group() -> ActionGroup {
         let mut action_group = ActionGroup::new();
 
-        action_group.push(Action::MakeDir(PathBuf::from("/file/test/create")));
-        action_group
-            .push(Action::RemoveDir(PathBuf::from("/file/test/remove")));
-        action_group.push(Action::Move {
-            source: PathBuf::from("/file/test/source"),
-            target: PathBuf::from("/file/test/target"),
-        });
+        action_group.push(Action::mkdir("/file/test/create"));
+        action_group.push(Action::rmdir("/file/test/remove"));
+        action_group.push(Action::mv("/file/test/source", "/file/test/target"));
 
         action_group
     }

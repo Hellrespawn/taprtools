@@ -111,7 +111,6 @@ fn validate_existing_files(actions: &[Action]) -> Result<()> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::path::PathBuf;
 
     #[test]
     fn validate_collisions_test() -> Result<()> {
@@ -119,10 +118,7 @@ mod test {
             ("/a/b/c.file", "/b/c/d.file"),
             ("/c/d/e.file", "/b/c/d.file"),
         ]
-        .map(|(source, target)| Action::Move {
-            source: PathBuf::from(source),
-            target: PathBuf::from(target),
-        });
+        .map(|(source, target)| Action::mv(source, target));
 
         if let Ok(()) = validate_collisions(&reference) {
             bail!("validate_collisions should have returned an error!")
@@ -132,10 +128,7 @@ mod test {
             ("/a/b/c.file", "/b/c/d.file"),
             ("/c/d/e.file", "/d/e/f.file"),
         ]
-        .map(|(source, target)| Action::Move {
-            source: PathBuf::from(source),
-            target: PathBuf::from(target),
-        });
+        .map(|(source, target)| Action::mv(source, target));
 
         if let Err(err) = validate_collisions(&reference) {
             bail!(

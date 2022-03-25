@@ -132,7 +132,7 @@ fn action_from_file(
 ) -> Result<Action> {
     let string = interpreter.interpret(audiofile.tags())?;
 
-    let source = audiofile.path().to_path_buf();
+    let source = audiofile.path();
 
     // We already know this is a file with either an "mp3" or "ogg"
     // extension, so we unwrap safely.
@@ -143,7 +143,7 @@ fn action_from_file(
         .join(string)
         .with_extension(extension);
 
-    let action = Action::Move { source, target };
+    let action = Action::mv(source, target);
 
     Ok(action)
 }
@@ -223,7 +223,7 @@ fn create_dir(preview: bool, history: &mut History, path: &Path) -> Result<()> {
         create_dir(preview, history, parent)?;
     }
 
-    let action = Action::MakeDir(path.to_path_buf());
+    let action = Action::mkdir(path);
 
     history.apply(action)?;
 
@@ -238,8 +238,7 @@ fn clean_up_source_dirs(
 ) -> Result<()> {
     let dirs = gather_dirs(common_path, recursion_depth);
 
-    let actions: Vec<Action> =
-        dirs.into_iter().map(Action::RemoveDir).collect();
+    let actions: Vec<Action> = dirs.into_iter().map(Action::rmdir).collect();
 
     if !preview {
         for action in actions {

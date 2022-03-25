@@ -23,6 +23,8 @@ use actiongroup::ActionGroup;
 use disk::DiskHandler;
 use thiserror::Error;
 
+pub(crate) use action::ActionType;
+
 pub use action::Action;
 pub use history::History;
 
@@ -34,7 +36,15 @@ pub type Result<T> = std::result::Result<T, HistoryError>;
 pub enum HistoryError {
     /// File in use
     #[error("The process cannot access the file because it is being used by another process. (os error 32):\n{0}")]
-    FileInUseError(PathBuf),
+    FileInUse(PathBuf),
+
+    /// Action was already applied.
+    #[error("This action has already been applied: {0}")]
+    AppliedTwice(Action),
+
+    /// Action was already undone.
+    #[error("This action has already been undone: {0}")]
+    NotYetApplied(Action),
 
     /// Represents std::io::Error
     #[error("I/O error: {0}")]

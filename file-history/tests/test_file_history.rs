@@ -51,10 +51,7 @@ fn test_save_after_rollback() -> Result<()> {
     target.assert(predicate::path::missing());
 
     // Perform action
-    let action = Action::Move {
-        source: source.to_path_buf(),
-        target: target.to_path_buf(),
-    };
+    let action = Action::mv(&source, &target);
 
     history.apply(action)?;
 

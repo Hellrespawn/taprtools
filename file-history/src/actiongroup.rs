@@ -1,4 +1,4 @@
-use crate::{Action, Result};
+use crate::{Action, ActionType, Result};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -22,10 +22,10 @@ impl fmt::Display for ActionGroup {
         let mut rmdir_count = 0;
 
         for action in &self.actions {
-            match action {
-                Action::Move { .. } => move_count += 1,
-                Action::MakeDir(_) => mkdir_count += 1,
-                Action::RemoveDir(_) => rmdir_count += 1,
+            match action.action_type() {
+                ActionType::Mv { .. } => move_count += 1,
+                ActionType::MkDir(_) => mkdir_count += 1,
+                ActionType::RmDir(_) => rmdir_count += 1,
             }
         }
 
@@ -64,10 +64,10 @@ impl ActionGroup {
         };
 
         for action in &self.actions {
-            match action {
-                Action::Move { .. } => action_count.mv += 1,
-                Action::MakeDir(_) => action_count.mkdir += 1,
-                Action::RemoveDir(_) => action_count.rmdir += 1,
+            match action.action_type() {
+                ActionType::Mv { .. } => action_count.mv += 1,
+                ActionType::MkDir(_) => action_count.mkdir += 1,
+                ActionType::RmDir(_) => action_count.rmdir += 1,
             }
         }
 
@@ -84,7 +84,7 @@ impl ActionGroup {
         self.changed
     }
 
-    pub(crate) fn apply(&mut self, action: Action) -> Result<()> {
+    pub(crate) fn apply(&mut self, mut action: Action) -> Result<()> {
         action.apply()?;
         self.actions.push(action);
         self.changed = true;
@@ -93,7 +93,7 @@ impl ActionGroup {
 
     pub(crate) fn undo(&mut self) -> Result<()> {
         // Undo happens in reverse order
-        for action in self.actions.iter().rev() {
+        for action in self.actions.iter_mut().rev() {
             action.undo()?;
         }
         self.changed = true;
@@ -103,7 +103,7 @@ impl ActionGroup {
 
     pub(crate) fn redo(&mut self) -> Result<()> {
         // Redo happens in original order
-        for action in &self.actions {
+        for action in &mut self.actions {
             action.apply()?;
         }
         self.changed = true;
