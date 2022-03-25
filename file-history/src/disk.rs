@@ -1,4 +1,4 @@
-use crate::{ActionGroup, Result};
+use crate::{ActionGroup, HistoryError, Result};
 use serde::{Deserialize, Serialize};
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
@@ -31,6 +31,14 @@ impl DiskHandler {
                 if err.kind() == ErrorKind::NotFound {
                     Ok(false)
                 } else {
+                    if let Some(error_code) = err.raw_os_error() {
+                        if error_code == 32 {
+                            return Err(HistoryError::FileInUseError(
+                                self.path().to_owned(),
+                            ));
+                        }
+                    }
+
                     Err(err.into())
                 }
             }
@@ -71,18 +79,24 @@ impl DiskHandler {
         };
 
         #[cfg(feature = "bincode")]
-        {
-            let serialized = bincode::serialize(&format)?;
-            std::fs::write(&self.path, serialized)?;
-        }
+        let serialized = bincode::serialize(&format)?;
 
         #[cfg(feature = "serde_json")]
-        {
-            let serialized = serde_json::to_string_pretty(&format)?;
-            std::fs::write(&self.path, serialized)?;
+        let serialized = serde_json::to_string_pretty(&format)?;
+
+        let result = std::fs::write(&self.path, serialized);
+
+        if let Err(err) = &result {
+            if let Some(error_code) = err.raw_os_error() {
+                if error_code == 32 {
+                    return Err(HistoryError::FileInUseError(
+                        self.path().to_owned(),
+                    ));
+                }
+            }
         }
 
-        Ok(())
+        Ok(result?)
     }
 }
 

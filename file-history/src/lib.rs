@@ -17,6 +17,8 @@ pub mod history;
 mod actiongroup;
 mod disk;
 
+use std::path::PathBuf;
+
 use actiongroup::ActionGroup;
 use disk::DiskHandler;
 use thiserror::Error;
@@ -30,6 +32,10 @@ pub type Result<T> = std::result::Result<T, HistoryError>;
 #[derive(Error, Debug)]
 /// Error relating to file-history
 pub enum HistoryError {
+    /// File in use
+    #[error("The process cannot access the file because it is being used by another process. (os error 32):\n{0}")]
+    FileInUseError(PathBuf),
+
     /// Represents std::io::Error
     #[error("I/O error: {0}")]
     IO(#[from] std::io::Error),
@@ -43,8 +49,4 @@ pub enum HistoryError {
     /// Represents serde_json::Error
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
-
-    /// Represents a generic error
-    #[error("{0}")]
-    Generic(String),
 }

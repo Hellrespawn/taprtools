@@ -78,10 +78,10 @@ impl History {
     }
 
     /// Save history, if necessary
-    pub fn save(&mut self) -> Result<()> {
+    pub fn save(&mut self) -> Result<bool> {
         if !self.changed() {
             info!("Nothing was changed.");
-            return Ok(());
+            return Ok(false);
         }
 
         if self.current_group.changed() {
@@ -94,7 +94,7 @@ impl History {
         self.save_to_disk()?;
         info!("Saved history to disk");
 
-        Ok(())
+        Ok(true)
     }
 
     /// Apply an action to the current `ActionGroup`.
