@@ -112,7 +112,7 @@ mod tests {
     static PREFIX: &str = "rust-file-history-disk-";
 
     fn get_temporary_file(name: &str) -> Result<NamedTempFile> {
-        let name = format!("{PREFIX}{name}");
+        let name = format!("{}{}", PREFIX, name);
         let file = NamedTempFile::new(name)?;
         Ok(file)
     }

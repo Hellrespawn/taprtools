@@ -19,16 +19,16 @@ impl fmt::Display for Action {
                 f,
                 "Action::Move {{\n{indent}source: \"{}\",\n{indent}target: \"{}\"\n}}",
                 source.display(),
-                target.display()
+                target.display(), indent=indent
             )?,
             ActionType::MkDir(path) => {
                 write!(
-                    f, "Action::MakeDir(\n{indent}\"{}\"\n)", path.display()
+                    f, "Action::MakeDir(\n{}\"{}\"\n)", indent, path.display()
                 )?;
             }
             ActionType::RmDir(path) => {
                 write!(
-                    f, "Action::RemoveDir(\n{indent}\"{}\"\n)", path.display()
+                    f, "Action::RemoveDir(\n{}\"{}\"\n)",indent,  path.display()
                 )?;
             }
         }

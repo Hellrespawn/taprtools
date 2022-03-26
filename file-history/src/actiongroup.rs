@@ -31,11 +31,12 @@ impl fmt::Display for ActionGroup {
 
         writeln!(
             f,
-            "mv: {move_count}, mkdir: {mkdir_count}, rmdir: {rmdir_count}"
+            "mv: {}, mkdir: {}, rmdir: {}",
+            move_count, mkdir_count, rmdir_count
         )?;
 
         for action in &self.actions {
-            writeln!(f, "{action}")?;
+            writeln!(f, "{}", action)?;
         }
 
         Ok(())

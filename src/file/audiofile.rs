@@ -32,7 +32,7 @@ impl AudioFile {
             match extension.to_str() {
                 Some("mp3") => Ok(Box::new(MP3Tags::new(path)?)),
                 Some("ogg") => Ok(Box::new(OGGTags::new(path)?)),
-                Some(other) => bail!("Unsupported format: {other}!"),
+                Some(other) => bail!("Unsupported format: {}!", other),
                 None => {
                     bail!("Extension is not valid unicode: {:?}", extension)
                 }

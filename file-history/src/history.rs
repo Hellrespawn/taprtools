@@ -19,13 +19,13 @@ impl fmt::Display for History {
         writeln!(f, "Applied actions ({}):", self.applied_groups.len())?;
 
         for group in &self.applied_groups {
-            writeln!(f, "{group}")?;
+            writeln!(f, "{}", group)?;
         }
 
         writeln!(f, "Undone actions ({}):", self.undone_groups.len())?;
 
         for group in &self.undone_groups {
-            writeln!(f, "{group}")?;
+            writeln!(f, "{}", group)?;
         }
 
         Ok(())

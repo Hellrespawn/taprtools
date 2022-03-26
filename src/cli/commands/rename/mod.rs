@@ -250,7 +250,7 @@ fn clean_up_source_dirs(
 
     let pp = if preview { Config::PREVIEW_PREFIX } else { "" };
 
-    println!("{pp}Removed leftover folders.");
+    println!("{}Removed leftover folders.", pp);
 
     Ok(())
 }

@@ -24,7 +24,7 @@ pub(crate) fn undo(
 
     if preview {
         let pp = Config::PREVIEW_PREFIX;
-        println!("{pp}{mode_string} {times} renames.");
+        println!("{}{} {} renames.", pp, mode_string, times);
     } else {
         let action_counts = match mode {
             UndoMode::Undo => history.undo(times)?,

@@ -397,7 +397,7 @@ mod tests {
 
         match SymbolTable::new(&script, &vec![]) {
             Ok(out) => {
-                bail!("Expected InterpreterError::ArgumentRequired(\"folder\"), got Ok({out:?})")
+                bail!("Expected InterpreterError::ArgumentRequired(\"folder\"), got Ok({:?})", out)
             }
             Err(err) => match err {
                 InterpreterError::ArgumentRequired {
@@ -407,7 +407,7 @@ mod tests {
                     Ok(())
                 }
                 other => {
-                    bail!("Expected InterpreterError::ArgumentRequired(\"folder\"), got Err({other})")
+                    bail!("Expected InterpreterError::ArgumentRequired(\"folder\"), got Err({})", other)
                 }
             },
         }
@@ -424,18 +424,20 @@ mod tests {
 
         match result {
             Ok(out) => {
-                bail!("Expected TooManyArgument(3, 1), got Ok({out:?})")
+                bail!("Expected TooManyArgument(3, 1), got Ok({:?})", out)
             }
-            Err(err) => match err {
-                InterpreterError::TooManyArguments { found, expected } => {
-                    assert_eq!(found, 3);
-                    assert_eq!(expected, 1);
-                    Ok(())
+            Err(err) => {
+                match err {
+                    InterpreterError::TooManyArguments { found, expected } => {
+                        assert_eq!(found, 3);
+                        assert_eq!(expected, 1);
+                        Ok(())
+                    }
+                    other => {
+                        bail!("Expected Expected TooManyArgument(3, 1), got Err({})", other)
+                    }
                 }
-                other => {
-                    bail!("Expected Expected TooManyArgument(3, 1), got Err({other})")
-                }
-            },
+            }
         }
     }
 }

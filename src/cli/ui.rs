@@ -6,7 +6,7 @@ use indicatif::{
 };
 
 pub(crate) fn print_error(error: &anyhow::Error) {
-    println!("An error occurred:\n{error}");
+    println!("An error occurred:\n{}", error);
 }
 
 pub(crate) struct AudioFileSpinner {
@@ -22,7 +22,8 @@ impl AudioFileSpinner {
         let spinner = IProgressBar::new(0);
 
         let template = format!(
-            "[{{pos}}/{{len}} {found}/{total}] {{wide_msg}} {{spinner}}"
+            "[{{pos}}/{{len}} {}/{}] {{wide_msg}} {{spinner}}",
+            found, total
         );
 
         let style = ProgressStyle::default_spinner()
@@ -62,7 +63,7 @@ pub(crate) fn create_progressbar(
 
     let pp = if preview { Config::PREVIEW_PREFIX } else { "" };
 
-    let template = format!("{pp}[{{pos}}/{{len}}] {{msg}} {{wide_bar}}");
+    let template = format!("{}[{{pos}}/{{len}}] {{msg}} {{wide_bar}}", pp);
 
     bar.set_style(ProgressStyle::default_bar().template(&template).on_finish(
         ProgressFinish::WithMessage(std::borrow::Cow::Borrowed(finished_msg)),

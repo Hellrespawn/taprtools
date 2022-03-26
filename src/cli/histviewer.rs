@@ -24,7 +24,7 @@ pub fn histviewer() -> Result<()> {
 
     let history = History::load(&history_path)?;
 
-    println!("{history}");
+    println!("{}", history);
 
     Ok(())
 }

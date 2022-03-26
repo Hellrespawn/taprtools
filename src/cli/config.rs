@@ -105,9 +105,9 @@ impl Config {
         let length = found_scripts.len();
 
         if length == 0 {
-            bail!("Unable to find script \"{name}\"");
+            bail!("Unable to find script \"{}\"", name);
         } else if length > 1 {
-            bail!("Found {length} scripts with name \"{name}\"");
+            bail!("Found {} scripts with name \"{}\"", length, name);
         }
 
         let script = found_scripts.into_iter().next();
