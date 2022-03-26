@@ -308,7 +308,11 @@ mod tests {
         let test_folder = tempdir.path().join("test_folder");
         let test_file = test_folder.join("test.file");
 
+        #[cfg(windows)]
         let expected_code = 145;
+
+        #[cfg(unix)]
+        let expected_code = 39;
 
         std::fs::create_dir(&test_folder)?;
         std::fs::write(test_file, "")?;
