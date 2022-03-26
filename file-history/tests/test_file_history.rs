@@ -43,7 +43,7 @@ fn test_save_after_rollback() -> Result<()> {
     // Set up source file
     let source = dir.child("source");
     source.assert(predicate::path::missing());
-    source.touch().unwrap();
+    source.touch()?;
     source.assert(predicate::path::is_file());
 
     // Set up target file

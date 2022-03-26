@@ -288,7 +288,7 @@ mod tests {
         let source = dir.child("source");
         let target = dir.child("target");
 
-        source.touch().unwrap();
+        source.touch()?;
 
         // Before: source exists, target doesn't
         source.assert(predicate::path::exists());
@@ -317,7 +317,7 @@ mod tests {
         let source = dir.child("source");
         let target = dir.child("target");
 
-        source.touch().unwrap();
+        source.touch()?;
 
         let mut mv = Action::mv(&source, &target);
 
