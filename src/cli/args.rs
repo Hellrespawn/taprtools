@@ -134,7 +134,7 @@ mod test {
         let args_in = ["tfmttest clear -p", "tfmttest -p clear"];
 
         let args_out: Result<Vec<Args>> = args_in
-            .into_iter()
+            .iter()
             .map(|a| {
                 parse_custom_args(
                     &a.split_whitespace().collect::<Vec<&str>>(),
