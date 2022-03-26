@@ -281,10 +281,17 @@ fn remove_dir(history: &mut History, action: Action) -> Result<()> {
 
         if let HistoryError::IO(io_error) = &err {
             if let Some(error_code) = io_error.raw_os_error() {
-                // FIXME Confirm that this error code is the same on unix
+                #[cfg(windows)]
                 // https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes--0-499-
                 // 145: Directory not empty
-                if error_code == 145 {
+                let expected_code = 145;
+
+                // https://nuetzlich.net/errno.html
+                // 39: Directory not empty
+                #[cfg(unix)]
+                let expected_code = 39;
+
+                if error_code == expected_code {
                     is_expected_error = true;
                 }
             }
