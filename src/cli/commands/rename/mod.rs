@@ -201,12 +201,12 @@ fn move_files(
     );
 
     for action in actions.into_iter().progress_with(bar) {
-        if !preview {
-            let (_, target) = action.get_src_tgt_unchecked();
-            // Actions target are all files, and always have a parent.
+        let (_, target) = action.get_src_tgt_unchecked();
+        // Actions target are all files, and always have a parent.
 
-            debug_assert!(target.parent().is_some());
-            create_dir(preview, history, target.parent().unwrap())?;
+        debug_assert!(target.parent().is_some());
+        create_dir(preview, history, target.parent().unwrap())?;
+        if !preview {
             history.apply(action)?;
         }
     }
@@ -225,7 +225,9 @@ fn create_dir(preview: bool, history: &mut History, path: &Path) -> Result<()> {
 
     let action = Action::mkdir(path);
 
-    history.apply(action)?;
+    if !preview {
+        history.apply(action)?;
+    }
 
     Ok(())
 }
