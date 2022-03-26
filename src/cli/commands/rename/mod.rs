@@ -280,7 +280,8 @@ fn remove_dir(history: &mut History, action: Action) -> Result<()> {
         if let HistoryError::IO(io_error) = &err {
             if let Some(error_code) = io_error.raw_os_error() {
                 // FIXME Confirm that this error code is the same on unix
-                // Directory not empty
+                // https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes--0-499-
+                // 145: Directory not empty
                 if error_code == 145 {
                     is_expected_error = true;
                 }
@@ -293,4 +294,35 @@ fn remove_dir(history: &mut History, action: Action) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use anyhow::Result;
+    use assert_fs::TempDir;
+
+    #[test]
+    fn test_remove_dir_error_codes() -> Result<()> {
+        let tempdir = TempDir::new()?;
+
+        let test_folder = tempdir.path().join("test_folder");
+        let test_file = test_folder.join("test.file");
+
+        let expected_code = 145;
+
+        std::fs::create_dir(&test_folder)?;
+        std::fs::write(test_file, "")?;
+        let result = std::fs::remove_dir(test_folder);
+
+        if let Err(err) = result {
+            if let Some(error_code) = err.raw_os_error() {
+                assert_eq!(error_code, expected_code);
+                Ok(())
+            } else {
+                Err(err.into())
+            }
+        } else {
+            Ok(())
+        }
+    }
 }
