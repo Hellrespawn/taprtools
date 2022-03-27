@@ -4,7 +4,7 @@
 #![allow(clippy::must_use_candidate)]
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::missing_panics_doc)]
-//! This crate tracks moving of files and creation and deletion of folders in a reversible
+//! This crate tracks moving of files and creation and deletion of folders in a reversible manner.
 
 #[cfg(all(feature = "bincode", feature = "serde_json"))]
 compile_error!("bincode and serde_json are mutually exclusive!");
