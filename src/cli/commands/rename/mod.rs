@@ -167,25 +167,13 @@ fn perform_actions(
         crate::cli::Args::DEFAULT_PREVIEW_AMOUNT,
     );
 
-    let result = move_files(preview, history, actions);
+    move_files(preview, history, actions)?;
 
-    // FIXME Handle nested error somehow.
-    if result.is_err() {
-        history.rollback()?;
-    } else {
-        let nested_result = clean_up_source_dirs(
-            preview,
-            history,
-            common_path,
-            recursion_depth,
-        );
+    clean_up_source_dirs(preview, history, common_path, recursion_depth)?;
 
-        history.save()?;
+    history.save()?;
 
-        nested_result?;
-    }
-
-    result
+    Ok(())
 }
 
 fn move_files(

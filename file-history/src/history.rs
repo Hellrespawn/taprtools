@@ -103,14 +103,6 @@ impl History {
         Ok(())
     }
 
-    /// Rollback all changes in the current `ActionGroup`.
-    pub fn rollback(&mut self) -> Result<()> {
-        info!("Rolling back current group");
-        let mut current_group = std::mem::take(&mut self.current_group);
-        current_group.undo()?;
-        Ok(())
-    }
-
     /// Undo `n` amount of `ActionGroup`s. Returns amount actually undone
     pub fn undo(&mut self, amount: usize) -> Result<Vec<ActionCount>> {
         let action_counts = History::undo_redo(
