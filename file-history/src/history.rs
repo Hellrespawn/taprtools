@@ -113,23 +113,12 @@ impl History {
 
     /// Undo `n` amount of `ActionGroup`s. Returns amount actually undone
     pub fn undo(&mut self, amount: usize) -> Result<Vec<ActionCount>> {
-        if amount == 0 {
-            return Ok(Vec::new());
-        }
-
-        let mut action_counts = Vec::new();
-
-        while let Some(mut group) = self.applied_groups.pop() {
-            let action_count = group.to_action_count();
-
-            group.undo()?;
-            self.undone_groups.push(group);
-
-            action_counts.push(action_count);
-            if action_counts.len() == amount {
-                break;
-            }
-        }
+        let action_counts = History::undo_redo(
+            &mut self.applied_groups,
+            &mut self.undone_groups,
+            true,
+            amount,
+        )?;
 
         self.save()?;
 
@@ -138,17 +127,42 @@ impl History {
 
     /// Redo `n` amount of `ActionGroup`s. Returns amount actually redone
     pub fn redo(&mut self, amount: usize) -> Result<Vec<ActionCount>> {
+        let action_counts = History::undo_redo(
+            &mut self.undone_groups,
+            &mut self.applied_groups,
+            false,
+            amount,
+        )?;
+
+        self.save()?;
+
+        Ok(action_counts)
+    }
+
+    fn undo_redo(
+        source_group: &mut Vec<ActionGroup>,
+        target_group: &mut Vec<ActionGroup>,
+        undo: bool,
+        amount: usize,
+    ) -> Result<Vec<ActionCount>> {
         if amount == 0 {
             return Ok(Vec::new());
         }
 
+        let mut processed_groups = Vec::new();
+
         let mut action_counts = Vec::new();
 
-        while let Some(mut group) = self.undone_groups.pop() {
+        while let Some(mut group) = source_group.pop() {
             let action_count = group.to_action_count();
 
-            group.redo()?;
-            self.applied_groups.push(group);
+            if undo {
+                group.undo()?;
+            } else {
+                group.redo()?;
+            }
+
+            processed_groups.push(group);
 
             action_counts.push(action_count);
             if action_counts.len() == amount {
@@ -156,7 +170,7 @@ impl History {
             }
         }
 
-        self.save()?;
+        target_group.extend(processed_groups);
 
         Ok(action_counts)
     }
