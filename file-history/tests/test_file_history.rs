@@ -1,19 +1,18 @@
 use anyhow::Result;
-use assert_fs::prelude::*;
 use assert_fs::TempDir;
 use file_history::History;
-use predicates::prelude::*;
 
 // TODO Write undo/redo tests
+
+const FILE_NAME: &str = "test.histfile";
 
 #[test]
 fn test_new_history_doesnt_create_file() -> Result<()> {
     let dir = TempDir::new()?;
-    let path = dir.child("test.histfile");
 
-    History::load(&path)?;
+    let history = History::load(&dir.path(), FILE_NAME)?;
 
-    path.assert(predicate::path::missing());
+    assert!(!history.path().exists());
 
     Ok(())
 }
@@ -21,12 +20,12 @@ fn test_new_history_doesnt_create_file() -> Result<()> {
 #[test]
 fn test_unchanged_history_doesnt_save() -> Result<()> {
     let dir = TempDir::new()?;
-    let path = dir.child("test.histfile");
 
-    let mut history = History::load(&path)?;
+    let mut history = History::load(&dir.path(), FILE_NAME)?;
 
     assert!(matches!(history.save(), Ok(false)));
-    path.assert(predicate::path::missing());
+
+    assert!(!history.path().exists());
 
     Ok(())
 }

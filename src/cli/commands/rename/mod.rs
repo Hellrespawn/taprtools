@@ -16,8 +16,7 @@ pub(crate) fn rename(
     name: &str,
     arguments: &[String],
 ) -> Result<()> {
-    let history_path = config.get_history_path();
-    let mut history = History::load(&history_path)?;
+    let mut history = History::load(config.path(), Config::HISTORY_NAME)?;
 
     let script = config.get_script(name)?;
 

@@ -4,8 +4,7 @@ use file_history::History;
 
 pub(crate) fn clear_history(preview: bool, config: &Config) -> Result<()> {
     if preview {
-        let path = config.get_history_path();
-        let mut history = History::load(&path)?;
+        let mut history = History::load(config.path(), Config::HISTORY_NAME)?;
         history.clear()?;
     }
 

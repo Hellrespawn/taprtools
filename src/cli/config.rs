@@ -8,7 +8,7 @@ pub(crate) struct Config {
 }
 
 impl Config {
-    pub(crate) const HISTORY_FILENAME: &'static str = "tfmttools.hist";
+    pub(crate) const HISTORY_NAME: &'static str = env!("CARGO_PKG_NAME");
     pub(crate) const PREVIEW_PREFIX: &'static str = "[P] ";
     pub(crate) const SCRIPT_EXTENSION: &'static str = "tfmt";
 
@@ -77,11 +77,6 @@ impl Config {
 
     pub(crate) fn path(&self) -> &Path {
         &self.path
-    }
-
-    pub(crate) fn get_history_path(&self) -> PathBuf {
-        let path = self.path().join(Config::HISTORY_FILENAME);
-        path
     }
 
     pub(crate) fn get_scripts(&self) -> Result<Vec<Script>> {

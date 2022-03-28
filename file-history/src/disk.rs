@@ -14,9 +14,11 @@ pub(crate) struct DiskHandler {
 }
 
 impl DiskHandler {
-    pub(crate) fn init(path: &Path) -> DiskHandler {
+    pub(crate) fn init_dir(directory: &Path, name: &str) -> DiskHandler {
         DiskHandler {
-            path: path.to_owned(),
+            path: directory
+                .join(name)
+                .with_extension(DiskHandler::extension()),
         }
     }
 
@@ -49,14 +51,14 @@ impl DiskHandler {
         match std::fs::read(&self.path) {
             Ok(file_contents) => {
                 #[cfg(feature = "bincode")]
-                let format: HistoryOnDisk =
+                let history: HistoryOnDisk =
                     bincode::deserialize(&file_contents)?;
 
                 #[cfg(feature = "serde_json")]
-                let format: HistoryOnDisk =
+                let history: HistoryOnDisk =
                     serde_json::from_slice(&file_contents)?;
 
-                Ok((format.applied_groups, format.undone_groups))
+                Ok((history.applied_groups, history.undone_groups))
             }
             Err(err) => {
                 if let ErrorKind::NotFound = err.kind() {
@@ -73,16 +75,16 @@ impl DiskHandler {
         applied_groups: &[ActionGroup],
         undone_groups: &[ActionGroup],
     ) -> Result<()> {
-        let format = HistoryOnDisk {
+        let history = HistoryOnDisk {
             applied_groups: applied_groups.to_vec(),
             undone_groups: undone_groups.to_vec(),
         };
 
         #[cfg(feature = "bincode")]
-        let serialized = bincode::serialize(&format)?;
+        let serialized = bincode::serialize(&history)?;
 
         #[cfg(feature = "serde_json")]
-        let serialized = serde_json::to_string_pretty(&format)?;
+        let serialized = serde_json::to_string_pretty(&history)?;
 
         let result = std::fs::write(&self.path, serialized);
 
@@ -98,6 +100,16 @@ impl DiskHandler {
 
         Ok(result?)
     }
+
+    #[cfg(feature = "serde_json")]
+    fn extension() -> &'static str {
+        "json"
+    }
+
+    #[cfg(feature = "bincode")]
+    fn extension() -> &'static str {
+        "hist"
+    }
 }
 
 #[cfg(test)]
@@ -110,6 +122,12 @@ mod tests {
     use predicates::prelude::*;
 
     static PREFIX: &str = "rust-file-history-disk-";
+
+    fn init_file(path: &Path) -> DiskHandler {
+        DiskHandler {
+            path: path.to_owned(),
+        }
+    }
 
     fn get_temporary_file(name: &str) -> Result<NamedTempFile> {
         let name = format!("{}{}", PREFIX, name);
@@ -153,7 +171,7 @@ mod tests {
     #[test]
     fn test_write_and_read() -> Result<()> {
         let file = get_temporary_file("test_write_and_read")?;
-        let disk_handler = DiskHandler::init(&file.path());
+        let disk_handler = init_file(&file.path());
 
         write_read_compare_test_data(&disk_handler)?;
 
@@ -163,7 +181,7 @@ mod tests {
     #[test]
     fn test_clear() -> Result<()> {
         let file = get_temporary_file("test_clear")?;
-        let disk_handler = DiskHandler::init(&file.path());
+        let disk_handler = init_file(&file.path());
 
         file.assert(predicate::path::missing());
 
@@ -179,7 +197,7 @@ mod tests {
     #[test]
     fn test_write_and_read_from_clear() -> Result<()> {
         let file = get_temporary_file("test_write_and_read_from_clear()")?;
-        let disk_handler = DiskHandler::init(&file.path());
+        let disk_handler = init_file(&file.path());
 
         assert!(!disk_handler.clear()?);
 

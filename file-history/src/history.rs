@@ -34,11 +34,11 @@ impl fmt::Display for History {
 
 impl History {
     /// Load or create history file at `path`
-    pub fn load(path: &Path) -> Result<Self> {
-        let disk_handler = DiskHandler::init(path);
+    pub fn load(directory: &Path, name: &str) -> Result<Self> {
+        let disk_handler = DiskHandler::init_dir(directory, name);
         let (applied_groups, undone_groups) = disk_handler.read()?;
 
-        info!("Loading history from {}", path.display());
+        info!("Loading history from {}", disk_handler.path().display());
 
         Ok(History {
             disk_handler,
@@ -46,22 +46,6 @@ impl History {
             applied_groups,
             undone_groups,
         })
-    }
-
-    fn changed(&self) -> bool {
-        self.current_group.changed()
-            || self.applied_groups.iter().any(ActionGroup::changed)
-            || self.undone_groups.iter().any(ActionGroup::changed)
-    }
-
-    fn save_to_disk(&self) -> Result<()> {
-        self.disk_handler
-            .write(&self.applied_groups, &self.undone_groups)
-    }
-
-    fn clear_on_disk(&self) -> Result<()> {
-        self.disk_handler.clear()?;
-        Ok(())
     }
 
     /// Clears history
@@ -97,6 +81,11 @@ impl History {
         Ok(true)
     }
 
+    /// Gets the path of the current instance.
+    pub fn path(&self) -> &Path {
+        self.disk_handler.path()
+    }
+
     /// Apply an action to the current `ActionGroup`.
     pub fn apply(&mut self, action: Action) -> Result<()> {
         self.current_group.apply(action)?;
@@ -129,6 +118,22 @@ impl History {
         self.save()?;
 
         Ok(action_counts)
+    }
+
+    fn changed(&self) -> bool {
+        self.current_group.changed()
+            || self.applied_groups.iter().any(ActionGroup::changed)
+            || self.undone_groups.iter().any(ActionGroup::changed)
+    }
+
+    fn save_to_disk(&self) -> Result<()> {
+        self.disk_handler
+            .write(&self.applied_groups, &self.undone_groups)
+    }
+
+    fn clear_on_disk(&self) -> Result<()> {
+        self.disk_handler.clear()?;
+        Ok(())
     }
 
     fn undo_redo(
