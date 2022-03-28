@@ -5,6 +5,7 @@ use std::fmt;
 use std::path::Path;
 
 /// History is responsible for saving and loading `ActionGroup`s
+#[derive(PartialEq, Debug)]
 pub struct History {
     disk_handler: DiskHandler,
     current_group: ActionGroup,
@@ -75,6 +76,8 @@ impl History {
             self.applied_groups.push(saved_group);
         }
 
+        self.update_hashes();
+
         self.save_to_disk()?;
         info!("Saved history to disk");
 
@@ -120,7 +123,8 @@ impl History {
         Ok(action_counts)
     }
 
-    fn changed(&self) -> bool {
+    /// Returns true if the history was changed
+    pub fn changed(&self) -> bool {
         self.current_group.changed()
             || self.applied_groups.iter().any(ActionGroup::changed)
             || self.undone_groups.iter().any(ActionGroup::changed)
@@ -134,6 +138,17 @@ impl History {
     fn clear_on_disk(&self) -> Result<()> {
         self.disk_handler.clear()?;
         Ok(())
+    }
+
+    fn update_hashes(&mut self) {
+        self.current_group.update_hash();
+
+        for group in &mut self.applied_groups {
+            group.update_hash();
+        }
+        for group in &mut self.undone_groups {
+            group.update_hash();
+        }
     }
 
     fn undo_redo(

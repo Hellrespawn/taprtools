@@ -16,6 +16,7 @@ pub mod history;
 
 mod actiongroup;
 mod disk;
+mod util;
 
 use std::path::PathBuf;
 

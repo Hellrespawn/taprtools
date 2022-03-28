@@ -5,7 +5,7 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 
 /// Action is responsible for doing and undoing filesystem operations
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Hash)]
 pub struct Action {
     action_type: ActionType,
     applied: bool,
@@ -128,7 +128,7 @@ impl Action {
 /// Type is a reserved word.
 #[allow(clippy::module_name_repetitions)]
 /// Action is responsible for doing and undoing filesystem operations
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Hash)]
 pub enum ActionType {
     /// Represents the moving of a file.
     Mv {

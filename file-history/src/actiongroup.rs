@@ -1,3 +1,4 @@
+use crate::util::calculate_hash;
 use crate::{Action, ActionType, Result};
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -11,8 +12,7 @@ pub struct ActionCount {
 #[derive(Clone, Default, Serialize, Deserialize, Debug)]
 pub(crate) struct ActionGroup {
     actions: Vec<Action>,
-    #[serde(skip)] // Default for bool is false, so this just works.
-    changed: bool,
+    hash: u64,
 }
 
 impl fmt::Display for ActionGroup {
@@ -51,10 +51,13 @@ impl PartialEq for ActionGroup {
 
 impl ActionGroup {
     pub(crate) fn new() -> Self {
-        ActionGroup {
-            actions: Vec::new(),
-            changed: false,
-        }
+        let actions = Vec::new();
+        let hash = calculate_hash(&actions);
+        ActionGroup { actions, hash }
+    }
+
+    pub(crate) fn update_hash(&mut self) {
+        self.hash = calculate_hash(&self.actions);
     }
 
     pub(crate) fn to_action_count(&self) -> ActionCount {
@@ -82,13 +85,12 @@ impl ActionGroup {
     // }
 
     pub(crate) fn changed(&self) -> bool {
-        self.changed
+        self.hash != calculate_hash(&self.actions)
     }
 
     pub(crate) fn apply(&mut self, mut action: Action) -> Result<()> {
         action.apply()?;
         self.actions.push(action);
-        self.changed = true;
         Ok(())
     }
 
@@ -97,7 +99,6 @@ impl ActionGroup {
         for action in self.actions.iter_mut().rev() {
             action.undo()?;
         }
-        self.changed = true;
 
         Ok(())
     }
@@ -107,7 +108,6 @@ impl ActionGroup {
         for action in &mut self.actions {
             action.apply()?;
         }
-        self.changed = true;
 
         Ok(())
     }
@@ -115,6 +115,5 @@ impl ActionGroup {
     #[cfg(test)]
     pub(crate) fn push(&mut self, action: Action) {
         self.actions.push(action);
-        self.changed = true;
     }
 }

@@ -9,6 +9,7 @@ struct HistoryOnDisk {
     undone_groups: Vec<ActionGroup>,
 }
 
+#[derive(PartialEq, Debug)]
 pub(crate) struct DiskHandler {
     path: PathBuf,
 }
