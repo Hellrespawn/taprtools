@@ -18,4 +18,4 @@ jobs:
     - name: Run clippy and test
       run: |
         cargo clippy
-        cargo test
+        cargo test --all
