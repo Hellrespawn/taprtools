@@ -177,7 +177,7 @@ mod tests {
     #[test]
     fn test_full() -> Result<()> {
         let input_text = "typical_input(folder=\"destination\") \"This file is used to test tfmttools.\"{$(folder)}";
-        let program = Parser::new(&input_text)?.parse()?;
+        let program = Parser::new(input_text)?.parse()?;
 
         let mut analysis = SemanticAnalyzer::analyze(&program)?;
 
@@ -201,7 +201,7 @@ mod tests {
     #[test]
     fn test_no_description() -> Result<()> {
         let input_text = "typical_input(folder=\"destination\") {$(folder)}";
-        let program = Parser::new(&input_text)?.parse()?;
+        let program = Parser::new(input_text)?.parse()?;
 
         let mut analysis = SemanticAnalyzer::analyze(&program)?;
 
@@ -222,7 +222,7 @@ mod tests {
     #[test]
     fn test_param_not_used() -> Result<()> {
         let input_text = "typical_input(folder=\"destination\") \"This file is used to test tfmttools.\"{}";
-        let program = Parser::new(&input_text)?.parse()?;
+        let program = Parser::new(input_text)?.parse()?;
 
         let analysis = SemanticAnalyzer::analyze(&program);
 
@@ -243,7 +243,7 @@ mod tests {
     #[test]
     fn test_param_not_declared() -> Result<()> {
         let input_text = "typical_input() \"This file is used to test tfmttools.\"{$(folder)}";
-        let program = Parser::new(&input_text)?.parse()?;
+        let program = Parser::new(input_text)?.parse()?;
 
         let analysis = SemanticAnalyzer::analyze(&program);
 

@@ -396,7 +396,7 @@ mod tests {
         use super::*;
 
         fn reserved_test(input: &str, expected_type: TokenType) -> Result<()> {
-            let mut lex = Lexer::new(&input)?;
+            let mut lex = Lexer::new(input)?;
 
             generic_test(
                 input,
@@ -430,7 +430,7 @@ mod tests {
             expected_type: TokenType,
             expected_literal: Option<&str>,
         ) -> Result<()> {
-            let mut lex = Lexer::new(&input)?;
+            let mut lex = Lexer::new(input)?;
 
             generic_test(
                 input,
@@ -612,7 +612,7 @@ mod tests {
             expected_type: TokenType,
             expected_literal: Option<&str>,
         ) -> Result<()> {
-            let mut lex = Lexer::new(&input)?;
+            let mut lex = Lexer::new(input)?;
 
             generic_test(
                 input,

@@ -377,7 +377,7 @@ mod tests {
     fn test_full() -> Result<()> {
         let script = Script::new(TYPICAL_INPUT)?;
         let symbol_table =
-            SymbolTable::new(&script, &vec!["argument".to_string()])?;
+            SymbolTable::new(&script, &["argument".to_string()])?;
         let mut interpreter = Interpreter::new(script, symbol_table)?;
 
         let file = MockTags;
@@ -395,7 +395,7 @@ mod tests {
         let script =
             Script::new(&TYPICAL_INPUT.replace("=\"destination\"", ""))?;
 
-        match SymbolTable::new(&script, &vec![]) {
+        match SymbolTable::new(&script, &[]) {
             Ok(out) => {
                 bail!("Expected InterpreterError::ArgumentRequired(\"folder\"), got Ok({:?})", out)
             }
@@ -419,7 +419,7 @@ mod tests {
 
         let result = SymbolTable::new(
             &script,
-            &vec!["a".to_string(), "b".to_string(), "c".to_string()],
+            &["a".to_string(), "b".to_string(), "c".to_string()],
         );
 
         match result {

@@ -172,7 +172,7 @@ mod tests {
     #[test]
     fn test_write_and_read() -> Result<()> {
         let file = get_temporary_file("test_write_and_read")?;
-        let disk_handler = init_file(&file.path());
+        let disk_handler = init_file(file.path());
 
         write_read_compare_test_data(&disk_handler)?;
 
@@ -182,7 +182,7 @@ mod tests {
     #[test]
     fn test_clear() -> Result<()> {
         let file = get_temporary_file("test_clear")?;
-        let disk_handler = init_file(&file.path());
+        let disk_handler = init_file(file.path());
 
         file.assert(predicate::path::missing());
 
@@ -198,7 +198,7 @@ mod tests {
     #[test]
     fn test_write_and_read_from_clear() -> Result<()> {
         let file = get_temporary_file("test_write_and_read_from_clear()")?;
-        let disk_handler = init_file(&file.path());
+        let disk_handler = init_file(file.path());
 
         assert!(!disk_handler.clear()?);
 

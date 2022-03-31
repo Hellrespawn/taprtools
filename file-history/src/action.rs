@@ -240,7 +240,7 @@ mod tests {
         let dir = TempDir::new()?;
         let path = dir.child("test");
 
-        let action = ActionType::MkDir(path.to_path_buf());
+        let mut action = Action::mkdir(&path);
 
         // Before: doesn't exist
         path.assert(predicate::path::missing());
@@ -267,7 +267,7 @@ mod tests {
         // Before: exists
         path.assert(predicate::path::exists());
 
-        let mut rmdir_action = Action::rmdir(path.to_path_buf());
+        let mut rmdir_action = Action::rmdir(&path);
 
         rmdir_action.apply()?;
 

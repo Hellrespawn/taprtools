@@ -170,7 +170,7 @@ mod tests {
     fn function_test_wrong_arguments() -> Result<()> {
         let token =
             Token::with_literal(TokenType::ID, 0, 0, "prepend".to_string());
-        match handle_function(&"", &token, &["a", "b"]) {
+        match handle_function("", &token, &["a", "b"]) {
             Ok(_) => bail!("prepend with 2 arguments did not raise an error!"),
             Err(FunctionError::WrongArguments { .. }) => (),
             Err(err) => bail!(
@@ -185,7 +185,7 @@ mod tests {
             0,
             "year_from_date".to_string(),
         );
-        match handle_function(&"", &token, &["a", "b"]) {
+        match handle_function("", &token, &["a", "b"]) {
             Ok(_) => bail!("year_from_date with 2 arguments did not raise an error!"),
             Err(FunctionError::WrongArguments{..}) => (),
             Err(err) => bail!("year_from_date with 2 arguments raised an unexpected error: {}!",err)
@@ -193,7 +193,7 @@ mod tests {
 
         let token =
             Token::with_literal(TokenType::ID, 0, 0, "fake".to_string());
-        match handle_function(&"", &token, &["a"]) {
+        match handle_function("", &token, &["a"]) {
             Ok(_) => bail!("Unknown function did not raise an error!"),
             Err(FunctionError::UnknownFunction(..)) => (),
             Err(err) => {
