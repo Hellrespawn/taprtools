@@ -252,7 +252,7 @@ impl Visitor<String> for DotGenerator {
     ) -> String {
         let (mut string, function_node) = self.new_node(&format!(
             "Function:\n${}(...)",
-            start_token.get_string_unchecked()
+            start_token.literal().expect("Unchecked literal!")
         ));
 
         for (i, expression) in arguments.iter().enumerate() {
@@ -269,8 +269,10 @@ impl Visitor<String> for DotGenerator {
     }
 
     fn visit_integer(&mut self, integer: &Token) -> String {
-        let (string, _) =
-            self.new_node(&format!("Int:\n{}", integer.get_int_unchecked()));
+        let (string, _) = self.new_node(&format!(
+            "Int:\n{}",
+            integer.literal().expect("Unchecked literal!")
+        ));
 
         string
     }
@@ -278,22 +280,26 @@ impl Visitor<String> for DotGenerator {
     fn visit_string(&mut self, string: &Token) -> String {
         let (string, _) = self.new_node(&format!(
             "String:\n{}",
-            string.get_string_unchecked().trim()
+            string.literal().expect("Unchecked literal!").trim()
         ));
 
         string
     }
 
     fn visit_symbol(&mut self, symbol: &Token) -> String {
-        let (string, _) =
-            self.new_node(&format!("Sym:\n{}", symbol.get_string_unchecked()));
+        let (string, _) = self.new_node(&format!(
+            "Sym:\n{}",
+            symbol.literal().expect("Unchecked literal!")
+        ));
 
         string
     }
 
     fn visit_tag(&mut self, token: &Token) -> String {
-        let (string, _) =
-            self.new_node(&format!("Tag:\n<{}>", token.get_string_unchecked()));
+        let (string, _) = self.new_node(&format!(
+            "Tag:\n<{}>",
+            token.literal().expect("Unchecked literal!")
+        ));
 
         string
     }

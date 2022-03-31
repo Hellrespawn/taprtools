@@ -16,7 +16,7 @@ pub(crate) fn handle_function<A: AsRef<str>>(
 
     validate(input_text, start_token, &arguments)?;
 
-    let name = start_token.get_string_unchecked();
+    let name = start_token.literal().expect("Unchecked literal!");
 
     let function_output = match name {
         "prepend" => function_prepend(
@@ -48,7 +48,7 @@ fn validate(
     start_token: &Token,
     arguments: &[&str],
 ) -> Result<()> {
-    let name = start_token.get_string_unchecked();
+    let name = start_token.literal().expect("Unchecked literal!");
 
     let required = match name {
         "validate" | "year_from_date" => 1,
@@ -168,7 +168,8 @@ mod tests {
 
     #[test]
     fn function_test_wrong_arguments() -> Result<()> {
-        let token = Token::new(TokenType::ID("prepend".to_string()), 0, 0);
+        let token =
+            Token::with_literal(TokenType::ID, 0, 0, "prepend".to_string());
         match handle_function(&"", &token, &["a", "b"]) {
             Ok(_) => bail!("prepend with 2 arguments did not raise an error!"),
             Err(FunctionError::WrongArguments { .. }) => (),
@@ -178,15 +179,20 @@ mod tests {
             ),
         }
 
-        let token =
-            Token::new(TokenType::ID("year_from_date".to_string()), 0, 0);
+        let token = Token::with_literal(
+            TokenType::ID,
+            0,
+            0,
+            "year_from_date".to_string(),
+        );
         match handle_function(&"", &token, &["a", "b"]) {
             Ok(_) => bail!("year_from_date with 2 arguments did not raise an error!"),
             Err(FunctionError::WrongArguments{..}) => (),
             Err(err) => bail!("year_from_date with 2 arguments raised an unexpected error: {}!",err)
         }
 
-        let token = Token::new(TokenType::ID("fake".to_string()), 0, 0);
+        let token =
+            Token::with_literal(TokenType::ID, 0, 0, "fake".to_string());
         match handle_function(&"", &token, &["a"]) {
             Ok(_) => bail!("Unknown function did not raise an error!"),
             Err(FunctionError::UnknownFunction(..)) => (),

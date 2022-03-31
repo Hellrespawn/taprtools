@@ -4,10 +4,10 @@ use std::str::FromStr;
 type Result<T> = std::result::Result<T, TokenError>;
 
 /// Represents the type of token, and optionally it's value.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[allow(missing_docs)]
 pub enum TokenType {
-    Ampersand,
+    // Single character tokens
     AngleBracketLeft,
     AngleBracketRight,
     Caret,
@@ -19,7 +19,6 @@ pub enum TokenType {
     Equals,
     Hash,
     Hyphen,
-    Asterisk,
     ParenthesisLeft,
     ParenthesisRight,
     Percent,
@@ -27,16 +26,20 @@ pub enum TokenType {
     QuestionMark,
     SlashBack,
     SlashForward,
-    VerticalBar,
 
+    // Single or double character tokens
+    Ampersand,
     DoubleAmpersand,
+    Asterisk,
     DoubleAsterisk,
+    VerticalBar,
     DoubleVerticalBar,
 
-    Comment(String),
-    ID(String),
-    Integer(i64),
-    String(String),
+    // Literals
+    Comment,
+    ID,
+    Integer,
+    String,
 
     Uninitialized,
 }
@@ -81,8 +84,8 @@ impl TokenType {
     pub(crate) const LOOKAHEAD_DEPTH: usize = 2;
 
     /// Whether or not this [`TokenType`] is ignored by [`Parser`].
-    pub(crate) fn is_ignored(&self) -> bool {
-        matches!(self, &Self::Comment(..))
+    pub(crate) fn is_ignored(self) -> bool {
+        matches!(self, Self::Comment | Self::Uninitialized)
     }
 }
 
@@ -92,9 +95,11 @@ pub struct Token {
     token_type: TokenType,
     line_no: usize,
     col_no: usize,
+    literal: Option<String>,
 }
 
 impl Token {
+    // TODO? Check whether or not TokenType is a literal?
     /// Create a new [`Token`].
     pub(crate) fn new(
         token_type: TokenType,
@@ -105,11 +110,27 @@ impl Token {
             token_type,
             line_no,
             col_no,
+            literal: None,
         }
     }
 
-    pub(crate) fn token_type(&self) -> &TokenType {
-        &self.token_type
+    /// Create a new [`Token`].
+    pub(crate) fn with_literal(
+        token_type: TokenType,
+        line_no: usize,
+        col_no: usize,
+        literal: String,
+    ) -> Self {
+        Self {
+            token_type,
+            line_no,
+            col_no,
+            literal: Some(literal),
+        }
+    }
+
+    pub(crate) fn token_type(&self) -> TokenType {
+        self.token_type
     }
 
     pub(crate) fn line_no(&self) -> usize {
@@ -120,42 +141,8 @@ impl Token {
         self.col_no
     }
 
-    /// Attempt to create a new [`Token`], parsing a string as [`TokenType`].
-    pub(crate) fn from_str(
-        token_type: &str,
-        line_no: usize,
-        col_no: usize,
-    ) -> Result<Self> {
-        Ok(Self {
-            token_type: TokenType::from_str(token_type)?,
-            line_no,
-            col_no,
-        })
-    }
-
-    /// Gets value from [`TokenType::{Comment, ID, String}`], panicking if the
-    /// the token is a different type.
-    pub(crate) fn get_string_unchecked(&self) -> &str {
-        match &self.token_type {
-            TokenType::Comment(string)
-            | TokenType::ID(string)
-            | TokenType::String(string) => string.as_str(),
-            token_type => panic!(
-                "get_string_unchecked was called on TokenType {:?}!",
-                token_type
-            ),
-        }
-    }
-
-    /// Gets value from [`TokenType::Integer`], panicking if the
-    /// the token is a different type.
-    pub(crate) fn get_int_unchecked(&self) -> i64 {
-        match &self.token_type {
-            TokenType::Integer(int) => *int,
-            token_type => panic!(
-                "get_int_unchecked was called on TokenType {:?}!",
-                token_type
-            ),
-        }
+    /// Get a reference to the token's literal.
+    pub(crate) fn literal(&self) -> Option<&str> {
+        self.literal.as_deref()
     }
 }

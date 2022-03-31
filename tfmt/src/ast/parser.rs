@@ -45,7 +45,7 @@ impl<'a> Parser<'a> {
         )
     }
 
-    fn current_type(&self) -> &TokenType {
+    fn current_type(&self) -> TokenType {
         // current_token is guaranteed to be Some() by Parser::advance(), so
         // unwrap should be safe.
         debug_assert!(self.current_token.is_some());
@@ -82,14 +82,14 @@ impl<'a> Parser<'a> {
         self._advance(false)
     }
 
-    fn consume(&mut self, expected: &TokenType) -> Result<Token> {
+    fn consume(&mut self, expected: TokenType) -> Result<Token> {
         let token_type = self.current_type();
 
         if token_type != expected {
             return Err(ParserError::UnexpectedTokenType {
                 context: self.current_context(),
-                expected: expected.clone(),
-                found: token_type.clone(),
+                expected,
+                found: token_type,
             });
         }
 
@@ -106,11 +106,11 @@ impl<'a> Parser<'a> {
     fn consume_id(&mut self) -> Result<Token> {
         let token_type = self.current_type();
 
-        if !matches!(token_type, TokenType::ID(..)) {
+        if !matches!(token_type, TokenType::ID) {
             return Err(ParserError::UnexpectedTokenType {
                 context: self.current_context(),
-                expected: TokenType::ID(String::new()),
-                found: token_type.clone(),
+                expected: TokenType::ID,
+                found: token_type,
             });
         }
 
@@ -127,11 +127,11 @@ impl<'a> Parser<'a> {
     fn consume_string(&mut self) -> Result<Token> {
         let token_type = self.current_type();
 
-        if !matches!(token_type, TokenType::String(..)) {
+        if !matches!(token_type, TokenType::String) {
             return Err(ParserError::UnexpectedTokenType {
                 context: self.current_context(),
-                expected: TokenType::String(String::new()),
-                found: token_type.clone(),
+                expected: TokenType::String,
+                found: token_type,
             });
         }
 
@@ -148,11 +148,11 @@ impl<'a> Parser<'a> {
     fn consume_int(&mut self) -> Result<Token> {
         let token_type = self.current_type();
 
-        if !matches!(token_type, TokenType::Integer(..)) {
+        if !matches!(token_type, TokenType::Integer) {
             return Err(ParserError::UnexpectedTokenType {
                 context: self.current_context(),
-                expected: TokenType::Integer(0),
-                found: token_type.clone(),
+                expected: TokenType::Integer,
+                found: token_type,
             });
         }
 
@@ -195,21 +195,21 @@ impl<'a> Parser<'a> {
         trace!(
             r#"{} Program: "{}""#,
             self.dp(),
-            name.get_string_unchecked()
+            name.literal().expect("Unchecked literal!")
         );
 
-        self.consume(&TokenType::ParenthesisLeft)?;
+        self.consume(TokenType::ParenthesisLeft)?;
 
         let parameters = self.parameters()?;
 
-        self.consume(&TokenType::ParenthesisRight)?;
+        self.consume(TokenType::ParenthesisRight)?;
 
         // Optional, so ok to return Err.
         let description = self.consume_string().ok();
 
-        self.consume(&TokenType::CurlyBraceLeft)?;
+        self.consume(TokenType::CurlyBraceLeft)?;
         let block = self.block()?;
-        self.consume(&TokenType::CurlyBraceRight)?;
+        self.consume(TokenType::CurlyBraceRight)?;
 
         self.dec_depth();
 
@@ -230,7 +230,7 @@ impl<'a> Parser<'a> {
                 Err(_) => break,
             }
 
-            if self.consume(&TokenType::Comma).is_err() {
+            if self.consume(TokenType::Comma).is_err() {
                 break;
             }
         }
@@ -245,10 +245,10 @@ impl<'a> Parser<'a> {
         trace!(
             r#"{} Parameter: "{}""#,
             self.dp(),
-            name.get_string_unchecked()
+            name.literal().expect("Unchecked literal!")
         );
 
-        let default = match self.consume(&TokenType::Equals) {
+        let default = match self.consume(TokenType::Equals) {
             Ok(_) => {
                 if let Ok(token) = self.consume_int() {
                     Some(token)
@@ -257,7 +257,7 @@ impl<'a> Parser<'a> {
                 } else {
                     return Err(ParserError::InvalidDefault(
                         self.current_context(),
-                        self.current_type().clone(),
+                        self.current_type(),
                     ));
                 }
             }
@@ -287,7 +287,7 @@ impl<'a> Parser<'a> {
     ) -> Result<Vec<Expression>> {
         let mut expressions: Vec<Expression> = Vec::new();
 
-        while !terminators.contains(self.current_type()) {
+        while !terminators.contains(&self.current_type()) {
             trace!(
                 "{} Gathering expressions until {:?}",
                 self.dp(),
@@ -309,10 +309,10 @@ impl<'a> Parser<'a> {
         trace!("{} Expression", self.dp());
         let mut expression = self.ternary()?;
 
-        while *self.current_type() == TokenType::QuestionMark {
-            self.consume(&TokenType::QuestionMark)?;
+        while self.current_type() == TokenType::QuestionMark {
+            self.consume(TokenType::QuestionMark)?;
             let true_expr = self.ternary()?;
-            self.consume(&TokenType::Colon)?;
+            self.consume(TokenType::Colon)?;
             let false_expr = self.ternary()?;
 
             expression = Expression::TernaryOp {
@@ -334,12 +334,12 @@ impl<'a> Parser<'a> {
         let mut ternary = self.disjunct()?;
 
         loop {
-            let operator = match *self.current_type() {
+            let operator = match self.current_type() {
                 TokenType::DoubleVerticalBar => {
-                    self.consume(&TokenType::DoubleVerticalBar)?
+                    self.consume(TokenType::DoubleVerticalBar)?
                 }
                 TokenType::VerticalBar => {
-                    self.consume(&TokenType::VerticalBar)?
+                    self.consume(TokenType::VerticalBar)?
                 }
                 _ => break,
             };
@@ -363,11 +363,11 @@ impl<'a> Parser<'a> {
         let mut disjunct = self.conjunct()?;
 
         loop {
-            let operator = match *self.current_type() {
+            let operator = match self.current_type() {
                 TokenType::DoubleAmpersand => {
-                    self.consume(&TokenType::DoubleAmpersand)?
+                    self.consume(TokenType::DoubleAmpersand)?
                 }
-                TokenType::Ampersand => self.consume(&TokenType::Ampersand)?,
+                TokenType::Ampersand => self.consume(TokenType::Ampersand)?,
                 _ => break,
             };
 
@@ -389,9 +389,9 @@ impl<'a> Parser<'a> {
         let mut conjunct = self.term()?;
 
         loop {
-            let operator = match *self.current_type() {
-                TokenType::Plus => self.consume(&TokenType::Plus)?,
-                TokenType::Hyphen => self.consume(&TokenType::Hyphen)?,
+            let operator = match self.current_type() {
+                TokenType::Plus => self.consume(TokenType::Plus)?,
+                TokenType::Hyphen => self.consume(TokenType::Hyphen)?,
                 _ => break,
             };
 
@@ -414,12 +414,12 @@ impl<'a> Parser<'a> {
         let mut term = self.factor()?;
 
         loop {
-            let operator = match *self.current_type() {
-                TokenType::Asterisk => self.consume(&TokenType::Asterisk)?,
+            let operator = match self.current_type() {
+                TokenType::Asterisk => self.consume(TokenType::Asterisk)?,
                 TokenType::SlashForward => {
-                    self.consume(&TokenType::SlashForward)?
+                    self.consume(TokenType::SlashForward)?
                 }
-                TokenType::Percent => self.consume(&TokenType::Percent)?,
+                TokenType::Percent => self.consume(TokenType::Percent)?,
                 _ => break,
             };
 
@@ -442,11 +442,11 @@ impl<'a> Parser<'a> {
         let mut factor = self.exponent()?;
 
         loop {
-            let operator = match *self.current_type() {
+            let operator = match self.current_type() {
                 TokenType::DoubleAsterisk => {
-                    self.consume(&TokenType::DoubleAsterisk)?
+                    self.consume(TokenType::DoubleAsterisk)?
                 }
-                TokenType::Caret => self.consume(&TokenType::Caret)?,
+                TokenType::Caret => self.consume(TokenType::Caret)?,
                 _ => break,
             };
 
@@ -466,22 +466,22 @@ impl<'a> Parser<'a> {
         self.inc_depth()?;
         trace!("{} Exponent", self.dp());
 
-        let exponent = match *self.current_type() {
+        let exponent = match self.current_type() {
             TokenType::Plus => Expression::UnaryOp {
-                operator: self.consume(&TokenType::Plus)?,
+                operator: self.consume(TokenType::Plus)?,
                 operand: Box::new(self.exponent()?),
             },
             TokenType::Hyphen => Expression::UnaryOp {
-                operator: self.consume(&TokenType::Hyphen)?,
+                operator: self.consume(TokenType::Hyphen)?,
                 operand: Box::new(self.exponent()?),
             },
             TokenType::ParenthesisLeft => {
-                self.consume(&TokenType::ParenthesisLeft)?;
+                self.consume(TokenType::ParenthesisLeft)?;
 
                 let expressions: Vec<Expression> =
                     self.expressions(&[TokenType::ParenthesisRight])?;
 
-                self.consume(&TokenType::ParenthesisRight)?;
+                self.consume(TokenType::ParenthesisRight)?;
 
                 if expressions.is_empty() {
                     return Err(ParserError::EmptyGroup(
@@ -507,28 +507,24 @@ impl<'a> Parser<'a> {
 
         let statement = match ttype {
             TokenType::Dollar => {
-                self.consume(&TokenType::Dollar)?;
+                self.consume(TokenType::Dollar)?;
 
-                if self.current_type() == &TokenType::ParenthesisLeft {
-                    self.consume(&TokenType::ParenthesisLeft)?;
+                if self.current_type() == TokenType::ParenthesisLeft {
+                    self.consume(TokenType::ParenthesisLeft)?;
                     let substitution = Expression::Symbol(self.consume_id()?);
-                    self.consume(&TokenType::ParenthesisRight)?;
+                    self.consume(TokenType::ParenthesisRight)?;
                     substitution
                 } else {
                     self.function()?
                 }
             }
             TokenType::AngleBracketLeft => self.tag()?,
-            TokenType::Integer(..) => {
-                Expression::IntegerNode(self.consume_int()?)
-            }
-            TokenType::String(..) => {
-                Expression::StringNode(self.consume_string()?)
-            }
+            TokenType::Integer => Expression::IntegerNode(self.consume_int()?),
+            TokenType::String => Expression::StringNode(self.consume_string()?),
             _ => {
                 return Err(ParserError::UnrecognizedToken(
                     self.current_context(),
-                    ttype.clone(),
+                    ttype,
                 ))
             }
         };
@@ -543,14 +539,14 @@ impl<'a> Parser<'a> {
 
         let identifier = self.consume_id()?;
 
-        self.consume(&TokenType::ParenthesisLeft)?;
+        self.consume(TokenType::ParenthesisLeft)?;
 
         let mut arguments: Vec<Expression> = Vec::new();
 
         // while self.current_token.ttype() != TokenType::ParenthesisRight {
         loop {
             arguments.push(self.expression()?);
-            if self.consume(&TokenType::Comma).is_err() {
+            if self.consume(TokenType::Comma).is_err() {
                 break;
             }
         }
@@ -558,7 +554,7 @@ impl<'a> Parser<'a> {
         let function = Expression::Function {
             start_token: identifier,
             arguments,
-            end_token: self.consume(&TokenType::ParenthesisRight)?,
+            end_token: self.consume(TokenType::ParenthesisRight)?,
         };
 
         self.dec_depth();
@@ -569,11 +565,11 @@ impl<'a> Parser<'a> {
         self.inc_depth()?;
         trace!("{} Tag", self.dp());
 
-        let start_token = self.consume(&TokenType::AngleBracketLeft)?;
+        let start_token = self.consume(TokenType::AngleBracketLeft)?;
 
         let identifier = self.consume_id()?;
 
-        self.consume(&TokenType::AngleBracketRight)?;
+        self.consume(TokenType::AngleBracketRight)?;
 
         let tag = Expression::Tag {
             start_token,
@@ -623,29 +619,41 @@ mod test {
     #[test]
     fn parser_simple_input_test() -> Result<()> {
         let reference = node::Program::new(
-            Token::new(TokenType::ID("simple_input".to_string()), 1, 1),
+            Token::with_literal(
+                TokenType::ID,
+                1,
+                1,
+                "simple_input".to_string(),
+            ),
             node::Parameters::new(Vec::new()),
             None,
             node::Block::new(vec![
                 Expression::Tag {
-                    start_token: Token::new(TokenType::AngleBracketLeft, 2, 5),
-                    token: Token::new(
-                        TokenType::ID("artist".to_string()),
+                    start_token: Token::new(TokenType::AngleBracketLeft, 5, 5),
+                    token: Token::with_literal(
+                        TokenType::ID,
                         2,
                         6,
+                        "artist".to_string(),
                     ),
                 },
-                Expression::StringNode(Token::new(
-                    TokenType::String("/".to_string()),
+                Expression::StringNode(Token::with_literal(
+                    TokenType::String,
                     2,
                     14,
+                    "/".to_string(),
                 )),
                 Expression::Tag {
-                    start_token: Token::new(TokenType::AngleBracketLeft, 2, 18),
-                    token: Token::new(
-                        TokenType::ID("title".to_string()),
+                    start_token: Token::new(
+                        TokenType::AngleBracketLeft,
+                        18,
+                        18,
+                    ),
+                    token: Token::with_literal(
+                        TokenType::ID,
                         2,
                         19,
+                        "title".to_string(),
                     ),
                 },
             ]),
@@ -658,183 +666,183 @@ mod test {
     #[allow(clippy::too_many_lines)]
     fn parser_typical_input_test() -> Result<()> {
         let reference = node::Program::new(
-        Token::new( TokenType::ID("typical_input".to_string()), 1, 1),
+        Token::with_literal(TokenType::ID,  1,  1,  "typical_input".to_string()),
         node::Parameters::new(
             vec![
                 node::Parameter::new(
-                    Token::new( TokenType::ID("folder".to_string()), 1, 15),
+                    Token::with_literal(TokenType::ID,  1,  15,  "folder".to_string()),
                     Some(
-                        Token::new( TokenType::String("destination".to_string()), 1, 22),
+                        Token::with_literal(TokenType::String,  1,  22,  "destination".to_string()),
                     ),
                 ), //
             ],
             ),
         Some(
-            Token::new( TokenType::String("This file is used to test tfmttools.".to_string()), 1, 37),
+            Token::with_literal(TokenType::String,  1,  37,  "This file is used to test tfmttools.".to_string()),
         ),
         node::Block::new(
             vec![
                 Expression::Symbol(
-                    Token::new( TokenType::ID("folder".to_string()), 3, 7),
+                    Token::with_literal(TokenType::ID,  3,  7,  "folder".to_string()),
                 ),
                 Expression::StringNode(
-                    Token::new( TokenType::String("/".to_string()), 3, 15),
+                    Token::with_literal(TokenType::String,  3,  15,  "/".to_string()),
                 ),
                 Expression::BinaryOp {
                     left: Box::new(Expression::Tag {
-                        start_token: Token::new( TokenType::AngleBracketLeft, 4, 5),
-                        token: Token::new( TokenType::ID("albumartist".to_string()), 4, 6),
+                        start_token: Token::new( TokenType::AngleBracketLeft,  5,  5, ),
+                        token: Token::with_literal(TokenType::ID,  4,  6,  "albumartist".to_string()),
                     }),
-                    operator: Token::new( TokenType::VerticalBar, 4, 19),
+                    operator: Token::new( TokenType::VerticalBar,  19,  19, ),
                     right: Box::new(Expression::Tag {
-                        start_token: Token::new( TokenType::AngleBracketLeft, 4, 21),
-                        token: Token::new( TokenType::ID("artist".to_string()), 4, 22),
+                        start_token: Token::new( TokenType::AngleBracketLeft,  21,  21, ),
+                        token: Token::with_literal(TokenType::ID,  4,  22,  "artist".to_string()),
                     }),
                 },
                 Expression::StringNode(
-                    Token::new( TokenType::String("/".to_string()), 5, 5),
+                    Token::with_literal(TokenType::String,  5,  5,  "/".to_string()),
                 ),
                 Expression::BinaryOp {
                     left: Box::new(Expression::Group {
                         expressions: vec![
                             Expression::BinaryOp {
                                 left: Box::new(Expression::Tag {
-                                    start_token: Token::new( TokenType::AngleBracketLeft, 8, 9),
-                                    token: Token::new( TokenType::ID("date".to_string()), 8, 10),
+                                    start_token: Token::new( TokenType::AngleBracketLeft,  9,  9, ),
+                                    token: Token::with_literal(TokenType::ID,  8,  10,  "date".to_string()),
                                 }),
-                                operator: Token::new( TokenType::Ampersand, 8, 16),
+                                operator: Token::new( TokenType::Ampersand,  16,  16, ),
                                 right: Box::new(Expression::Group {
                                     expressions: vec![
                                         Expression::Function {
-                                            start_token: Token::new( TokenType::ID("year_from_date".to_string()), 9, 14),
+                                            start_token: Token::with_literal(TokenType::ID,  9,  14,  "year_from_date".to_string()),
                                             arguments: vec![
                                                 Expression::Tag {
-                                                    start_token: Token::new( TokenType::AngleBracketLeft, 9, 29),
-                                                    token: Token::new( TokenType::ID("date".to_string()), 9, 30),
+                                                    start_token: Token::new( TokenType::AngleBracketLeft,  29,  29, ),
+                                                    token: Token::with_literal(TokenType::ID,  9,  30,  "date".to_string()),
                                                 },
                                             ],
-                                            end_token: Token::new( TokenType::ParenthesisRight, 9, 35),
+                                            end_token: Token::new( TokenType::ParenthesisRight,  35,  35, ),
                                         },
                                         Expression::BinaryOp {
                                             left: Box::new(Expression::Tag {
-                                                start_token: Token::new( TokenType::AngleBracketLeft, 10, 13),
-                                                token: Token::new( TokenType::ID("albumsort".to_string()), 10, 14),
+                                                start_token: Token::new( TokenType::AngleBracketLeft,  13,  13, ),
+                                                token: Token::with_literal(TokenType::ID,  10,  14,  "albumsort".to_string()),
                                             }),
-                                            operator: Token::new( TokenType::Ampersand, 10, 25),
+                                            operator: Token::new( TokenType::Ampersand,  25,  25, ),
                                             right: Box::new(Expression::Group {
                                                 expressions: vec![
                                                     Expression::StringNode(
-                                                        Token::new( TokenType::String(".".to_string()), 10, 28),
+                                                        Token::with_literal(TokenType::String,  10,  28,  ".".to_string()),
                                                     ),
                                                     Expression::Function {
-                                                        start_token: Token::new( TokenType::ID("num".to_string()), 10, 33),
+                                                        start_token: Token::with_literal(TokenType::ID,  10,  33,  "num".to_string()),
                                                         arguments: vec![
                                                             Expression::Tag {
-                                                                start_token: Token::new( TokenType::AngleBracketLeft, 10, 37),
-                                                                token: Token::new( TokenType::ID("albumsort".to_string()), 10, 38),
+                                                                start_token: Token::new( TokenType::AngleBracketLeft,  37,  37, ),
+                                                                token: Token::with_literal(TokenType::ID,  10,  38,  "albumsort".to_string()),
                                                             },
                                                             Expression::IntegerNode(
-                                                                Token::new( TokenType::Integer(2), 10, 50),
+                                                                Token::with_literal(TokenType::Integer,  10,  50,  "2".to_string()),
                                                             ),
                                                         ],
-                                                        end_token: Token::new( TokenType::ParenthesisRight, 10, 51),
+                                                        end_token: Token::new( TokenType::ParenthesisRight,  51,  51, ),
                                                     },
                                                 ],
                                             }),
                                         },
                                         Expression::StringNode(
-                                            Token::new( TokenType::String(" - ".to_string()), 11, 13),
+                                            Token::with_literal(TokenType::String,  11,  13,  " - ".to_string()),
                                         ),
                                     ],
                                 }),
                             },
                             Expression::Tag {
-                                start_token: Token::new( TokenType::AngleBracketLeft, 13, 9),
-                                token: Token::new( TokenType::ID("album".to_string()), 13, 10),
+                                start_token: Token::new( TokenType::AngleBracketLeft,  9,  9, ),
+                                token: Token::with_literal(TokenType::ID,  13,  10,  "album".to_string()),
                             },
                         ],
                     }),
-                    operator: Token::new( TokenType::DoubleAmpersand, 14, 7),
+                    operator: Token::new( TokenType::DoubleAmpersand,  7,  7, ),
                     right: Box::new(Expression::StringNode(
-                        Token::new( TokenType::String("/".to_string()), 14, 10),
+                        Token::with_literal(TokenType::String,  14,  10,  "/".to_string()),
                     )),
                 },
                 Expression::TernaryOp {
                     condition: Box::new(Expression::Tag {
-                        start_token: Token::new( TokenType::AngleBracketLeft, 16, 5),
-                        token: Token::new( TokenType::ID("discnumber".to_string()), 16, 6),
+                        start_token: Token::new( TokenType::AngleBracketLeft,  5,  5, ),
+                        token: Token::with_literal(TokenType::ID,  16,  6,  "discnumber".to_string()),
                     }),
                     true_expr: Box::new(Expression::Function {
-                        start_token: Token::new( TokenType::ID("num".to_string()), 16, 21),
+                        start_token: Token::with_literal(TokenType::ID,  16,  21,  "num".to_string()),
                         arguments: vec![
                             Expression::Tag {
-                                start_token: Token::new( TokenType::AngleBracketLeft, 16, 25),
-                                token: Token::new( TokenType::ID("discnumber".to_string()), 16, 26),
+                                start_token: Token::new( TokenType::AngleBracketLeft,  25,  25, ),
+                                token: Token::with_literal(TokenType::ID,  16,  26,  "discnumber".to_string()),
                             },
                             Expression::IntegerNode(
-                                Token::new( TokenType::Integer(1), 16, 39),
+                                Token::with_literal(TokenType::Integer,  16,  39,  "1".to_string()),
                             ),
                         ],
-                        end_token: Token::new( TokenType::ParenthesisRight, 16, 40),
+                        end_token: Token::new( TokenType::ParenthesisRight,  40,  40, ),
                     }),
                     false_expr: Box::new(Expression::StringNode(
-                        Token::new( TokenType::String("".to_string()), 16, 44),
+                        Token::with_literal(TokenType::String,  16,  44,  "".to_string()),
                     )),
                 },
                 Expression::BinaryOp {
                     left: Box::new(Expression::Tag {
-                        start_token: Token::new( TokenType::AngleBracketLeft, 17, 5),
-                        token: Token::new( TokenType::ID("tracknumber".to_string()), 17, 6),
+                        start_token: Token::new( TokenType::AngleBracketLeft,  5,  5, ),
+                        token: Token::with_literal(TokenType::ID,  17,  6,  "tracknumber".to_string()),
                     }),
-                    operator: Token::new( TokenType::Ampersand, 17, 19),
+                    operator: Token::new( TokenType::Ampersand,  19,  19, ),
                     right: Box::new(Expression::Group {
                         expressions: vec![
                             Expression::Function {
-                                start_token: Token::new( TokenType::ID("num".to_string()), 17, 23),
+                                start_token: Token::with_literal(TokenType::ID,  17,  23,  "num".to_string()),
                                 arguments: vec![
                                     Expression::Tag {
-                                        start_token: Token::new( TokenType::AngleBracketLeft, 17, 27),
-                                        token: Token::new( TokenType::ID("tracknumber".to_string()), 17, 28),
+                                        start_token: Token::new( TokenType::AngleBracketLeft,  27,  27, ),
+                                        token: Token::with_literal(TokenType::ID,  17,  28,  "tracknumber".to_string()),
                                     },
                                     Expression::IntegerNode(
-                                        Token::new( TokenType::Integer(2), 17, 42),
+                                        Token::with_literal(TokenType::Integer,  17,  42,  "2".to_string()),
                                     ),
                                 ],
-                                end_token: Token::new( TokenType::ParenthesisRight, 17, 43),
+                                end_token: Token::new( TokenType::ParenthesisRight,  43,  43, ),
                             },
                             Expression::StringNode(
-                                Token::new( TokenType::String(" - ".to_string()), 17, 44),
+                                Token::with_literal(TokenType::String,  17,  44,  " - ".to_string()),
                             ),
                         ],
                     }),
                 },
                 Expression::Function {
-                    start_token: Token::new( TokenType::ID("if".to_string()), 18, 6),
+                    start_token: Token::with_literal(TokenType::ID,  18,  6,  "if".to_string()),
                     arguments: vec![
                         Expression::Tag {
-                            start_token: Token::new( TokenType::AngleBracketLeft, 18, 9),
-                            token: Token::new( TokenType::ID("albumartist".to_string()), 18, 10),
+                            start_token: Token::new( TokenType::AngleBracketLeft,  9,  9, ),
+                            token: Token::with_literal(TokenType::ID,  18,  10,  "albumartist".to_string()),
                         },
                         Expression::Group {
                             expressions: vec![
                                 Expression::Tag {
-                                    start_token: Token::new( TokenType::AngleBracketLeft, 18, 25),
-                                    token: Token::new( TokenType::ID("artist".to_string()), 18, 26),
+                                    start_token: Token::new( TokenType::AngleBracketLeft,  25,  25, ),
+                                    token: Token::with_literal(TokenType::ID,  18,  26,  "artist".to_string()),
                                 },
                                 Expression::StringNode(
-                                    Token::new( TokenType::String(" - ".to_string()), 18, 33),
+                                    Token::with_literal(TokenType::String,  18,  33,  " - ".to_string()),
                                 ),
                             ],
                         },
                         Expression::StringNode(
-                            Token::new( TokenType::String("".to_string()), 18, 41),
+                            Token::with_literal(TokenType::String,  18,  41,  "".to_string()),
                         ),
                     ],
-                    end_token: Token::new( TokenType::ParenthesisRight, 18, 43),
+                    end_token: Token::new( TokenType::ParenthesisRight,  43,  43, ),
                 },
                 Expression::Tag {
-                    start_token: Token::new( TokenType::AngleBracketLeft, 19, 5),
-                    token: Token::new( TokenType::ID("title".to_string()), 19, 6),
+                    start_token: Token::new( TokenType::AngleBracketLeft,  5,  5, ),
+                    token: Token::with_literal(TokenType::ID,  19,  6,  "title".to_string()),
                 },
             ],
             ),

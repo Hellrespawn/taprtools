@@ -39,7 +39,7 @@ impl Program {
     }
 
     pub(crate) fn name(&self) -> String {
-        self.name.get_string_unchecked().to_string()
+        self.name.literal().expect("Unchecked literal!").to_string()
     }
 
     pub(crate) fn parameters(&self) -> &Parameters {
@@ -49,7 +49,7 @@ impl Program {
     pub(crate) fn description(&self) -> Option<String> {
         self.description
             .as_ref()
-            .map(|t| t.get_string_unchecked().to_string())
+            .map(|t| t.literal().expect("Unchecked literal!").to_string())
     }
 
     pub(crate) fn block(&self) -> &Block {
@@ -90,13 +90,13 @@ impl Parameter {
     }
 
     pub(crate) fn name(&self) -> String {
-        self.name.get_string_unchecked().to_string()
+        self.name.literal().expect("Unchecked literal!").to_string()
     }
 
     pub(crate) fn default(&self) -> Option<String> {
         self.default
             .as_ref()
-            .map(|t| t.get_string_unchecked().to_string())
+            .map(|t| t.literal().expect("Unchecked literal!").to_string())
     }
 }
 

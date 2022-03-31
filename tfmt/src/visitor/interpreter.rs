@@ -156,7 +156,7 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
     ) -> Result<String> {
         let l = left.accept(self)?;
         let r = right.accept(self)?;
-        Ok(match &token.token_type() {
+        Ok(match token.token_type() {
             TokenType::VerticalBar => {
                 if l.is_empty() {
                     r
@@ -207,7 +207,7 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
             other => {
                 return Err(InterpreterError::InvalidTokenType {
                     context: ErrorContext::from_token(self.input_text, token),
-                    invalid_type: (*other).clone(),
+                    invalid_type: other,
                     name: "BinaryOp",
                 })
             }
@@ -226,7 +226,7 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
             other => {
                 return Err(InterpreterError::InvalidTokenType {
                     context: ErrorContext::from_token(self.input_text, token),
-                    invalid_type: other.clone(),
+                    invalid_type: other,
                     name: "UnaryOp",
                 })
             }
@@ -259,15 +259,15 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
     }
 
     fn visit_integer(&mut self, integer: &Token) -> Result<String> {
-        Ok(integer.get_int_unchecked().to_string())
+        Ok(integer.literal().expect("Unchecked literal!").to_string())
     }
 
     fn visit_string(&mut self, string: &Token) -> Result<String> {
-        Ok(string.get_string_unchecked().to_string())
+        Ok(string.literal().expect("Unchecked literal!").to_string())
     }
 
     fn visit_symbol(&mut self, symbol: &Token) -> Result<String> {
-        let name = symbol.get_string_unchecked();
+        let name = symbol.literal().expect("Unchecked literal!");
 
         // SemanticAnalyzer checks for undeclared symbols, so this should
         // always be safe.
@@ -276,7 +276,7 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
     }
 
     fn visit_tag(&mut self, token: &Token) -> Result<String> {
-        let tag_name = token.get_string_unchecked();
+        let tag_name = token.literal().expect("Unchecked literal!");
 
         let audio_file = self.audio_file;
 

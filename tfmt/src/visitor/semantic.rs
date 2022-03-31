@@ -147,7 +147,7 @@ impl Visitor<Result<()>> for SemanticAnalyzer {
     }
 
     fn visit_symbol(&mut self, symbol: &Token) -> Result<()> {
-        let name = symbol.get_string_unchecked().to_string();
+        let name = symbol.literal().expect("Unchecked literal!").to_string();
 
         if !self.parameters.contains_key(&name) {
             return Err(SemanticError::SymbolNotDeclared {
