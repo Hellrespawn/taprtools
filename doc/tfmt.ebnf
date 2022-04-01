@@ -29,9 +29,9 @@ Factor   ::= Exponent ( ( "**" | "^" ) Exponent )*
 Exponent ::= "+" Exponent
            | "-" Exponent
            | "(" Expression+ ")"
-           | Statement
+           | Primary
 
-Statement
+Primary
          ::= Comment | Function | Integer | String | Substitution | Tag
 
 Comment  ::= "/*" PrintableChars* "*/"

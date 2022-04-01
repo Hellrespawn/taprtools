@@ -462,7 +462,7 @@ impl<'a> Parser<'a> {
     }
 
     fn exponent(&mut self) -> Result<Expression> {
-        // "+" Exponent | "-" Exponent | "(" Expression+ ")" | Statement
+        // "+" Exponent | "-" Exponent | "(" Expression+ ")" | Primary
         self.inc_depth()?;
         trace!("{} Exponent", self.dp());
 
@@ -491,21 +491,21 @@ impl<'a> Parser<'a> {
 
                 Expression::Group { expressions }
             }
-            _ => self.statement()?,
+            _ => self.primary()?,
         };
 
         self.dec_depth();
         Ok(exponent)
     }
 
-    fn statement(&mut self) -> Result<Expression> {
+    fn primary(&mut self) -> Result<Expression> {
         // Comment | Function | Integer | String | Substitution | Tag
         self.inc_depth()?;
-        trace!("{} Statement", self.dp());
+        trace!("{} Primary", self.dp());
 
         let ttype = self.current_type();
 
-        let statement = match ttype {
+        let primary = match ttype {
             TokenType::Dollar => {
                 self.consume(TokenType::Dollar)?;
 
@@ -530,7 +530,7 @@ impl<'a> Parser<'a> {
         };
 
         self.dec_depth();
-        Ok(statement)
+        Ok(primary)
     }
 
     fn function(&mut self) -> Result<Expression> {
