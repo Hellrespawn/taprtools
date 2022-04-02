@@ -105,6 +105,8 @@ impl Interpreter {
 
         out
     }
+
+    // TODO? Add evaluate function to replace manual accepts?
 }
 
 struct IntpVisitor<'a> {
@@ -156,6 +158,7 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
     ) -> Result<String> {
         let l = left.accept(self)?;
         let r = right.accept(self)?;
+
         Ok(match token.token_type() {
             TokenType::VerticalBar => {
                 if l.is_empty() {

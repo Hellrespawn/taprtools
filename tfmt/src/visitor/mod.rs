@@ -7,3 +7,5 @@ mod visitor_trait;
 pub(crate) use visitor_trait::Visitor;
 
 pub use interpreter::{Interpreter, SymbolTable};
+
+// TODO? Move Visitor trait to visitor/mod.rs?
