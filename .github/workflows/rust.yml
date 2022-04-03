@@ -16,5 +16,5 @@ jobs:
     - uses: actions/checkout@v2
     - name: Run clippy and test
       run: |
-        cargo clippy
+        cargo clippy --all
         cargo test --all
