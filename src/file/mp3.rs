@@ -98,4 +98,15 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_period_in_title() -> Result<()> {
+        let tags = get_test_file(
+            "Die Antwoord - Gucci Coochie (feat. Dita Von Teese).mp3",
+        )?;
+
+        assert_eq!(tags.title(), Some("Gucci Coochie (feat. Dita Von Teese)"));
+
+        Ok(())
+    }
 }

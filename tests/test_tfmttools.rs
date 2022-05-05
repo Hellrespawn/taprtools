@@ -11,7 +11,8 @@ const TEST_DATA_DIRECTORY: &str = "tests/testdata/";
 const INITIAL_CONFIG_REFERENCE: [&str; 2] =
     ["config/simple_input.tfmt", "config/typical_input.tfmt"];
 
-const INITIAL_FILE_REFERENCE: [&str; 5] = [
+const INITIAL_FILE_REFERENCE: [&str; 6] = [
+    "files/Die Antwoord - Gucci Coochie (feat. Dita Von Teese).mp3",
     "files/Dune - MASTER BOOT RECORD.mp3",
     "files/SET MIDI=SYNTH1 MAPG MODE1 - MASTER BOOT RECORD.mp3",
     "files/Under Siege - Amon Amarth.mp3",
@@ -19,7 +20,8 @@ const INITIAL_FILE_REFERENCE: [&str; 5] = [
     "files/While Your Lips Are Still Red - Nightwish.mp3",
 ];
 
-const TYPICAL_INPUT_REFERENCE: [&str; 5] = [
+const TYPICAL_INPUT_REFERENCE: [&str; 6] = [
+    "myname/Die Antwoord/2016 - Mount Ninji and da Nice Time Kid/05 - Gucci Coochie (feat. Dita Von Teese).mp3",
     "myname/MASTER BOOT RECORD/WAREZ/Dune.mp3",
     "myname/MASTER BOOT RECORD/2016.03 - CEDIT AUTOEXEC.BAT/05 - SET MIDI=SYNTH1 MAPG MODE1.mp3",
     "myname/Amon Amarth/2013 - Deceiver of the Gods/105 - Under Siege.mp3",
@@ -177,12 +179,13 @@ fn redo(env: &TestEnv) {
 
 #[test]
 fn test_rename_simple_input() -> Result<()> {
-    let reference: [&str; 5] = [
+    let reference: [&str; 6] = [
         "MASTER BOOT RECORD/Dune.mp3",
         "MASTER BOOT RECORD/SET MIDI=SYNTH1 MAPG MODE1.mp3",
         "Amon Amarth/Under Siege.mp3",
         "Damjan Mravunac/Welcome To Heaven.ogg",
         "Nightwish/While Your Lips Are Still Red.mp3",
+        "Die Antwoord/Gucci Coochie (feat. Dita Von Teese).mp3",
     ];
 
     test_runner(

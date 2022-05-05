@@ -322,45 +322,66 @@ mod tests {
     use std::path::MAIN_SEPARATOR;
 
     #[derive(Debug)]
-    struct MockTags;
+    struct MockTags(HashMap<String, String>);
+
+    impl MockTags {
+        fn get(&self, key: &'static str) -> Option<&str> {
+            self.0.get(key).map(|v| &**v).or(Some(key))
+        }
+
+        fn get_default(
+            &self,
+            key: &'static str,
+            default: &'static str,
+        ) -> Option<&str> {
+            self.0.get(key).map(|v| &**v).or(Some(default))
+        }
+    }
 
     impl Tags for MockTags {
         fn album(&self) -> Option<&str> {
-            Some("album")
+            self.get("album")
         }
 
         fn album_artist(&self) -> Option<&str> {
-            Some("album_artist")
+            self.get("album_artist")
         }
 
         fn albumsort(&self) -> Option<&str> {
-            Some("9")
+            self.get_default("albumsort", "9")
         }
 
         fn artist(&self) -> Option<&str> {
-            Some("artist")
+            self.get("artist")
         }
 
         fn genre(&self) -> Option<&str> {
-            Some("genre")
+            self.get("genre")
         }
 
         fn raw_disc_number(&self) -> Option<&str> {
-            Some("8/9")
+            self.get_default("raw_disc_number", "8/9")
         }
 
         fn raw_track_number(&self) -> Option<&str> {
-            Some("98/99")
+            self.get_default("raw_track_number", "98/99")
         }
 
         fn title(&self) -> Option<&str> {
-            Some("title")
+            self.get("title")
         }
 
         fn year(&self) -> Option<&str> {
-            Some("9999")
+            self.get_default("year", "9999")
         }
     }
+
+    #[cfg(unix)]
+    const SIMPLE_INPUT: &str = include_str!("../../testdata/simple_input.tfmt");
+
+    #[cfg(windows)]
+    const SIMPLE_INPUT: &str =
+        include_str!("..\\..\\testdata\\simple_input.tfmt");
 
     #[cfg(unix)]
     const TYPICAL_INPUT: &str =
@@ -370,24 +391,65 @@ mod tests {
     const TYPICAL_INPUT: &str =
         include_str!("..\\..\\testdata\\typical_input.tfmt");
 
-    fn expected_output() -> String {
-        "argument\\album_artist\\9999.09 - album\\898 - artist - title"
+    fn normalize_separators(string: &str) -> String {
+        string
             .replace('\\', &MAIN_SEPARATOR.to_string())
             .replace('/', &MAIN_SEPARATOR.to_string())
     }
 
     #[test]
-    fn test_full() -> Result<()> {
+    fn test_simple() -> Result<()> {
+        let script = Script::new(SIMPLE_INPUT)?;
+        let symbol_table = SymbolTable::new(&script, &[])?;
+        let mut interpreter = Interpreter::new(script, symbol_table)?;
+
+        let file = MockTags(HashMap::new());
+
+        let output = interpreter.interpret(&file)?;
+
+        assert_eq!(output, normalize_separators("artist\\title"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_typical() -> Result<()> {
         let script = Script::new(TYPICAL_INPUT)?;
         let symbol_table =
             SymbolTable::new(&script, &["argument".to_string()])?;
         let mut interpreter = Interpreter::new(script, symbol_table)?;
 
-        let file = MockTags;
+        let file = MockTags(HashMap::new());
 
         let output = interpreter.interpret(&file)?;
 
-        assert_eq!(output, expected_output());
+        assert_eq!(
+            output,
+            normalize_separators(
+                "argument\\album_artist\\9999.09 - album\\898 - artist - title",
+            )
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_period() -> Result<()> {
+        let script = Script::new(SIMPLE_INPUT)?;
+        let symbol_table = SymbolTable::new(&script, &[])?;
+        let mut interpreter = Interpreter::new(script, symbol_table)?;
+
+        let mut map = HashMap::new();
+        map.insert("title".to_owned(), "title (feat. artist)".to_owned());
+
+        let file = MockTags(map);
+
+        let output = interpreter.interpret(&file)?;
+
+        assert_eq!(
+            output,
+            normalize_separators("artist\\title (feat. artist)")
+        );
 
         Ok(())
     }

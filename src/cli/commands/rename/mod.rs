@@ -5,6 +5,7 @@ use crate::file::AudioFile;
 use anyhow::Result;
 use file_history::{Action, History, HistoryError};
 use indicatif::ProgressIterator;
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use tfmt::{Interpreter, Script, SymbolTable};
 use validate::validate_actions;
@@ -129,18 +130,20 @@ fn action_from_file(
     interpreter: &mut Interpreter,
     audiofile: &AudioFile,
 ) -> Result<Action> {
-    let string = interpreter.interpret(audiofile.tags())?;
+    let mut string: OsString = interpreter.interpret(audiofile.tags())?.into();
 
     let source = audiofile.path();
 
     // We already know this is a file with either an "mp3" or "ogg"
     // extension, so we unwrap safely.
     debug_assert!(source.extension().is_some());
+
     let extension = source.extension().unwrap();
 
-    let target = std::env::current_dir()?
-        .join(string)
-        .with_extension(extension);
+    string.push(".");
+    string.push(extension);
+
+    let target = std::env::current_dir()?.join(string);
 
     let action = Action::mv(source, target);
 
