@@ -93,6 +93,7 @@ pub(crate) fn print_actions_preview(actions: &[Action], preview_amount: usize) {
     let step = std::cmp::max(length / preview_amount, 1);
 
     for action in actions.iter().step_by(step) {
+        // FIXME Check actual amount previewed
         let (_, target) = action.get_src_tgt_unchecked();
         println!("{}", target.display());
     }
