@@ -27,11 +27,11 @@ pub(crate) fn rename(
 
     let actions = interpret_files(script, symbol_table, &files)?;
 
+    let (actions, _filtered_actions) = partition_actions(actions);
+
     validate_actions(&actions)?;
 
     let common_path = get_common_path(&actions);
-
-    let (actions, _filtered_actions) = partition_actions(actions);
 
     if actions.is_empty() {
         println!("There are no actions to perform.");
