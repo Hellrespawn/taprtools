@@ -43,11 +43,22 @@ pub trait Tags: std::fmt::Debug {
 
     /// Helper function that gets x from "x/y" or returns string
     fn get_current<'a>(&self, string: &'a str) -> &'a str {
-        if let Some((current, _)) = string.split_once('/') {
-            current
-        } else {
-            string
+        let mut delimiter: Option<char> = None;
+
+        for char in ['/', '\0'] {
+            if string.contains(char) {
+                delimiter = Some(char);
+                break;
+            }
         }
+
+        if let Some(char) = delimiter {
+            if let Some((current, _)) = string.split_once(char) {
+                return current;
+            }
+        }
+
+        string
     }
 
     /// The current `[AudioFile]`s total amount of tracks, if any.
