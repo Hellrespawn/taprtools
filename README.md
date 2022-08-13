@@ -51,6 +51,7 @@ Operators in order of precedence, from lowest to highest:
 
 ## To-do
 
+- FIXME `rust-id3` reads slashes (`/`) as null characters (`\0`)
 - TODO Use `camino` to read files
 - TODO Check if leftovers are images and offer to delete.
 - TODO? Separate Move ActionType into CopyFile and RemoveFile?
