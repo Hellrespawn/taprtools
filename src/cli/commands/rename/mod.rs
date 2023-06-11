@@ -27,16 +27,16 @@ pub(crate) fn rename(
 
     let actions = interpret_files(script, symbol_table, &files)?;
 
-    let (actions, _filtered_actions) = partition_actions(actions);
-
-    validate_actions(&actions)?;
-
-    let common_path = get_common_path(&actions);
-
     if actions.is_empty() {
-        println!("There are no actions to perform.");
+        println!("There are no audio files to rename.");
         Ok(())
     } else {
+        let (actions, _filtered_actions) = partition_actions(actions);
+
+        validate_actions(&actions)?;
+
+        let common_path = get_common_path(&actions);
+
         perform_actions(
             preview,
             recursion_depth,

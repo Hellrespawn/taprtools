@@ -6,7 +6,7 @@ edition = "2021"
 license = "BSD-3-Clause"
 name = "tfmttools"
 rust-version = "1.56"
-version = "0.9.0"
+version = "0.9.1"
 
 [workspace]
 members = [
@@ -28,8 +28,8 @@ tfmt = {path = "./tfmt"}
 anyhow = "1.0"
 clap = {version = "3", features = ["derive", "wrap_help"]}
 dirs = "4.0"
-dunce = "1.0.2"
-id3 = "1.0.2"
+dunce = "1"
+id3 = "1.7"
 indicatif = "0.16"
 lewton = "0.10"
 
