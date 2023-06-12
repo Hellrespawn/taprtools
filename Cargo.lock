@@ -762,7 +762,7 @@ dependencies = [
 
 [[package]]
 name = "tfmt"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "buffered-iterator",
@@ -778,7 +778,7 @@ dependencies = [
 
 [[package]]
 name = "tfmttools"
-version = "0.9.1"
+version = "0.10.0"
 dependencies = [
  "anyhow",
  "assert_cmd",

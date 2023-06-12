@@ -6,7 +6,7 @@ edition = "2021"
 license = "BSD-3-Clause"
 name = "tfmttools"
 rust-version = "1.56"
-version = "0.9.1"
+version = "0.10.0"
 
 [workspace]
 members = [
