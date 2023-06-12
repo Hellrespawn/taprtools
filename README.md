@@ -54,6 +54,9 @@ Operators in order of precedence, from lowest to highest:
 - TODO Update `indicatif` to 0.17
 - TODO Use `camino` to read files
 - TODO Check if leftovers are images and offer to delete.
+
+- TODO? Trim trailing whitespace in tag? Update tag even?
+
 - TODO? Separate Move ActionType into CopyFile and RemoveFile?
 
 - TODO? Add more obscure tags?
