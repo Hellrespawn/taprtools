@@ -61,7 +61,7 @@ impl DotGenerator {
         label: Option<&str>,
         directed: bool,
     ) -> String {
-        let mut string = format!("  node{} -> node{}", node2, node1);
+        let mut string = format!("  node{node2} -> node{node1}");
 
         let mut args: Vec<String> = Vec::new();
 

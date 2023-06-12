@@ -21,7 +21,7 @@ pub use script::Script;
 pub use tags::Tags;
 pub use visitor::{Interpreter, SymbolTable};
 
-use std::path::MAIN_SEPARATOR;
+use std::path::{MAIN_SEPARATOR, MAIN_SEPARATOR_STR};
 
 /// Forbidden graphemes that are part of TFMT.
 pub(crate) const FORBIDDEN_GRAPHEMES: [&str; 8] =
@@ -39,6 +39,6 @@ pub(crate) fn normalize_eol(string: &str) -> String {
 pub(crate) fn normalize_separators(string: &str) -> String {
     string.replace(
         if MAIN_SEPARATOR == '/' { '\\' } else { '/' },
-        &MAIN_SEPARATOR.to_string(),
+        MAIN_SEPARATOR_STR,
     )
 }

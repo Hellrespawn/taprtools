@@ -29,9 +29,8 @@ anyhow = "1.0"
 clap = {version = "3", features = ["derive", "wrap_help"]}
 dirs = "4.0"
 dunce = "1"
-id3 = "1.7"
 indicatif = "0.16"
-lewton = "0.10"
+lofty = "0.14"
 
 [dev-dependencies]
 test-harness = {path = "./test-harness"}

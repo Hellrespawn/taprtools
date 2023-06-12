@@ -22,10 +22,7 @@ impl<'a> Iterator for Lexer<'a> {
     type Item = Result<Token>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let grapheme = match self.buffer.peek() {
-            Some(g) => g,
-            None => return None,
-        };
+        let Some(grapheme) = self.buffer.peek() else { return None };
 
         if grapheme.chars().all(char::is_whitespace) {
             self.advance(1);

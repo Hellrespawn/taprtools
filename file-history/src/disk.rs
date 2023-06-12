@@ -1,5 +1,6 @@
 use crate::{ActionGroup, HistoryError, Result};
 use serde::{Deserialize, Serialize};
+use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
@@ -28,7 +29,7 @@ impl DiskHandler {
     }
 
     pub(crate) fn clear(&self) -> Result<bool> {
-        match std::fs::remove_file(&self.path) {
+        match fs::remove_file(&self.path) {
             Ok(_) => Ok(true),
             Err(err) => {
                 if err.kind() == ErrorKind::NotFound {
@@ -49,7 +50,7 @@ impl DiskHandler {
     }
 
     pub(crate) fn read(&self) -> Result<(Vec<ActionGroup>, Vec<ActionGroup>)> {
-        match std::fs::read(&self.path) {
+        match fs::read(&self.path) {
             Ok(file_contents) => {
                 #[cfg(feature = "bincode")]
                 let history: HistoryOnDisk =
@@ -87,7 +88,7 @@ impl DiskHandler {
         #[cfg(feature = "serde_json")]
         let serialized = serde_json::to_string_pretty(&history)?;
 
-        let result = std::fs::write(&self.path, serialized);
+        let result = fs::write(&self.path, serialized);
 
         if let Err(err) = &result {
             if let Some(error_code) = err.raw_os_error() {
@@ -131,7 +132,7 @@ mod tests {
     }
 
     fn get_temporary_file(name: &str) -> Result<NamedTempFile> {
-        let name = format!("{}{}", PREFIX, name);
+        let name = format!("{PREFIX}{name}");
         let file = NamedTempFile::new(name)?;
         Ok(file)
     }

@@ -51,11 +51,9 @@ Operators in order of precedence, from lowest to highest:
 
 ## To-do
 
-- FIXME `rust-id3` reads slashes (`/`) as null characters (`\0`)
 - TODO Update `indicatif` to 0.17
 - TODO Use `camino` to read files
 - TODO Check if leftovers are images and offer to delete.
-- TODO? Migrate to `lofty`?
 - TODO? Separate Move ActionType into CopyFile and RemoveFile?
 
 - TODO? Add more obscure tags?

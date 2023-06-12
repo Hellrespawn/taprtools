@@ -224,16 +224,14 @@ impl<'a> Parser<'a> {
 
         let mut parameters = Vec::new();
 
-        loop {
-            match self.parameter() {
-                Ok(parameter) => parameters.push(parameter),
-                Err(_) => break,
-            }
+        while let Ok(parameter) = self.parameter() {
+            parameters.push(parameter);
 
             if self.consume(TokenType::Comma).is_err() {
                 break;
             }
         }
+
         self.dec_depth();
         Ok(node::Parameters::new(parameters))
     }
@@ -293,7 +291,7 @@ impl<'a> Parser<'a> {
                 self.dp(),
                 terminators
                     .iter()
-                    .map(|tt| format!("{:?}", tt))
+                    .map(|tt| format!("{tt:?}"))
                     .collect::<Vec<String>>()
             );
 
@@ -782,7 +780,7 @@ mod test {
                             end_token: Token::new( TokenType::ParenthesisRight, 16, 40),
                         }),
                         false_expr: Box::new(Expression::StringNode(
-                            Token::with_literal( TokenType::String, 16, 44, "".to_string()),
+                            Token::with_literal( TokenType::String, 16, 44, String::new()),
                         )),
                     },
                     Expression::BinaryOp {
@@ -831,7 +829,7 @@ mod test {
                                 ],
                             },
                             Expression::StringNode(
-                                Token::with_literal( TokenType::String, 18, 41, "".to_string()),
+                                Token::with_literal( TokenType::String, 18, 41, String::new()),
                             ),
                         ],
                         end_token: Token::new( TokenType::ParenthesisRight, 18, 43),

@@ -6,6 +6,7 @@ use anyhow::Result;
 use file_history::{Action, History, HistoryError};
 use indicatif::ProgressIterator;
 use std::ffi::OsString;
+use std::fs;
 use std::path::{Path, PathBuf};
 use tfmt::{Interpreter, Script, SymbolTable};
 use validate::validate_actions;
@@ -130,7 +131,7 @@ fn action_from_file(
     interpreter: &mut Interpreter,
     audiofile: &AudioFile,
 ) -> Result<Action> {
-    let mut string: OsString = interpreter.interpret(audiofile.tags())?.into();
+    let mut string: OsString = interpreter.interpret(audiofile)?.into();
 
     let source = audiofile.path();
 
@@ -252,7 +253,7 @@ fn gather_dirs(path: &Path, depth: usize) -> Vec<PathBuf> {
         return dirs;
     }
 
-    for entry in std::fs::read_dir(path).into_iter().flatten().flatten() {
+    for entry in fs::read_dir(path).into_iter().flatten().flatten() {
         let dir = entry.path();
         if dir.is_dir() {
             dirs.extend(gather_dirs(&dir, depth - 1));
@@ -297,6 +298,7 @@ fn remove_dir(history: &mut History, action: Action) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use anyhow::Result;
     use assert_fs::TempDir;
 
@@ -313,9 +315,11 @@ mod tests {
         #[cfg(unix)]
         let expected_code = 39;
 
-        std::fs::create_dir(&test_folder)?;
-        std::fs::write(test_file, "")?;
-        let result = std::fs::remove_dir(test_folder);
+        fs::create_dir(&test_folder)?;
+        fs::write(test_file, "")?;
+        let result = fs::remove_dir(test_folder);
+
+        dbg!(&result);
 
         if let Err(err) = result {
             if let Some(error_code) = err.raw_os_error() {

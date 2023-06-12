@@ -2,32 +2,47 @@ use anyhow::Result;
 use assert_cmd::Command;
 use assert_fs::prelude::*;
 use assert_fs::TempDir;
+use once_cell::sync::Lazy;
 use predicates::prelude::*;
-use std::path::{Path, PathBuf};
+use std::fs;
+use std::path::{Path, PathBuf, MAIN_SEPARATOR, MAIN_SEPARATOR_STR};
 use test_harness::test_runner;
 
 const TEST_DATA_DIRECTORY: &str = "tests/testdata/";
 
-const INITIAL_CONFIG_REFERENCE: [&str; 2] =
-    ["config/simple_input.tfmt", "config/typical_input.tfmt"];
+static INITIAL_CONFIG_REFERENCE: Lazy<Vec<String>> = Lazy::new(|| {
+    vec!["config/simple_input.tfmt", "config/typical_input.tfmt"]
+        .into_iter()
+        .map(normalize_separators)
+        .collect()
+});
 
-const INITIAL_FILE_REFERENCE: [&str; 6] = [
-    "files/Die Antwoord - Gucci Coochie (feat. Dita Von Teese).mp3",
-    "files/Dune - MASTER BOOT RECORD.mp3",
-    "files/SET MIDI=SYNTH1 MAPG MODE1 - MASTER BOOT RECORD.mp3",
-    "files/Under Siege - Amon Amarth.mp3",
-    "files/Welcome To Heaven - Damjan Mravunac.ogg",
-    "files/While Your Lips Are Still Red - Nightwish.mp3",
-];
+static INITIAL_FILE_REFERENCE: Lazy<Vec<String>> = Lazy::new(|| {
+    vec![
+        "files/Die Antwoord - Gucci Coochie (feat. Dita Von Teese).mp3",
+        "files/Dune - MASTER BOOT RECORD.mp3",
+        "files/SET MIDI=SYNTH1 MAPG MODE1 - MASTER BOOT RECORD.mp3",
+        "files/Under Siege - Amon Amarth.mp3",
+        "files/Welcome To Heaven - Damjan Mravunac.ogg",
+        "files/While Your Lips Are Still Red - Nightwish.mp3",
+    ]
+    .into_iter()
+    .map(normalize_separators)
+    .collect()
+});
 
-const TYPICAL_INPUT_REFERENCE: [&str; 6] = [
+static TYPICAL_INPUT_REFERENCE: Lazy<Vec<String>> = Lazy::new(|| {
+    vec![
     "myname/Die Antwoord/2016 - Mount Ninji and da Nice Time Kid/05 - Gucci Coochie (feat. Dita Von Teese).mp3",
     "myname/MASTER BOOT RECORD/WAREZ/Dune.mp3",
     "myname/MASTER BOOT RECORD/2016.03 - CEDIT AUTOEXEC.BAT/05 - SET MIDI=SYNTH1 MAPG MODE1.mp3",
     "myname/Amon Amarth/2013 - Deceiver of the Gods/105 - Under Siege.mp3",
     "myname/The Talos Principle/2015 - The Talos Principle OST/01 - Damjan Mravunac - Welcome To Heaven.ogg",
     "myname/Nightwish/While Your Lips Are Still Red.mp3",
-];
+]    .into_iter()
+.map(normalize_separators)
+.collect()
+});
 
 struct TestEnv {
     tempdir: TempDir,
@@ -39,8 +54,6 @@ impl TestEnv {
             tempdir: TempDir::new()?,
         };
 
-        dbg!(env.path());
-
         env.populate_scripts()?;
         env.populate_files()?;
 
@@ -49,11 +62,11 @@ impl TestEnv {
 
     fn populate_scripts(&self) -> Result<()> {
         let paths: Vec<PathBuf> =
-            std::fs::read_dir(TestEnv::get_test_data_dir().join("script"))?
+            fs::read_dir(TestEnv::get_test_data_dir().join("script"))?
                 .flat_map(|r| r.map(|d| d.path()))
                 .collect();
 
-        std::fs::create_dir(self.get_config_dir())?;
+        fs::create_dir(self.get_config_dir())?;
 
         for script_path in &paths {
             // Scripts are selected by is_file, should always have a filename so
@@ -62,7 +75,7 @@ impl TestEnv {
             assert!(script_path.file_name().is_some());
             let file_name = script_path.file_name().unwrap();
 
-            std::fs::copy(script_path, self.get_config_dir().join(file_name))?;
+            fs::copy(script_path, self.get_config_dir().join(file_name))?;
         }
 
         Ok(())
@@ -70,11 +83,11 @@ impl TestEnv {
 
     fn populate_files(&self) -> Result<()> {
         let paths: Vec<PathBuf> =
-            std::fs::read_dir(TestEnv::get_test_data_dir().join("music"))?
+            fs::read_dir(TestEnv::get_test_data_dir().join("music"))?
                 .flat_map(|r| r.map(|d| d.path()))
                 .collect();
 
-        std::fs::create_dir(self.get_files_dir())?;
+        fs::create_dir(self.get_files_dir())?;
 
         for audiofile_path in &paths {
             // Audio files are selected by is_file, should always have a
@@ -82,7 +95,7 @@ impl TestEnv {
 
             assert!(audiofile_path.file_name().is_some());
 
-            std::fs::copy(
+            fs::copy(
                 audiofile_path,
                 self.get_files_dir()
                     .join(audiofile_path.file_name().unwrap()),
@@ -113,20 +126,51 @@ impl TestEnv {
         self.path().join("files")
     }
 
-    fn assert_files_exist(&self, reference: &[&str]) {
+    fn assert_files_exist(&self, reference: &[String]) {
+        self.print_tempdir();
+
         for path in reference {
             let child = self.tempdir.child(path);
-
             child.assert(predicate::path::exists());
         }
     }
 
-    fn assert_files_missing(&self, reference: &[&str]) {
+    fn assert_files_missing(&self, reference: &[String]) {
+        self.print_tempdir();
+
         for path in reference {
             let child = self.tempdir.child(path);
 
             child.assert(predicate::path::missing());
         }
+    }
+
+    fn print_tempdir(&self) {
+        fn inner(path: &Path, depth: usize) {
+            for result in
+                std::fs::read_dir(path).expect("Unable to read tempdir.")
+            {
+                if depth == 0 {
+                    return;
+                }
+
+                if let Ok(entry) = result {
+                    let path = entry.path();
+
+                    if path.is_dir() {
+                        inner(&path, depth - 1)
+                    } else if path.is_file() {
+                        println!("{}", path.display())
+                    }
+                } else {
+                    continue;
+                }
+            }
+        }
+
+        println!("\n-- tempdir --");
+        inner(self.tempdir.path(), 4);
+        println!("-----------\n");
     }
 }
 
@@ -179,14 +223,17 @@ fn redo(env: &TestEnv) {
 
 #[test]
 fn test_rename_simple_input() -> Result<()> {
-    let reference: [&str; 6] = [
+    let reference: Vec<String> = vec![
         "MASTER BOOT RECORD/Dune.mp3",
         "MASTER BOOT RECORD/SET MIDI=SYNTH1 MAPG MODE1.mp3",
         "Amon Amarth/Under Siege.mp3",
         "Damjan Mravunac/Welcome To Heaven.ogg",
         "Nightwish/While Your Lips Are Still Red.mp3",
         "Die Antwoord/Gucci Coochie (feat. Dita Von Teese).mp3",
-    ];
+    ]
+    .into_iter()
+    .map(normalize_separators)
+    .collect();
 
     test_runner(
         TestEnv::new,
@@ -269,5 +316,13 @@ fn test_redo_typical_input() -> Result<()> {
 
             Ok(())
         },
+    )
+}
+
+/// Normalizes separators for the platform in `string`.
+pub(crate) fn normalize_separators(string: &str) -> String {
+    string.replace(
+        if MAIN_SEPARATOR == '/' { '\\' } else { '/' },
+        MAIN_SEPARATOR_STR,
     )
 }

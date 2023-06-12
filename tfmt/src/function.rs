@@ -105,7 +105,7 @@ fn function_split(
     };
 
     vec.get(index)
-        .map_or_else(|| "".to_string(), |s| (*s).to_string())
+        .map_or_else(String::new, |s| (*s).to_string())
 }
 
 fn function_validate(string: &str) -> String {
@@ -137,14 +137,14 @@ fn function_year_from_date(string: &str) -> String {
         .map(|re| re.captures(string))
         .find(std::option::Option::is_some)
         .flatten()
-        .map_or_else(|| "".to_string(), |c| c[1].to_string())
+        .map_or_else(String::new, |c| c[1].to_string())
 }
 
 fn function_andif(condition: &str, true_string: &str) -> String {
     if condition.is_empty() {
-        "".to_string()
+        String::new()
     } else {
-        format!("{}{}", condition, true_string)
+        format!("{condition}{true_string}")
     }
 }
 

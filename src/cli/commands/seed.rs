@@ -1,5 +1,6 @@
 use crate::cli::Config;
 use anyhow::{bail, Result};
+use std::fs;
 
 struct DefaultFile {
     name: &'static str,
@@ -31,7 +32,7 @@ pub(crate) fn seed(config: &Config) -> Result<()> {
     for file in &DEFAULT_FILES {
         let path = config.path().join(file.name);
 
-        std::fs::write(path, file.content)?;
+        fs::write(path, file.content)?;
         println!("Wrote default files to {}", config.path().display());
     }
 

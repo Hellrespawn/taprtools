@@ -1,8 +1,8 @@
 use crate::{HistoryError, Result};
 use log::trace;
 use serde::{Deserialize, Serialize};
-use std::fmt;
 use std::path::{Path, PathBuf};
+use std::{fmt, fs};
 
 /// Action is responsible for doing and undoing filesystem operations
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Hash)]
@@ -157,12 +157,12 @@ impl ActionType {
             }
 
             ActionType::MkDir(path) => {
-                std::fs::create_dir(path)?;
+                fs::create_dir(path)?;
                 trace!("Created directory {}", path.display());
             }
 
             ActionType::RmDir(path) => {
-                std::fs::remove_dir(path)?;
+                fs::remove_dir(path)?;
                 trace!("Removed directory {}", path.display());
             }
         }
@@ -183,13 +183,13 @@ impl ActionType {
             }
 
             ActionType::MkDir(path) => {
-                std::fs::remove_dir(path)?;
+                fs::remove_dir(path)?;
 
                 trace!("Undid directory {}", path.display());
             }
 
             ActionType::RmDir(path) => {
-                std::fs::create_dir(path)?;
+                fs::create_dir(path)?;
 
                 trace!("Recreated directory {}", path.display());
             }
@@ -198,7 +198,7 @@ impl ActionType {
     }
 
     fn copy_or_move_file(source: &Path, target: &Path) -> Result<()> {
-        if let Err(err) = std::fs::rename(&source, &target) {
+        if let Err(err) = fs::rename(source, target) {
             // Can't rename across filesystem boundaries. Checks for
             // the appropriate error and copies/deletes instead.
             // Error codes are correct on Windows 10 20H2 and Arch
@@ -213,8 +213,8 @@ impl ActionType {
                 let expected_error_code = 18;
 
                 if expected_error_code == error_code {
-                    std::fs::copy(&source, &target)?;
-                    std::fs::remove_file(&source)?;
+                    fs::copy(source, target)?;
+                    fs::remove_file(source)?;
                     return Ok(());
                 };
             }
@@ -319,7 +319,7 @@ mod tests {
 
         source.touch()?;
 
-        let mut mv = Action::mv(&source, &target);
+        let mut mv = Action::mv(&source, target);
 
         mv.apply()?;
 

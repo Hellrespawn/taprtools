@@ -1,5 +1,6 @@
 use crate::cli::ui;
 use anyhow::{bail, Result};
+use std::fs;
 use std::path::{Path, PathBuf};
 use tfmt::Script;
 
@@ -44,7 +45,7 @@ impl Config {
     {
         let mut found_paths = Vec::new();
 
-        if let Ok(iter) = std::fs::read_dir(path) {
+        if let Ok(iter) = fs::read_dir(path) {
             for entry in iter.flatten() {
                 let entry_path = entry.path();
 
@@ -85,7 +86,7 @@ impl Config {
         let mut scripts = Vec::new();
 
         for path in paths {
-            let input_text = std::fs::read_to_string(path)?;
+            let input_text = fs::read_to_string(path)?;
             scripts.push(Script::new(&input_text)?);
         }
 
@@ -115,7 +116,7 @@ impl Config {
 
     fn create_dir(path: &Path) -> Result<()> {
         if !path.exists() {
-            std::fs::create_dir(&path)?;
+            fs::create_dir(path)?;
         } else if !path.is_dir() {
             bail!("Unable to create configuration directory!")
         }

@@ -20,7 +20,7 @@ fn render_ast(dot: &str, name: &str) -> Result<()> {
         .stdin(Stdio::piped())
         .current_dir(cwd)
         .arg("-Tpng")
-        .args(&["-o", &name])
+        .args(["-o", &name])
         .spawn();
 
     if let Ok(mut child) = spawn_result {

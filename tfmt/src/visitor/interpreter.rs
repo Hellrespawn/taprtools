@@ -121,11 +121,11 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
     }
 
     fn visit_parameters(&mut self, _: &Parameters) -> Result<String> {
-        Ok("".to_string())
+        Ok(String::new())
     }
 
     fn visit_parameter(&mut self, _: &Parameter) -> Result<String> {
-        Ok("".to_string())
+        Ok(String::new())
     }
 
     fn visit_block(&mut self, block: &Block) -> Result<String> {
@@ -171,7 +171,7 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
                 if l.is_empty() {
                     r
                 } else {
-                    format!("{}{}", l, r)
+                    format!("{l}{r}")
                 }
             }
             TokenType::Ampersand => {
@@ -185,7 +185,7 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
                 if l.is_empty() {
                     l
                 } else {
-                    format!("{}{}", l, r)
+                    format!("{l}{r}")
                 }
             }
 
@@ -319,7 +319,7 @@ impl<'a> Visitor<Result<String>> for IntpVisitor<'a> {
 mod tests {
     use super::*;
     use anyhow::{bail, Result};
-    use std::path::MAIN_SEPARATOR;
+    use std::path::MAIN_SEPARATOR_STR;
 
     #[derive(Debug)]
     struct MockTags(HashMap<String, String>);
@@ -392,9 +392,7 @@ mod tests {
         include_str!("..\\..\\testdata\\typical_input.tfmt");
 
     fn normalize_separators(string: &str) -> String {
-        string
-            .replace('\\', &MAIN_SEPARATOR.to_string())
-            .replace('/', &MAIN_SEPARATOR.to_string())
+        string.replace(['\\', '/'], MAIN_SEPARATOR_STR)
     }
 
     #[test]
