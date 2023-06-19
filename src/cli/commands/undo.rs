@@ -23,14 +23,14 @@ pub(crate) fn undo(
 
     if preview {
         let pp = Config::PREVIEW_PREFIX;
-        println!("{}{} {} renames.", pp, mode_string, times);
+        println!("{pp}{mode_string} {times} renames.");
     } else {
         let action_counts = match mode {
             UndoMode::Undo => history.undo(times)?,
             UndoMode::Redo => history.redo(times)?,
         };
 
-        // TODO? some sort of rollback logic for undo/redo?
+        // TODO? some sort of rollback logic for errors during undo/redo?
         history.save()?;
 
         println!("{} {} renames:", mode_string, action_counts.len());

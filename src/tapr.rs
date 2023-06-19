@@ -72,7 +72,7 @@ impl Callable for TagsFunction {
             _ => "",
         };
 
-        Ok(if string.is_empty() { Value::Nil } else { string.into() })
+        Ok(if string.is_empty() { Value::Nil } else { string.trim().into() })
     }
 
     fn arity(&self) -> usize {

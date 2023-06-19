@@ -78,7 +78,7 @@ fn validate_existing_files(actions: &[Action]) -> Result<()> {
         .iter()
         .filter_map(|action| {
             let (_, target) = action.get_src_tgt_unchecked();
-            target.exists().then(|| target)
+            target.exists().then_some(target)
         })
         .collect();
 

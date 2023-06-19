@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
 #[derive(Parser, Debug, PartialEq)]
-#[clap(author, version, about, long_about = None)]
+#[clap(version, about, long_about = None)]
 
 /// Holds application-wide command line arguments.
 pub struct Args {

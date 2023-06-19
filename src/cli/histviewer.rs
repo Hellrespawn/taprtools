@@ -22,7 +22,7 @@ pub fn histviewer() -> Result<()> {
 
     let history = History::load(&config_dir, Config::HISTORY_NAME)?;
 
-    println!("{}", history);
+    println!("{history}");
 
     Ok(())
 }

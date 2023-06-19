@@ -1,49 +1,39 @@
 # taprtools
 
-## Modes of operations
+Uses [tapr](https://github.com/Hellrespawn/tapr)-scripts to rename audio files according to their tags.
 
-### Clear History
+## Requirements
 
-Requires:
+- Rust (MSRV: 1.70)
 
-- Preview
-- History File Location
-- History
+## Installation
 
-### List Scripts
+1. Ensure `cargo` and Cargo's `bin` folder are on your `PATH`.
+1. Clone the repository.
+1. Run `cargo install --path taprtools`.
 
-- Script File Location
+## Usage
 
-### Inspect Script
+```sh
+$ taprtools -h
 
-- Script File Location
-- Name of script
+taprtools 0.11.0
+Tag Processing Tools. Renames audio files according to their tags.
 
-### Undo/Redo
+USAGE:
+    tapr [OPTIONS] <SUBCOMMAND>
 
-- Preview
-- History File Location
-- History
-- \# steps to undo
+OPTIONS:
+    -c, --config <CONFIG>    Sets a custom config file
+    -h, --help               Print help information
+    -p, --preview            Only preview current action
+    -V, --version            Print version information
 
-### Rename files
-
-- Preview
-- Script File Location
-- History File Location
-- History
-- Name of script
-- Arguments of script
-
-## To-do
-
-- TODO Update `indicatif` to 0.17
-- TODO Use `camino` to read files
-- TODO Check if leftovers are images and offer to delete.
-
-- TODO? Trim trailing whitespace in tag? Update tag even?
-
-- TODO? Separate Move ActionType into CopyFile and RemoveFile?
-
-- TODO? Add more obscure tags?
-- TODO? Add strict mode, which allows/denies/errors on forbidden characters/directory separators.
+SUBCOMMANDS:
+    clear     Clears the history
+    help      Print this message or the help of the given subcommand(s)
+    list      Lists all scripts
+    redo      Redo {times} times
+    rename    Rename files according to their tags
+    undo      Undo {times} times
+```

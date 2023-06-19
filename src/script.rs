@@ -68,11 +68,28 @@ impl Script {
         self.node.accept(visitor)
     }
 
-    pub fn add_arguments_to_node(&mut self, arguments: &[String]) {
+    pub fn add_arguments_to_node(
+        &mut self,
+        arguments: &[String],
+    ) -> Result<()> {
+        if self.parameters.len() != arguments.len() {
+            bail!(
+                "Script expected {} args, received {}",
+                self.parameters.len(),
+                arguments.len()
+            )
+        }
+
         let NodeData::Main(main_nodes) = self.node.data_mut() else {
-            panic!();
+            panic!("Root node of script '{}' is not Node::main", self.name);
         };
 
+        main_nodes.push(Self::create_mock_node(arguments));
+
+        Ok(())
+    }
+
+    fn create_mock_node(arguments: &[String]) -> Node {
         let mut nodes = vec![Node::mock(NodeData::Symbol {
             module: None,
             value: "rename".to_owned(),
@@ -84,9 +101,9 @@ impl Script {
                 .map(|s| Node::mock(NodeData::String(s.clone()))),
         );
 
-        main_nodes.push(Node::mock(NodeData::List {
+        Node::mock(NodeData::List {
             literal: false,
             nodes,
-        }));
+        })
     }
 }

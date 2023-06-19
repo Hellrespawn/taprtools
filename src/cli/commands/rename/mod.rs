@@ -28,7 +28,7 @@ pub(crate) fn rename(
 
     let files = gather_files(recursion_depth)?;
 
-    script.add_arguments_to_node(arguments);
+    script.add_arguments_to_node(arguments)?;
 
     let actions = interpret_files(&script, files)?;
 
@@ -129,8 +129,6 @@ fn get_common_path(actions: &[Action]) -> PathBuf {
 }
 
 fn action_from_file(script: &Script, audiofile: AudioFile) -> Result<Action> {
-    let mut intp = Interpreter::default();
-
     let source = audiofile.path().to_owned();
 
     // We already know this is a file with either an "mp3" or "ogg"
@@ -139,13 +137,28 @@ fn action_from_file(script: &Script, audiofile: AudioFile) -> Result<Action> {
 
     let extension = audiofile.extension().to_owned();
 
+    let mut intp = create_interpreter(audiofile);
+    let string = run_interpreter(script, &mut intp)?;
+
+    let target = create_target_path_from_string(&string, &extension)?;
+
+    let action = Action::mv(source, target);
+
+    Ok(action)
+}
+
+fn create_interpreter(audiofile: AudioFile) -> Interpreter<'static> {
+    let mut intp = Interpreter::default();
+
     let env = get_tapr_environment(audiofile);
 
     intp.push_environment(env);
 
-    let value = script.accept(&mut intp)?;
+    intp
+}
 
-    //  TODO Remove invalid chars from segments
+fn run_interpreter(script: &Script, intp: &mut Interpreter) -> Result<String> {
+    let value = script.accept(intp)?;
 
     let Value::List(segments) = value else {
         bail!("Script did not return list of segments.")
@@ -165,12 +178,20 @@ fn action_from_file(script: &Script, audiofile: AudioFile) -> Result<Action> {
         .collect::<Result<Vec<_>>>()?
         .join(std::path::MAIN_SEPARATOR_STR);
 
+    Ok(string)
+}
+
+fn create_target_path_from_string(
+    string: &str,
+    extension: &str,
+) -> Result<PathBuf> {
     let target_path = PathBuf::from(format!("{string}.{extension}"));
+
+    // If target_path has an absolute path, join will clobber the current_dir,
+    // so this is always safe.
     let target = std::env::current_dir()?.join(target_path);
 
-    let action = Action::mv(source, target);
-
-    Ok(action)
+    Ok(target)
 }
 
 fn replace_invalid_chars(string: String) -> String {
@@ -269,7 +290,7 @@ fn clean_up_source_dirs(
 
     let pp = if preview { Config::PREVIEW_PREFIX } else { "" };
 
-    println!("{}Removed leftover folders.", pp);
+    println!("{pp}Removed leftover folders.");
 
     Ok(())
 }

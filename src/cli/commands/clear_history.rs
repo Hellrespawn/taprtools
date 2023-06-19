@@ -9,6 +9,6 @@ pub(crate) fn clear_history(preview: bool, config: &Config) -> Result<()> {
     }
 
     let pp = if preview { Config::PREVIEW_PREFIX } else { "" };
-    println!("{}Cleared history.", pp);
+    println!("{pp}Cleared history.");
     Ok(())
 }
