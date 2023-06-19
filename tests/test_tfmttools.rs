@@ -102,10 +102,14 @@ impl TestEnv {
             )?;
         }
 
-        self.assert_files_exist(&INITIAL_CONFIG_REFERENCE);
-        self.assert_files_exist(&INITIAL_FILE_REFERENCE);
-
-        // assert!(check_paths(self.path(), &INITIAL_REFERENCE).is_ok());
+        self.assert_files_exist(
+            &INITIAL_CONFIG_REFERENCE,
+            "assert initial config files exists",
+        );
+        self.assert_files_exist(
+            &INITIAL_FILE_REFERENCE,
+            "assert initial audio files exist",
+        );
 
         Ok(())
     }
@@ -126,8 +130,8 @@ impl TestEnv {
         self.path().join("files")
     }
 
-    fn assert_files_exist(&self, reference: &[String]) {
-        self.print_tempdir();
+    fn assert_files_exist(&self, reference: &[String], message: &str) {
+        self.print_tempdir(message);
 
         for path in reference {
             let child = self.tempdir.child(path);
@@ -135,8 +139,8 @@ impl TestEnv {
         }
     }
 
-    fn assert_files_missing(&self, reference: &[String]) {
-        self.print_tempdir();
+    fn assert_files_missing(&self, reference: &[String], message: &str) {
+        self.print_tempdir(message);
 
         for path in reference {
             let child = self.tempdir.child(path);
@@ -145,7 +149,7 @@ impl TestEnv {
         }
     }
 
-    fn print_tempdir(&self) {
+    fn print_tempdir(&self, message: &str) {
         fn inner(path: &Path, depth: usize) {
             for result in
                 std::fs::read_dir(path).expect("Unable to read tempdir.")
@@ -168,7 +172,7 @@ impl TestEnv {
             }
         }
 
-        println!("\n-- tempdir --");
+        println!("\n-- {message} --");
         inner(self.tempdir.path(), 4);
         println!("-----------\n");
     }
@@ -188,6 +192,8 @@ fn rename_typical_input(env: &TestEnv) {
         .current_dir(env.tempdir.path())
         .assert();
 
+    println!("{}", String::from_utf8_lossy(&assert.get_output().stdout));
+
     assert.success();
 }
 
@@ -203,6 +209,8 @@ fn undo(env: &TestEnv) {
         .current_dir(env.tempdir.path())
         .assert();
 
+    println!("{}", String::from_utf8_lossy(&assert.get_output().stdout));
+
     assert.success();
 }
 
@@ -217,6 +225,8 @@ fn redo(env: &TestEnv) {
         .arg("redo")
         .current_dir(env.tempdir.path())
         .assert();
+
+    println!("{}", String::from_utf8_lossy(&assert.get_output().stdout));
 
     assert.success();
 }
@@ -251,10 +261,18 @@ fn test_rename_simple_input() -> Result<()> {
                 .current_dir(env.tempdir.path())
                 .assert();
 
+            println!(
+                "{}",
+                String::from_utf8_lossy(&assert.get_output().stdout)
+            );
+
             assert.success();
 
-            env.assert_files_missing(&INITIAL_FILE_REFERENCE);
-            env.assert_files_exist(&reference);
+            env.assert_files_missing(
+                &INITIAL_FILE_REFERENCE,
+                "assert initial files are missing",
+            );
+            env.assert_files_exist(&reference, "assert reference files exist");
 
             Ok(())
         },
@@ -269,8 +287,14 @@ fn test_rename_typical_input() -> Result<()> {
         |env| {
             rename_typical_input(env);
 
-            env.assert_files_missing(&INITIAL_FILE_REFERENCE);
-            env.assert_files_exist(&TYPICAL_INPUT_REFERENCE);
+            env.assert_files_missing(
+                &INITIAL_FILE_REFERENCE,
+                "assert initial files are missing",
+            );
+            env.assert_files_exist(
+                &TYPICAL_INPUT_REFERENCE,
+                "assert reference files exist",
+            );
 
             Ok(())
         },
@@ -284,12 +308,24 @@ fn test_undo_typical_input() -> Result<()> {
         |_| Ok(()),
         |env| {
             rename_typical_input(env);
-            env.assert_files_missing(&INITIAL_FILE_REFERENCE);
-            env.assert_files_exist(&TYPICAL_INPUT_REFERENCE);
+            env.assert_files_missing(
+                &INITIAL_FILE_REFERENCE,
+                "assert initial files are missing",
+            );
+            env.assert_files_exist(
+                &TYPICAL_INPUT_REFERENCE,
+                "assert reference files exist",
+            );
 
             undo(env);
-            env.assert_files_exist(&INITIAL_FILE_REFERENCE);
-            env.assert_files_missing(&TYPICAL_INPUT_REFERENCE);
+            env.assert_files_exist(
+                &INITIAL_FILE_REFERENCE,
+                "assert initial files have returned",
+            );
+            env.assert_files_missing(
+                &TYPICAL_INPUT_REFERENCE,
+                "assert reference files are removed",
+            );
 
             Ok(())
         },
@@ -303,16 +339,34 @@ fn test_redo_typical_input() -> Result<()> {
         |_| Ok(()),
         |env| {
             rename_typical_input(env);
-            env.assert_files_missing(&INITIAL_FILE_REFERENCE);
-            env.assert_files_exist(&TYPICAL_INPUT_REFERENCE);
+            env.assert_files_missing(
+                &INITIAL_FILE_REFERENCE,
+                "assert initial files are missing",
+            );
+            env.assert_files_exist(
+                &TYPICAL_INPUT_REFERENCE,
+                "assert reference files exist",
+            );
 
             undo(env);
-            env.assert_files_exist(&INITIAL_FILE_REFERENCE);
-            env.assert_files_missing(&TYPICAL_INPUT_REFERENCE);
+            env.assert_files_exist(
+                &INITIAL_FILE_REFERENCE,
+                "assert initial files have returned",
+            );
+            env.assert_files_missing(
+                &TYPICAL_INPUT_REFERENCE,
+                "assert reference files are removed",
+            );
 
             redo(env);
-            env.assert_files_missing(&INITIAL_FILE_REFERENCE);
-            env.assert_files_exist(&TYPICAL_INPUT_REFERENCE);
+            env.assert_files_missing(
+                &INITIAL_FILE_REFERENCE,
+                "assert initial files are missing again",
+            );
+            env.assert_files_exist(
+                &TYPICAL_INPUT_REFERENCE,
+                "assert reference files are exist again",
+            );
 
             Ok(())
         },

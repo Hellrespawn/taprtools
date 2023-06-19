@@ -1,5 +1,1 @@
-simple_input() {
-    <artist> "/" <title>
-}
-
 (defn rename [] [(tags :artist) (tags :title)])
