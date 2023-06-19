@@ -1,3 +1,0 @@
-simple_input() {
-    <artist> "/" <title>
-}

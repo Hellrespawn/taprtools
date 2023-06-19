@@ -1,11 +1,13 @@
+#![allow(clippy::upper_case_acronyms)]
+use crate::tags::Tags;
 use anyhow::{anyhow, Result};
 use lofty::{ItemKey, Tag, TaggedFileExt};
 use std::path::{Path, PathBuf};
-use tfmt::Tags;
 
 pub(crate) struct AudioFile {
     path: PathBuf,
     tag: Tag,
+    extension: String,
 }
 
 impl std::fmt::Debug for AudioFile {
@@ -29,11 +31,21 @@ impl AudioFile {
             })?
             .clone();
 
-        Ok(AudioFile { path, tag })
+        let extension = path.extension().unwrap().to_string_lossy().to_string();
+
+        Ok(AudioFile {
+            path,
+            tag,
+            extension,
+        })
     }
 
     pub(crate) fn path(&self) -> &Path {
         &self.path
+    }
+
+    pub(crate) fn extension(&self) -> &str {
+        self.extension.as_ref()
     }
 }
 

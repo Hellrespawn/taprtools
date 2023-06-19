@@ -68,14 +68,15 @@ pub enum Command {
         arguments: Vec<String>,
     },
     #[clap(hide = true)]
-    /// Adds my personal sync.tfmt to the filesystem.
-    Seed,
-    /// Renders script {name} abstract syntax tree.
-    #[cfg(feature = "graphviz")]
-    #[clap(name = "render")]
-    RenderScript {
-        /// Name of script.
-        name: String,
+    /// Adds my personal sync.tapr to the filesystem.
+    Seed {
+        #[clap(short, long)]
+        /// Only preview current action.
+        preview: bool,
+
+        #[clap(short, long)]
+        /// Overwrite existing files.
+        force: bool,
     },
 }
 
@@ -92,8 +93,9 @@ impl Args {
                 Command::ClearHistory { preview, .. }
                 | Command::Undo { preview, .. }
                 | Command::Redo { preview, .. }
-                | Command::Rename { preview, .. } => preview,
-                _ => false,
+                | Command::Rename { preview, .. }
+                | Command::Seed { preview, .. } => preview,
+                Command::ListScripts => false,
             };
 
         self.preview = preview_aggregate;
@@ -102,8 +104,9 @@ impl Args {
             Command::ClearHistory { preview, .. }
             | Command::Undo { preview, .. }
             | Command::Redo { preview, .. }
-            | Command::Rename { preview, .. } => *preview = preview_aggregate,
-            _ => (),
+            | Command::Rename { preview, .. }
+            | Command::Seed { preview, .. } => *preview = preview_aggregate,
+            Command::ListScripts => (),
         };
 
         self
@@ -131,7 +134,7 @@ mod test {
 
     #[test]
     fn test_preview_aggregate() -> Result<()> {
-        let args_in = ["tfmttest clear -p", "tfmttest -p clear"];
+        let args_in = ["taprtest clear -p", "taprtest -p clear"];
 
         let args_out: Result<Vec<Args>> = args_in
             .iter()

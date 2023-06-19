@@ -1,4 +1,4 @@
-#![warn(missing_docs)]
+// #![warn(missing_docs)]
 #![warn(clippy::pedantic)]
 //#![warn(clippy::cargo)]
 //#![allow(clippy::must_use_candidate)]
@@ -13,3 +13,6 @@
 /// Controls the command line interface
 pub mod cli;
 mod file;
+mod script;
+mod tags;
+mod tapr;

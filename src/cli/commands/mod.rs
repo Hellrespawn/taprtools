@@ -1,7 +1,6 @@
 mod clear_history;
 mod list_scripts;
 mod rename;
-mod render_script;
 mod seed;
 mod undo;
 
@@ -10,6 +9,3 @@ pub(crate) use list_scripts::list_scripts;
 pub(crate) use rename::rename;
 pub(crate) use seed::seed;
 pub(crate) use undo::{undo, UndoMode};
-
-#[cfg(feature = "graphviz")]
-pub(crate) use render_script::render_script;

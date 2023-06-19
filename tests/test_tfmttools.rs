@@ -11,7 +11,7 @@ use test_harness::test_runner;
 const TEST_DATA_DIRECTORY: &str = "tests/testdata/";
 
 static INITIAL_CONFIG_REFERENCE: Lazy<Vec<String>> = Lazy::new(|| {
-    vec!["config/simple_input.tfmt", "config/typical_input.tfmt"]
+    vec!["config/simple_input.tapr", "config/typical_input.tapr"]
         .into_iter()
         .map(normalize_separators)
         .collect()
@@ -177,7 +177,7 @@ impl TestEnv {
 fn rename_typical_input(env: &TestEnv) {
     let config_dir = env.get_config_dir();
 
-    let mut cmd = Command::cargo_bin("tfmt").unwrap();
+    let mut cmd = Command::cargo_bin("tapr").unwrap();
 
     let assert = cmd
         .arg("--config")
@@ -194,7 +194,7 @@ fn rename_typical_input(env: &TestEnv) {
 fn undo(env: &TestEnv) {
     let config_dir = env.get_config_dir();
 
-    let mut cmd = Command::cargo_bin("tfmt").unwrap();
+    let mut cmd = Command::cargo_bin("tapr").unwrap();
 
     let assert = cmd
         .arg("--config")
@@ -209,7 +209,7 @@ fn undo(env: &TestEnv) {
 fn redo(env: &TestEnv) {
     let config_dir = env.get_config_dir();
 
-    let mut cmd = Command::cargo_bin("tfmt").unwrap();
+    let mut cmd = Command::cargo_bin("tapr").unwrap();
 
     let assert = cmd
         .arg("--config")
@@ -241,7 +241,7 @@ fn test_rename_simple_input() -> Result<()> {
         |env| {
             let config_dir = env.get_config_dir();
 
-            let mut cmd = Command::cargo_bin("tfmt").unwrap();
+            let mut cmd = Command::cargo_bin("tapr").unwrap();
 
             let assert = cmd
                 .arg("--config")

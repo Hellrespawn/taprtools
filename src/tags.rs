@@ -1,5 +1,5 @@
 /// Common functions for reading audio file tags.
-pub trait Tags: std::fmt::Debug {
+pub trait Tags: std::fmt::Debug + Send + Sync {
     /// The current `[AudioFile]`s album, if any.
     fn album(&self) -> Option<&str>;
 
@@ -18,12 +18,6 @@ pub trait Tags: std::fmt::Debug {
     /// The current `[AudioFile]`s title, if any.
     fn title(&self) -> Option<&str>;
 
-    /// The current `[AudioFile]`s raw disc number, if any.
-    fn raw_disc_number(&self) -> Option<&str>;
-
-    /// The current `[AudioFile]`s raw track number, if any.
-    fn raw_track_number(&self) -> Option<&str>;
-
     /// The current `[AudioFile]`s year, if any.
     fn year(&self) -> Option<&str>;
 
@@ -31,6 +25,32 @@ pub trait Tags: std::fmt::Debug {
     fn date(&self) -> Option<&str> {
         self.year()
     }
+
+    /// The current `[AudioFile]`s track number, if any.
+    fn track_number(&self) -> Option<&str> {
+        self.raw_track_number().map(|s| self.get_current(s))
+    }
+
+    /// The current `[AudioFile]`s disc number, if any.
+    fn disc_number(&self) -> Option<&str> {
+        self.raw_disc_number().map(|s| self.get_current(s))
+    }
+
+    /// The current `[AudioFile]`s total amount of tracks, if any.
+    fn total_track_number(&self) -> Option<&str> {
+        self.raw_track_number().and_then(|s| self.get_total(s))
+    }
+
+    /// The current `[AudioFile]`s total amount of discs, if any.
+    fn total_disc_number(&self) -> Option<&str> {
+        self.raw_disc_number().and_then(|s| self.get_total(s))
+    }
+
+    /// The current `[AudioFile]`s raw disc number, if any.
+    fn raw_disc_number(&self) -> Option<&str>;
+
+    /// The current `[AudioFile]`s raw track number, if any.
+    fn raw_track_number(&self) -> Option<&str>;
 
     /// Helper function that gets x from "x/y" or returns the string.
     fn get_current<'a>(&self, string: &'a str) -> &'a str {
@@ -48,25 +68,5 @@ pub trait Tags: std::fmt::Debug {
         } else {
             None
         }
-    }
-
-    /// The current `[AudioFile]`s total amount of tracks, if any.
-    fn total_track_number(&self) -> Option<&str> {
-        self.raw_track_number().and_then(|s| self.get_total(s))
-    }
-
-    /// The current `[AudioFile]`s track number, if any.
-    fn track_number(&self) -> Option<&str> {
-        self.raw_track_number().map(|s| self.get_current(s))
-    }
-
-    /// The current `[AudioFile]`s total amount of discs, if any.
-    fn total_disc_number(&self) -> Option<&str> {
-        self.raw_disc_number().and_then(|s| self.get_total(s))
-    }
-
-    /// The current `[AudioFile]`s disc number, if any.
-    fn disc_number(&self) -> Option<&str> {
-        self.raw_disc_number().map(|s| self.get_current(s))
     }
 }

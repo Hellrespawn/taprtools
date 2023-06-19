@@ -3,7 +3,7 @@ use crate::cli::commands::{self, UndoMode};
 use crate::cli::{ui, Args, Config};
 use anyhow::Result;
 
-/// Main entrypoint for tfmttools
+/// Main entrypoint for taprtools
 pub fn main(preview_override: bool) -> Result<()> {
     let args = crate::cli::args::parse_args(preview_override);
 
@@ -39,11 +39,8 @@ fn select_command(args: Args) -> Result<()> {
             arguments,
         } => commands::rename(preview, &config, recurse, &name, &arguments),
 
-        Command::Seed => commands::seed(&config),
-
-        #[cfg(feature = "graphviz")]
-        Command::RenderScript { name } => {
-            commands::render_script(&config, &name)
+        Command::Seed { preview, force } => {
+            commands::seed(preview, force, &config)
         }
     }
 }

@@ -2,14 +2,18 @@ mod validate;
 
 use crate::cli::{ui, Config};
 use crate::file::AudioFile;
-use anyhow::Result;
+use crate::script::Script;
+use crate::tapr::get_tapr_environment;
+use anyhow::{anyhow, bail, Result};
 use file_history::{Action, History, HistoryError};
 use indicatif::ProgressIterator;
-use std::ffi::OsString;
 use std::fs;
 use std::path::{Path, PathBuf};
-use tfmt::{Interpreter, Script, SymbolTable};
+use tapr::{Interpreter, Value};
 use validate::validate_actions;
+
+pub(crate) const FORBIDDEN_CHARACTERS: [char; 10] =
+    ['<', '>', ':', '\'', '|', '?', '*', '~', '/', '\\'];
 
 pub(crate) fn rename(
     preview: bool,
@@ -20,13 +24,13 @@ pub(crate) fn rename(
 ) -> Result<()> {
     let mut history = History::load(config.path(), Config::HISTORY_NAME)?;
 
-    let script = config.get_script(name)?;
-
-    let symbol_table = SymbolTable::new(&script, arguments)?;
+    let mut script = config.get_script(name)?;
 
     let files = gather_files(recursion_depth)?;
 
-    let actions = interpret_files(script, symbol_table, &files)?;
+    script.add_arguments_to_node(arguments);
+
+    let actions = interpret_files(&script, files)?;
 
     if actions.is_empty() {
         println!("There are no audio files to rename.");
@@ -79,12 +83,9 @@ fn gather_files(recursion_depth: usize) -> Result<Vec<AudioFile>> {
 }
 
 fn interpret_files(
-    script: Script,
-    symbol_table: SymbolTable,
-    files: &[AudioFile],
+    script: &Script,
+    files: Vec<AudioFile>,
 ) -> Result<Vec<Action>> {
-    let mut interpreter = Interpreter::new(script, symbol_table)?;
-
     let bar = ui::create_progressbar(
         files.len() as u64,
         "Interpreting files...",
@@ -93,9 +94,9 @@ fn interpret_files(
     );
 
     let actions: Result<Vec<Action>> = files
-        .iter()
+        .into_iter()
         .progress_with(bar)
-        .map(|audiofile| action_from_file(&mut interpreter, audiofile))
+        .map(|audiofile| action_from_file(script, audiofile))
         .collect();
 
     actions
@@ -127,28 +128,55 @@ fn get_common_path(actions: &[Action]) -> PathBuf {
     common_path
 }
 
-fn action_from_file(
-    interpreter: &mut Interpreter,
-    audiofile: &AudioFile,
-) -> Result<Action> {
-    let mut string: OsString = interpreter.interpret(audiofile)?.into();
+fn action_from_file(script: &Script, audiofile: AudioFile) -> Result<Action> {
+    let mut intp = Interpreter::default();
 
-    let source = audiofile.path();
+    let source = audiofile.path().to_owned();
 
     // We already know this is a file with either an "mp3" or "ogg"
     // extension, so we unwrap safely.
     debug_assert!(source.extension().is_some());
 
-    let extension = source.extension().unwrap();
+    let extension = audiofile.extension().to_owned();
 
-    string.push(".");
-    string.push(extension);
+    let env = get_tapr_environment(audiofile);
 
-    let target = std::env::current_dir()?.join(string);
+    intp.push_environment(env);
+
+    let value = script.accept(&mut intp)?;
+
+    //  TODO Remove invalid chars from segments
+
+    let Value::List(segments) = value else {
+        bail!("Script did not return list of segments.")
+    };
+
+    let string = segments
+        .into_iter()
+        .map(|v| {
+            if let Value::String(segment) = v {
+                Ok(replace_invalid_chars(segment))
+            } else {
+                Err(anyhow!(
+                    "List of segments contained values other than strings."
+                ))
+            }
+        })
+        .collect::<Result<Vec<_>>>()?
+        .join(std::path::MAIN_SEPARATOR_STR);
+
+    let target_path = PathBuf::from(format!("{string}.{extension}"));
+    let target = std::env::current_dir()?.join(target_path);
 
     let action = Action::mv(source, target);
 
     Ok(action)
+}
+
+fn replace_invalid_chars(string: String) -> String {
+    FORBIDDEN_CHARACTERS
+        .iter()
+        .fold(string, |string, char| string.replace(*char, ""))
 }
 
 fn partition_actions(actions: Vec<Action>) -> (Vec<Action>, Vec<Action>) {
@@ -318,8 +346,6 @@ mod tests {
         fs::create_dir(&test_folder)?;
         fs::write(test_file, "")?;
         let result = fs::remove_dir(test_folder);
-
-        dbg!(&result);
 
         if let Err(err) = result {
             if let Some(error_code) = err.raw_os_error() {

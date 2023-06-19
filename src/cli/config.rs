@@ -1,8 +1,8 @@
 use crate::cli::ui;
+use crate::script::Script;
 use anyhow::{bail, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
-use tfmt::Script;
 
 pub(crate) struct Config {
     path: PathBuf,
@@ -11,7 +11,7 @@ pub(crate) struct Config {
 impl Config {
     pub(crate) const HISTORY_NAME: &'static str = env!("CARGO_PKG_NAME");
     pub(crate) const PREVIEW_PREFIX: &'static str = "[P] ";
-    pub(crate) const SCRIPT_EXTENSION: &'static str = "tfmt";
+    pub(crate) const SCRIPT_EXTENSION: &'static str = "tapr";
 
     pub(crate) fn new(path: &Path) -> Result<Self> {
         let config = Self {
@@ -86,8 +86,7 @@ impl Config {
         let mut scripts = Vec::new();
 
         for path in paths {
-            let input_text = fs::read_to_string(path)?;
-            scripts.push(Script::new(&input_text)?);
+            scripts.push(Script::from_file(&path)?);
         }
 
         Ok(scripts)
