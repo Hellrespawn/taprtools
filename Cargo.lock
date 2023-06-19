@@ -1021,6 +1021,7 @@ dependencies = [
 [[package]]
 name = "tapr"
 version = "0.1.0"
+source = "git+https://github.com/Hellrespawn/tapr.git#b174fafdce90b2f5c6b5a5a923d2aac84d2b7050"
 dependencies = [
  "conv",
  "once_cell",

@@ -18,9 +18,9 @@ pub(crate) fn get_tapr_environment(audiofile: AudioFile) -> Environment {
     env.insert("tags".to_owned(), tag_function).unwrap();
 
     env.insert(
-        "align".to_owned(),
+        "zero-pad".to_owned(),
         NativeFunction::new(
-            "align",
+            "zero-pad",
             align,
             "width:number s:string".try_into().unwrap(),
         )
@@ -29,7 +29,7 @@ pub(crate) fn get_tapr_environment(audiofile: AudioFile) -> Environment {
     .unwrap();
 
     env.insert(
-        "parse-date".to_owned(),
+        "parse-tag-date".to_owned(),
         NativeFunction::new(
             "parse-date",
             parse_date,

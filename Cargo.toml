@@ -18,7 +18,7 @@ members = [
 [dependencies]
 buffered-iterator = {path = "./buffered-iterator"}
 file-history = {path = "./file-history"}
-tapr = {path = "../tapr"}
+tapr = { git = "https://github.com/Hellrespawn/tapr.git" }
 
 anyhow = "1.0"
 clap = {version = "3", features = ["derive", "wrap_help"]}

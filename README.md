@@ -14,6 +14,16 @@ Uses [tapr](https://github.com/Hellrespawn/tapr)-scripts to rename audio files a
 
 ## Usage
 
+Write a tapr-script that defines a function called `rename` in the outer scope. This function should return a list of strings. Nil needs to be filtered out manually.
+
+See also the "examples"-folder.
+
+### Added tapr functions
+
+- `tags [k:keyword]` - Returns a string with the contents of the specified tag, or nil.
+- `zero-pad [width:number s:string]` - Pads a string with zeroes to `width`.
+- `parse-tag-date [s:string]` - Retrieves the year from YYYY-MM-DD-formatted dates or just returns the year.
+
 ```sh
 $ taprtools -h
 
@@ -35,5 +45,6 @@ SUBCOMMANDS:
     list      Lists all scripts
     redo      Redo {times} times
     rename    Rename files according to their tags
+    seed      Adds examples to the filesystem
     undo      Undo {times} times
 ```

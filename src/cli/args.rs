@@ -67,8 +67,7 @@ pub enum Command {
         /// Arguments of script.
         arguments: Vec<String>,
     },
-    #[clap(hide = true)]
-    /// Adds my personal sync.tapr to the filesystem.
+    /// Adds examples to the filesystem.
     Seed {
         #[clap(short, long)]
         /// Only preview current action.
